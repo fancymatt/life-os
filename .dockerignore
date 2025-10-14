@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment Variables
+.env
+.env.*
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache and Output (will be mounted as volumes)
+cache/
+output/
+presets/
+uploads/
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+tests/
+pytest.ini
+
+# Example files
+examples/
+jenny.png
+judy.jpg
+shopping.webp
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Scripts
+scripts/
+
+# Workflows
+workflows/
