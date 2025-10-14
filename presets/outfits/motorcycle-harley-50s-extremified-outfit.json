@@ -1,0 +1,45 @@
+{
+  "clothing_items": [
+    {
+      "item": "leather motorcycle jacket",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "jet black",
+      "details": "studded moto jacket with fringe detailing, asymmetrical zip front, studded notched lapels, multiple embroidered patches, long sleeves with zippered cuffs, cropped length, slim fit"
+    },
+    {
+      "item": "leather vest",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "jet black",
+      "details": "fitted vest with button front closure, v-neckline, welt pockets, straight hem, slim fit"
+    },
+    {
+      "item": "turtleneck sweater",
+      "fabric": "fine-gauge merino wool",
+      "color": "jet black",
+      "details": "long-sleeved turtleneck sweater, slim fit, ribbed knit"
+    },
+    {
+      "item": "leather pants",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "jet black",
+      "details": "fitted leather pants, mid-rise, straight leg, zip fly with button closure, multiple pockets, slim fit"
+    },
+    {
+      "item": "leather boots",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "jet black",
+      "details": "ankle boots with buckle strap detail, low heel, rounded toe, side zip closure"
+    },
+    {
+      "item": "belt",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "jet black",
+      "details": "leather belt with silver buckle, multiple grommets"
+    }
+  ],
+  "style_genre": "motorcycle",
+  "formality": "casual",
+  "aesthetic": "edgy, rebellious, and bold",
+  "season": null,
+  "occasion": null
+}

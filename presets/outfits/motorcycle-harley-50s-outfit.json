@@ -1,0 +1,27 @@
+{
+  "clothing_items": [
+    {
+      "item": "biker jacket",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "distressed black with tarnished brass hardware",
+      "details": "asymmetrical zip front closure, notched lapel with snap details, zippered cuffs, two zippered hand pockets, belted waist, shoulder epaulettes, distressed finish with visible wear and creasing, slim fit"
+    },
+    {
+      "item": "crew neck t-shirt",
+      "fabric": "fine-gauge cotton jersey",
+      "color": "black",
+      "details": "short sleeves, straight hem, slim fit, clean finish"
+    },
+    {
+      "item": "skinny jeans",
+      "fabric": "stretch denim",
+      "color": "black",
+      "details": "high-waisted, slim fit through the leg, ankle length, classic five-pocket styling, zip fly with button closure, clean hem"
+    }
+  ],
+  "style_genre": "moto-inspired",
+  "formality": "casual",
+  "aesthetic": "edgy, urban, and effortlessly cool",
+  "season": null,
+  "occasion": null
+}

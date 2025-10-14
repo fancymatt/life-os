@@ -1,0 +1,108 @@
+# AI-Studio Model Configuration
+#
+# This file defines which models are used for each tool by default.
+# Models can be overridden per-run using command-line flags.
+
+# Default models for each tool
+defaults:
+  # Image Analysis Tools
+  outfit_analyzer: "gemini/gemini-2.0-flash-exp"
+  visual_style_analyzer: "gemini/gemini-2.0-flash-exp"
+  art_style_analyzer: "gemini/gemini-2.0-flash-exp"
+  hair_style_analyzer: "gemini/gemini-2.0-flash-exp"
+  hair_color_analyzer: "gemini/gemini-2.0-flash-exp"
+  makeup_analyzer: "gemini/gemini-2.0-flash-exp"
+  expression_analyzer: "gemini/gemini-2.0-flash-exp"
+  accessories_analyzer: "gemini/gemini-2.0-flash-exp"
+  comprehensive_analyzer: "gemini/gemini-2.0-flash-exp"
+  style_guide_analyzer: "gemini/gemini-2.0-flash-exp"
+
+  # Image Generation Tools (using Gemini 2.5 Flash with image generation)
+  outfit_generator: "gemini-2.5-flash-image"
+  style_transfer_generator: "gemini-2.5-flash-image"
+  modular_image_generator: "gemini-2.5-flash-image"
+  art_style_generator: "gemini-2.5-flash-image"
+  style_guide_generator: "gemini-2.5-flash-image"
+  combined_transformation: "gemini-2.5-flash-image"
+
+  # Video Tools
+  video_prompt_enhancer: "gpt-4o"
+  sora_video_generator: "sora-2-pro"
+
+  # General defaults
+  timeout: 180
+  retries: 3
+  temperature: 0.7
+
+# Environment-specific overrides
+overrides:
+  development:
+    # Use faster/cheaper models in development
+    outfit_analyzer: "gemini-1.5-flash"
+    visual_style_analyzer: "gemini-1.5-flash"
+    art_style_analyzer: "gemini-1.5-flash"
+    video_prompt_enhancer: "gpt-4o-mini"
+    sora_video_generator: "sora-2"
+
+  production:
+    # Use best models in production
+    video_prompt_enhancer: "gpt-5"
+    sora_video_generator: "sora-2-pro"
+
+  experimental:
+    # Try experimental models
+    outfit_analyzer: "gemini-2.0-flash-exp"
+    video_prompt_enhancer: "gpt-5"
+
+# LiteLLM routing configuration
+routing:
+  # Timeout for API calls (seconds)
+  timeout: 180
+
+  # Number of retries on failure
+  retries: 3
+
+  # Fallback models if primary fails
+  fallback_models:
+    - "gemini/gemini-2.0-flash-exp"
+    - "claude-3-5-sonnet"
+    - "gpt-4o"
+
+  # Rate limiting (requests per second)
+  rate_limit:
+    gemini: 2.0
+    openai: 2.0
+    anthropic: 2.0
+
+# Model aliases (for convenience)
+aliases:
+  gemini: "gemini/gemini-2.0-flash-exp"
+  gpt: "gpt-4o"
+  claude: "claude-3-5-sonnet"
+  sora: "sora-2-pro"
+
+# Cost tracking (approximate USD per 1M tokens)
+cost_estimates:
+  input:
+    gemini-2.0-flash: 0.15
+    gemini-1.5-flash: 0.075
+    gpt-4o: 2.50
+    gpt-4o-mini: 0.15
+    claude-3-5-sonnet: 3.00
+  output:
+    gemini-2.0-flash: 0.60
+    gemini-1.5-flash: 0.30
+    gpt-4o: 10.00
+    gpt-4o-mini: 0.60
+    claude-3-5-sonnet: 15.00
+
+# Image generation costs (per image)
+image_costs:
+  gemini-2.5-flash-image: 0.04  # Image generation
+  dall-e-3: 0.04
+  dall-e-2: 0.02
+
+# Video generation costs (per second)
+video_costs:
+  sora-2: 0.125
+  sora-2-pro: 0.50

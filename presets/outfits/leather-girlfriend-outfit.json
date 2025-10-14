@@ -1,0 +1,27 @@
+{
+  "clothing_items": [
+    {
+      "item": "brown leather jacket",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "dark brown",
+      "details": "classic collar, zip-front closure, long sleeves with buttoned cuffs, two flap pockets at the waist, straight hem, relaxed fit"
+    },
+    {
+      "item": "printed knit top",
+      "fabric": "fine-gauge cotton knit",
+      "color": "white with black print",
+      "details": "crew neck, short sleeves, all-over small scale print, fitted silhouette"
+    },
+    {
+      "item": "denim mini skirt",
+      "fabric": "heavyweight denim",
+      "color": "charcoal gray",
+      "details": "high-waisted, five-pocket style, frayed hem, A-line silhouette, zip fly with button closure"
+    }
+  ],
+  "style_genre": "casual",
+  "formality": "casual",
+  "aesthetic": "vintage-inspired, relaxed",
+  "season": null,
+  "occasion": null
+}

@@ -1,0 +1,4 @@
+# Cache directory - do not commit cache files
+*
+!.gitignore
+!README.md

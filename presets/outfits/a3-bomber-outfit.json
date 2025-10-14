@@ -1,0 +1,27 @@
+{
+  "clothing_items": [
+    {
+      "item": "bomber jacket",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance; fur collar",
+      "color": "dark brown with tan fur collar",
+      "details": "heavy leather bomber jacket with a fur collar, zip front closure, ribbed knit cuffs and hem, flap pockets at the waist, and a zip pocket on the left sleeve; the jacket has a worn-in, vintage appearance"
+    },
+    {
+      "item": "t-shirt",
+      "fabric": "cotton jersey",
+      "color": "light gray",
+      "details": "crew neck t-shirt with a relaxed fit and short sleeves"
+    },
+    {
+      "item": "jeans",
+      "fabric": "heavyweight denim",
+      "color": "dark blue",
+      "details": "straight leg jeans with a mid-rise waist, five-pocket styling, and a classic denim wash"
+    }
+  ],
+  "style_genre": "vintage casual",
+  "formality": "casual",
+  "aesthetic": "classic, rugged, and timeless with a focus on quality materials and comfortable fit",
+  "season": null,
+  "occasion": null
+}
