@@ -14,7 +14,7 @@ from api.config import settings
 from api.logging_config import setup_logging
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs
+from api.routes import discovery, analyzers, generators, presets, jobs, auth
 
 # Initialize logging
 setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
@@ -43,6 +43,12 @@ app.add_middleware(
 # Log CORS configuration on startup
 print(f"✅ CORS configured for origins: {settings.cors_origins}")
 
+# Log authentication status
+if settings.require_authentication:
+    print(f"🔒 Authentication: REQUIRED (JWT)")
+else:
+    print(f"⚠️  Authentication: DISABLED (development mode)")
+
 # Serve static files (generated images, uploads)
 try:
     app.mount("/output", StaticFiles(directory=str(settings.output_dir)), name="output")
@@ -52,6 +58,7 @@ except RuntimeError:
     pass
 
 # Include routers
+app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 app.include_router(discovery.router, tags=["discovery"])
 app.include_router(analyzers.router, prefix="/analyze", tags=["analyzers"])
 app.include_router(generators.router, prefix="/generate", tags=["generators"])

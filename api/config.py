@@ -90,6 +90,13 @@ class Settings(BaseSettings):
     job_storage_backend: str = os.getenv("JOB_STORAGE_BACKEND", "redis")  # "redis" or "memory"
     redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
+    # Authentication Configuration
+    jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "CHANGE_THIS_IN_PRODUCTION_USE_STRONG_SECRET")
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60 * 24  # 24 hours
+    jwt_refresh_token_expire_days: int = 30  # 30 days
+    require_authentication: bool = os.getenv("REQUIRE_AUTH", "true").lower() == "true"
+
     # Background Jobs (if using Celery)
     celery_broker_url: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
     celery_result_backend: str = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")

@@ -8,14 +8,16 @@ import time
 import tempfile
 import base64
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Query
-from typing import List
+from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Query, Depends
+from typing import List, Optional
 
 from api.models.requests import AnalyzeRequest
 from api.models.responses import AnalyzeResponse, ToolInfo
 from api.models.jobs import JobType
+from api.models.auth import User
 from api.services import AnalyzerService
 from api.services.job_queue import get_job_queue_manager
+from api.dependencies.auth import get_current_active_user
 from api.config import settings
 
 router = APIRouter()
@@ -91,7 +93,8 @@ async def analyze_image(
     analyzer_name: str,
     request: AnalyzeRequest,
     background_tasks: BackgroundTasks,
-    async_mode: bool = Query(False, description="Run analysis in background and return job_id")
+    async_mode: bool = Query(False, description="Run analysis in background and return job_id"),
+    current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
     Analyze an image with a specific analyzer

@@ -36,6 +36,7 @@ output/
 presets/
 uploads/
 logs/
+users.json
 
 # Documentation
 *.md

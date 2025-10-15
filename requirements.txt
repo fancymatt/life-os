@@ -27,6 +27,12 @@ httpx>=0.25.0
 # Job Queue Storage
 redis>=5.0.0
 
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+passlib>=1.7.4
+bcrypt==3.2.2
+email-validator>=2.0.0
+
 # CLI
 click>=8.1.0
 rich>=13.0.0
