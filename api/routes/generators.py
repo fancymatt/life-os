@@ -72,35 +72,59 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
         kwargs["accessories"] = request.accessories
 
     # Define background task
-    def generate_variations():
-        """Generate all requested variations"""
-        try:
-            task.set_in_progress("Starting generation...")
-            generator = ModularImageGenerator()
-            file_paths = []
+    async def generate_variations():
+        """Generate all requested variations with resilient error handling (async)"""
+        task.set_in_progress("Starting generation...")
+        generator = ModularImageGenerator()
+        successful_paths = []
+        failed_items = []
 
-            for i in range(request.variations):
+        for i in range(request.variations):
+            try:
                 task.update(
                     current=i,
                     message=f"Generating variation {i + 1}/{request.variations}..."
                 )
                 print(f"🎨 Generating variation {i + 1}/{request.variations}...")
 
-                result = generator.generate(**kwargs)
-                file_paths.append(str(result.file_path))
+                result = await generator.agenerate(**kwargs)
+                successful_paths.append(str(result.file_path))
                 print(f"✅ Variation {i + 1} complete: {result.file_path}")
 
-            # Mark as completed
+            except Exception as e:
+                # Log the error but continue with remaining variations
+                error_msg = str(e)
+                failed_items.append({
+                    "variation": i + 1,
+                    "error": error_msg
+                })
+                print(f"⚠️ Variation {i + 1} failed: {error_msg}")
+                print(f"   Continuing with remaining variations...")
+
+        # Determine final status
+        if len(successful_paths) == 0:
+            # All variations failed
+            error_summary = f"All {request.variations} variations failed. Errors: " + "; ".join([f"Variation {item['variation']}: {item['error']}" for item in failed_items])
+            task.set_failed(error_summary)
+            print(f"❌ All variations failed")
+        elif len(failed_items) == 0:
+            # All variations succeeded
             task.set_completed(
-                result={"file_paths": file_paths},
-                message=f"Generated {request.variations} variation(s) successfully"
+                result={"file_paths": successful_paths},
+                message=f"Generated {len(successful_paths)} variation(s) successfully"
             )
             print(f"🎉 All {request.variations} variation(s) generated successfully!")
-
-        except Exception as e:
-            error_msg = str(e)
-            task.set_failed(error_msg)
-            print(f"⚠️ Modular generation failed: {e}")
+        else:
+            # Partial success
+            task.set_completed(
+                result={
+                    "file_paths": successful_paths,
+                    "failed": failed_items,
+                    "summary": f"{len(successful_paths)}/{request.variations} succeeded, {len(failed_items)} failed"
+                },
+                message=f"Generated {len(successful_paths)}/{request.variations} variations ({len(failed_items)} failed)"
+            )
+            print(f"⚠️ Partial success: {len(successful_paths)} succeeded, {len(failed_items)} failed")
 
     # Start generation in background
     background_tasks.add_task(generate_variations)

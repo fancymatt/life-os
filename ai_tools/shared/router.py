@@ -406,13 +406,45 @@ class LLMRouter:
 
             # Make the request
             response = requests.post(url, headers=headers, json=payload, timeout=180)
-            response.raise_for_status()
 
+            # Parse response before checking status
             result = response.json()
 
-            # Extract generated image from response
+            # Check for Gemini API errors (content filtering, etc.)
+            if response.status_code != 200:
+                error_message = "Unknown error"
+
+                # Extract error details from Gemini response
+                if "error" in result:
+                    error_info = result["error"]
+                    if isinstance(error_info, dict):
+                        error_message = error_info.get("message", str(error_info))
+                    else:
+                        error_message = str(error_info)
+
+                raise Exception(f"Gemini API error: {error_message}")
+
+            # Check for content filtering / safety blocks
             if "candidates" in result and len(result["candidates"]) > 0:
                 candidate = result["candidates"][0]
+
+                # Check finish reason for blocks
+                finish_reason = candidate.get("finishReason", "")
+                if finish_reason in ["SAFETY", "BLOCKED_REASON", "CONTENT_FILTER"]:
+                    # Get safety ratings for more context
+                    safety_ratings = candidate.get("safetyRatings", [])
+                    blocked_categories = [
+                        rating["category"] for rating in safety_ratings
+                        if rating.get("blocked", False)
+                    ]
+
+                    if blocked_categories:
+                        categories_str = ", ".join(blocked_categories)
+                        raise Exception(f"Content filtered by Gemini safety systems. Blocked categories: {categories_str}")
+                    else:
+                        raise Exception(f"Content filtered by Gemini safety systems (reason: {finish_reason})")
+
+                # Extract image data
                 if "content" in candidate and "parts" in candidate["content"]:
                     for part in candidate["content"]["parts"]:
                         if "inlineData" in part:
@@ -420,7 +452,134 @@ class LLMRouter:
                             image_data = part["inlineData"]["data"]
                             return base64.b64decode(image_data)
 
-            raise Exception("No image found in Gemini response")
+            # If we get here, no image was found but no clear error either
+            raise Exception(f"No image in Gemini response. API returned: {result.get('candidates', [{}])[0].get('finishReason', 'unknown reason')}")
+
+        except Exception as e:
+            raise Exception(f"Gemini image generation failed: {e}")
+
+    async def agenerate_image_with_gemini(
+        self,
+        prompt: str,
+        image_path: Union[str, Path],
+        model: str = "gemini-2.5-flash-image",
+        temperature: float = 0.8,
+        **kwargs
+    ) -> bytes:
+        """
+        Async version: Generate an image using Gemini's native image generation
+
+        Args:
+            prompt: Text prompt for image generation
+            image_path: Source image path (for subject preservation)
+            model: Gemini model to use
+            temperature: Generation temperature (0.0-1.0)
+            **kwargs: Additional arguments
+
+        Returns:
+            Image bytes (PNG/JPEG format)
+        """
+        try:
+            import httpx
+
+            # Encode the image
+            base64_image = self.encode_image(image_path)
+
+            # Determine mime type
+            image_path = Path(image_path)
+            ext = image_path.suffix.lower()
+            mime_type = {
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.png': 'image/png',
+                '.webp': 'image/webp',
+                '.gif': 'image/gif'
+            }.get(ext, 'image/jpeg')
+
+            # Build the request for Gemini API
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY not found in environment")
+
+            # Use Gemini's REST API for generation
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
+            headers = {
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "contents": [{
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": base64_image
+                            }
+                        },
+                        {
+                            "text": prompt
+                        }
+                    ]
+                }],
+                "generationConfig": {
+                    "temperature": temperature,
+                    "topK": 40,
+                    "topP": 0.95
+                }
+            }
+
+            # Make async request
+            async with httpx.AsyncClient(timeout=180.0) as client:
+                response = await client.post(url, headers=headers, json=payload)
+
+            # Parse response
+            result = response.json()
+
+            # Check for Gemini API errors (content filtering, etc.)
+            if response.status_code != 200:
+                error_message = "Unknown error"
+
+                # Extract error details from Gemini response
+                if "error" in result:
+                    error_info = result["error"]
+                    if isinstance(error_info, dict):
+                        error_message = error_info.get("message", str(error_info))
+                    else:
+                        error_message = str(error_info)
+
+                raise Exception(f"Gemini API error: {error_message}")
+
+            # Check for content filtering / safety blocks
+            if "candidates" in result and len(result["candidates"]) > 0:
+                candidate = result["candidates"][0]
+
+                # Check finish reason for blocks
+                finish_reason = candidate.get("finishReason", "")
+                if finish_reason in ["SAFETY", "BLOCKED_REASON", "CONTENT_FILTER"]:
+                    # Get safety ratings for more context
+                    safety_ratings = candidate.get("safetyRatings", [])
+                    blocked_categories = [
+                        rating["category"] for rating in safety_ratings
+                        if rating.get("blocked", False)
+                    ]
+
+                    if blocked_categories:
+                        categories_str = ", ".join(blocked_categories)
+                        raise Exception(f"Content filtered by Gemini safety systems. Blocked categories: {categories_str}")
+                    else:
+                        raise Exception(f"Content filtered by Gemini safety systems (reason: {finish_reason})")
+
+                # Extract image data
+                if "content" in candidate and "parts" in candidate["content"]:
+                    for part in candidate["content"]["parts"]:
+                        if "inlineData" in part:
+                            # Decode base64 image
+                            image_data = part["inlineData"]["data"]
+                            return base64.b64decode(image_data)
+
+            # If we get here, no image was found but no clear error either
+            raise Exception(f"No image in Gemini response. API returned: {result.get('candidates', [{}])[0].get('finishReason', 'unknown reason')}")
 
         except Exception as e:
             raise Exception(f"Gemini image generation failed: {e}")
@@ -480,6 +639,73 @@ class LLMRouter:
 
             except Exception as e:
                 raise Exception(f"DALL-E generation failed: {e}")
+        else:
+            raise ValueError(f"Unsupported provider: {provider}")
+
+    async def agenerate_image(
+        self,
+        prompt: str,
+        image_path: Optional[Union[str, Path]] = None,
+        model: str = "gemini-2.5-flash-image",
+        provider: str = "gemini",
+        size: str = "1024x1792",
+        quality: str = "standard",
+        temperature: float = 0.8,
+        **kwargs
+    ) -> bytes:
+        """
+        Async version: Generate an image using various providers
+
+        Args:
+            prompt: Text prompt for image generation
+            image_path: Source image (required for Gemini, optional for DALL-E)
+            model: Model to use
+            provider: Provider ("gemini" or "dalle")
+            size: Image size (DALL-E only)
+            quality: Image quality (DALL-E only)
+            temperature: Generation temperature (Gemini only)
+            **kwargs: Additional arguments
+
+        Returns:
+            Image bytes (PNG/JPEG format)
+        """
+        if provider == "gemini" or model.startswith("gemini"):
+            if not image_path:
+                raise ValueError("image_path is required for Gemini image generation")
+            return await self.agenerate_image_with_gemini(prompt, image_path, model, temperature, **kwargs)
+        elif provider == "dalle" or model.startswith("dall-e"):
+            # DALL-E fallback (using sync OpenAI SDK in thread pool)
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor
+
+            def _generate_dalle():
+                try:
+                    from openai import OpenAI
+                    import requests
+
+                    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+                    response = client.images.generate(
+                        model=model,
+                        prompt=prompt,
+                        size=size,
+                        quality=quality,
+                        n=1
+                    )
+
+                    image_url = response.data[0].url
+                    image_response = requests.get(image_url, timeout=60)
+                    image_response.raise_for_status()
+
+                    return image_response.content
+
+                except Exception as e:
+                    raise Exception(f"DALL-E generation failed: {e}")
+
+            # Run sync DALL-E code in thread pool
+            loop = asyncio.get_event_loop()
+            with ThreadPoolExecutor() as pool:
+                return await loop.run_in_executor(pool, _generate_dalle)
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 

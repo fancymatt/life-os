@@ -15,6 +15,9 @@ openai>=1.0.0
 # Image processing
 pillow>=10.0.0
 
+# Async file I/O
+aiofiles>=23.0.0
+
 # Template rendering
 jinja2>=3.1.0
 

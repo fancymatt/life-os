@@ -44,6 +44,7 @@ services:
       - ./presets:/app/presets           # Preset storage (persistent)
       - ./output:/app/output             # Generated images (persistent)
       - ./logs:/app/logs                 # Application logs (persistent)
+      - ./data:/app/data                 # User accounts and persistent data
 
       # Optional volumes
       - ./cache:/app/cache               # Cache (can be ephemeral)

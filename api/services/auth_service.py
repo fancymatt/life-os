@@ -20,7 +20,10 @@ class AuthService:
 
     def __init__(self):
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        self.users_file = settings.base_dir / "users.json"
+        # Store users in persistent data directory
+        data_dir = settings.base_dir / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        self.users_file = data_dir / "users.json"
         self._ensure_users_file()
 
     def _ensure_users_file(self):

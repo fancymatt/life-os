@@ -373,6 +373,142 @@ class ModularImageGenerator:
 
         return "\n\n".join(sections)
 
+    async def agenerate(
+        self,
+        subject_image: Union[Path, str],
+        outfit: Optional[Union[str, list, OutfitSpec]] = None,
+        visual_style: Optional[Union[str, VisualStyleSpec]] = None,
+        art_style: Optional[Union[str, ArtStyleSpec]] = None,
+        hair_style: Optional[Union[str, HairStyleSpec]] = None,
+        hair_color: Optional[Union[str, HairColorSpec]] = None,
+        makeup: Optional[Union[str, MakeupSpec]] = None,
+        expression: Optional[Union[str, ExpressionSpec]] = None,
+        accessories: Optional[Union[str, AccessoriesSpec]] = None,
+        output_dir: str = "output/generated",
+        temperature: float = 0.8
+    ) -> ImageGenerationResult:
+        """
+        Async version: Generate image with modular specs
+
+        Args:
+            subject_image: Source image path
+            outfit: Outfit preset name, list of preset names, or OutfitSpec
+            visual_style: Visual style preset name or VisualStyleSpec
+            art_style: Art style preset name or ArtStyleSpec
+            hair_style: Hair style preset name or HairStyleSpec
+            hair_color: Hair color preset name or HairColorSpec
+            makeup: Makeup preset name or MakeupSpec
+            expression: Expression preset name or ExpressionSpec
+            accessories: Accessories preset name or AccessoriesSpec
+            output_dir: Output directory
+            temperature: Generation temperature
+
+        Returns:
+            ImageGenerationResult
+        """
+        import aiofiles
+
+        subject_image = Path(subject_image)
+
+        if not subject_image.exists():
+            raise FileNotFoundError(f"Subject image not found: {subject_image}")
+
+        print(f"\n{'='*70}")
+        print("MODULAR IMAGE GENERATION (ASYNC)")
+        print(f"{'='*70}\n")
+        print(f"Subject: {subject_image.name}")
+
+        # Debug: Check what we received
+        print(f"🔍 DEBUG: outfit parameter type: {type(outfit)}, value: {outfit}")
+
+        # Load specs from presets if needed
+        # Special handling for outfit - can be a list of IDs
+        if isinstance(outfit, list):
+            print(f"📦 Loading {len(outfit)} outfits for amalgamation...")
+            outfit_specs = []
+            for outfit_id in outfit:
+                spec = self._load_spec(outfit_id, "outfits", OutfitSpec, "Outfit")
+                if spec:
+                    outfit_specs.append(spec)
+            outfit_spec = self._merge_outfits(outfit_specs) if outfit_specs else None
+        else:
+            outfit_spec = self._load_spec(outfit, "outfits", OutfitSpec, "Outfit")
+
+        visual_style_spec = self._load_spec(visual_style, "visual_styles", VisualStyleSpec, "Visual Style")
+        art_style_spec = self._load_spec(art_style, "art_styles", ArtStyleSpec, "Art Style")
+        hair_style_spec = self._load_spec(hair_style, "hair_styles", HairStyleSpec, "Hair Style")
+        hair_color_spec = self._load_spec(hair_color, "hair_colors", HairColorSpec, "Hair Color")
+        makeup_spec = self._load_spec(makeup, "makeup", MakeupSpec, "Makeup")
+        expression_spec = self._load_spec(expression, "expressions", ExpressionSpec, "Expression")
+        accessories_spec = self._load_spec(accessories, "accessories", AccessoriesSpec, "Accessories")
+
+        # Build prompt from specs
+        prompt = self._build_prompt(
+            outfit_spec,
+            visual_style_spec,
+            art_style_spec,
+            hair_style_spec,
+            hair_color_spec,
+            makeup_spec,
+            expression_spec,
+            accessories_spec
+        )
+
+        print(f"\n🎨 Generating image with Gemini 2.5 Flash (async)...")
+        print(f"   Temperature: {temperature}")
+
+        # Generate image (async)
+        start_time = datetime.now()
+
+        image_bytes = await self.router.agenerate_image(
+            prompt=prompt,
+            image_path=subject_image,
+            model=self.router.model,
+            provider="gemini",
+            temperature=temperature
+        )
+
+        generation_time = (datetime.now() - start_time).total_seconds()
+
+        # Save image
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{subject_image.stem}_modular_{timestamp}.png"
+        file_path = output_path / filename
+
+        # Use aiofiles for async file writing
+        async with aiofiles.open(file_path, 'wb') as f:
+            await f.write(image_bytes)
+
+        print(f"\n✅ Generated: {file_path}")
+        print(f"   Time: {generation_time:.1f}s")
+        print(f"   Cost: ~$0.04")
+
+        # Create result
+        request = ImageGenerationRequest(
+            subject_image=str(subject_image),
+            outfit=outfit_spec,
+            visual_style=visual_style_spec,
+            hair_style=hair_style_spec,
+            hair_color=hair_color_spec,
+            makeup=makeup_spec,
+            expression=expression_spec,
+            accessories=accessories_spec
+        )
+
+        result = ImageGenerationResult(
+            file_path=str(file_path),
+            request=request,
+            model_used=self.router.model,
+            timestamp=datetime.now(),
+            cost_estimate=0.04,
+            generation_time=generation_time
+        )
+
+        return result
+
 
 def main():
     """CLI interface"""
