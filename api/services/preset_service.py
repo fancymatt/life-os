@@ -5,6 +5,7 @@ Manages preset CRUD operations.
 
 import json
 import sys
+import time
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -26,6 +27,11 @@ from ai_capabilities.specs import (
     AccessoriesSpec
 )
 from api.config import settings
+from api.logging_config import (
+    log_background_task_start,
+    log_background_task_success,
+    log_background_task_error
+)
 
 
 class PresetService:
@@ -97,6 +103,41 @@ class PresetService:
         except Exception as e:
             # Don't fail the whole operation if visualization fails
             print(f"⚠️  Preview generation failed: {e}")
+
+    def _generate_preview_safe(self, category: str, preset_id: str, data: Dict[str, Any]):
+        """
+        Safe wrapper for preview generation with comprehensive error logging
+
+        Args:
+            category: Category name
+            preset_id: Preset UUID
+            data: Preset data dict
+        """
+        task_name = "preview_generation"
+        start_time = time.time()
+
+        log_background_task_start(
+            task_name,
+            category=category,
+            preset_id=preset_id
+        )
+
+        try:
+            self._generate_preview(category, preset_id, data)
+            duration_ms = (time.time() - start_time) * 1000
+            log_background_task_success(
+                task_name,
+                duration_ms=duration_ms,
+                category=category,
+                preset_id=preset_id
+            )
+        except Exception as e:
+            log_background_task_error(
+                task_name,
+                error=e,
+                category=category,
+                preset_id=preset_id
+            )
 
     def list_categories(self) -> List[str]:
         """List all preset categories"""
@@ -207,7 +248,7 @@ class PresetService:
         if background_tasks is not None:
             # Run visualization in background
             background_tasks.add_task(
-                self._generate_preview,
+                self._generate_preview_safe,
                 category,
                 preset_id,
                 data
@@ -290,7 +331,7 @@ class PresetService:
             if background_tasks is not None:
                 # Run visualization in background
                 background_tasks.add_task(
-                    self._generate_preview,
+                    self._generate_preview_safe,
                     category,
                     preset_id,
                     existing_data

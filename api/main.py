@@ -11,9 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
 from api.config import settings
+from api.logging_config import setup_logging
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
 from api.routes import discovery, analyzers, generators, presets, jobs
+
+# Initialize logging
+setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
 
 # Create FastAPI app
 app = FastAPI(

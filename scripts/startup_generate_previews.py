@@ -11,6 +11,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.services.preset_service import PresetService
+from api.logging_config import (
+    log_background_task_start,
+    log_background_task_success,
+    log_background_task_error
+)
 
 def main():
     """Generate missing previews on startup"""
