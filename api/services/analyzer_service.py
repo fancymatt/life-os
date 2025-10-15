@@ -95,23 +95,38 @@ class AnalyzerService:
         """Initialize analyzer service"""
         self._analyzer_instances = {}
 
-    def _get_analyzer(self, analyzer_name: str):
-        """Get or create analyzer instance"""
-        if analyzer_name not in self._analyzer_instances:
+    def _get_analyzer(self, analyzer_name: str, auto_visualize: bool = False):
+        """
+        Get or create analyzer instance
+
+        Args:
+            analyzer_name: Name of the analyzer
+            auto_visualize: Whether to enable auto-visualization (default: False for API usage)
+        """
+        # Use a cache key that includes auto_visualize setting
+        cache_key = f"{analyzer_name}_{auto_visualize}"
+
+        if cache_key not in self._analyzer_instances:
             if analyzer_name not in self.ANALYZERS:
                 raise ValueError(f"Unknown analyzer: {analyzer_name}")
 
             analyzer_class = self.ANALYZERS[analyzer_name]["class"]
-            self._analyzer_instances[analyzer_name] = analyzer_class()
 
-        return self._analyzer_instances[analyzer_name]
+            # For OutfitAnalyzer, pass auto_visualize parameter
+            if analyzer_name == "outfit":
+                self._analyzer_instances[cache_key] = analyzer_class(auto_visualize=auto_visualize)
+            else:
+                self._analyzer_instances[cache_key] = analyzer_class()
+
+        return self._analyzer_instances[cache_key]
 
     def analyze(
         self,
         analyzer_name: str,
         image_path: Path,
         save_as_preset: Optional[str] = None,
-        skip_cache: bool = False
+        skip_cache: bool = False,
+        background_tasks = None
     ) -> Dict[str, Any]:
         """
         Run analyzer on image
@@ -121,11 +136,14 @@ class AnalyzerService:
             image_path: Path to image file
             save_as_preset: Optional preset name to save as
             skip_cache: Whether to skip cache
+            background_tasks: Optional FastAPI BackgroundTasks for async visualization
 
         Returns:
             Analysis result dict
         """
-        analyzer = self._get_analyzer(analyzer_name)
+        # Disable auto-visualization for outfit analyzer when using background tasks
+        auto_visualize = (background_tasks is None) and (analyzer_name == "outfit")
+        analyzer = self._get_analyzer(analyzer_name, auto_visualize=auto_visualize)
 
         # For comprehensive analyzer, use different method
         if analyzer_name == "comprehensive":
@@ -158,6 +176,41 @@ class AnalyzerService:
                 data['_metadata'] = result._metadata.dict()
             else:
                 data['_metadata'] = result._metadata
+
+        # Queue visualization generation if we saved a preset and have background tasks
+        if (background_tasks is not None and
+            save_as_preset and
+            analyzer_name == "outfit" and
+            "_metadata" in data and
+            "preset_id" in data["_metadata"]):
+
+            from ai_tools.outfit_visualizer.tool import OutfitVisualizer
+            from ai_capabilities.specs import OutfitSpec
+
+            preset_id = data["_metadata"]["preset_id"]
+
+            def generate_visualization():
+                """Background task to generate outfit visualization"""
+                try:
+                    visualizer = OutfitVisualizer()
+                    outfit_spec = OutfitSpec(**data)
+
+                    # Get preset directory
+                    from ai_tools.shared.preset import PresetManager
+                    preset_manager = PresetManager()
+                    preset_dir = preset_manager._get_preset_dir("outfits")
+
+                    visualizer.visualize(
+                        outfit=outfit_spec,
+                        output_dir=preset_dir,
+                        preset_id=preset_id
+                    )
+                    print(f"✅ Generated preview for {preset_id}")
+                except Exception as e:
+                    print(f"⚠️  Preview generation failed: {e}")
+
+            background_tasks.add_task(generate_visualization)
+            print(f"🎨 Queued preview generation for {preset_id}")
 
         return data
 

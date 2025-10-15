@@ -38,7 +38,7 @@ venv.bak/
 # AI-Studio Specific
 cache/                  # Temporary analysis cache (7-day TTL)
 # output/               # Generated images/videos (uncomment to ignore)
-# presets/              # User-created presets (DO NOT ignore by default)
+presets/                # User-created presets
 
 # Node / Frontend
 node_modules/

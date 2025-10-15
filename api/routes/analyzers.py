@@ -8,7 +8,7 @@ import time
 import tempfile
 import base64
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
 from typing import List
 
 from api.models.requests import AnalyzeRequest
@@ -51,7 +51,11 @@ async def list_analyzers():
 
 
 @router.post("/{analyzer_name}", response_model=AnalyzeResponse)
-async def analyze_image(analyzer_name: str, request: AnalyzeRequest):
+async def analyze_image(
+    analyzer_name: str,
+    request: AnalyzeRequest,
+    background_tasks: BackgroundTasks
+):
     """
     Analyze an image with a specific analyzer
 
@@ -80,7 +84,8 @@ async def analyze_image(analyzer_name: str, request: AnalyzeRequest):
             analyzer_name,
             image_path,
             save_as_preset=request.save_as_preset,
-            skip_cache=request.skip_cache
+            skip_cache=request.skip_cache,
+            background_tasks=background_tasks
         )
 
         processing_time = time.time() - start_time

@@ -4,8 +4,10 @@ Preset Routes
 Endpoints for managing presets (CRUD operations).
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
 from typing import List
+from pathlib import Path
 
 from api.models.requests import PresetCreate, PresetUpdate
 from api.models.responses import PresetListResponse, PresetInfo
@@ -85,11 +87,17 @@ async def create_preset(category: str, request: PresetCreate):
 
 
 @router.put("/{category}/{preset_id}", response_model=dict)
-async def update_preset(category: str, preset_id: str, request: PresetUpdate):
+async def update_preset(
+    category: str,
+    preset_id: str,
+    request: PresetUpdate,
+    background_tasks: BackgroundTasks
+):
     """
     Update an existing preset by ID
 
     Updates the data and/or display name for an existing preset.
+    Visualization generation runs asynchronously in the background.
     """
     try:
         preset_service.update_preset(
@@ -97,7 +105,8 @@ async def update_preset(category: str, preset_id: str, request: PresetUpdate):
             preset_id,
             request.data,
             request.display_name,
-            request.notes
+            request.notes,
+            background_tasks=background_tasks
         )
         return {
             "message": "Preset updated successfully",
@@ -152,3 +161,28 @@ async def duplicate_preset(category: str, name: str, new_name: str):
         raise HTTPException(status_code=404, detail=str(e))
     except FileExistsError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.get("/{category}/{preset_id}/preview")
+async def get_preset_preview(category: str, preset_id: str):
+    """
+    Get preview image for a preset
+
+    Returns the preview image file for presets that support visualizations (e.g., outfits).
+    """
+    try:
+        # Get the preview image path from preset manager
+        preview_path = preset_service.preset_manager.get_preview_image_path(category, preset_id)
+
+        if not preview_path.exists():
+            raise HTTPException(status_code=404, detail="Preview image not found")
+
+        return FileResponse(
+            path=str(preview_path),
+            media_type="image/png",
+            filename=f"{preset_id}_preview.png"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

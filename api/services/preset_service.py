@@ -13,6 +13,8 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from ai_tools.shared.preset import PresetManager
+from ai_tools.outfit_visualizer.tool import OutfitVisualizer
+from ai_capabilities.specs import OutfitSpec
 from api.config import settings
 
 
@@ -34,6 +36,31 @@ class PresetService:
         """Initialize preset service"""
         self.preset_manager = PresetManager()
         self.presets_dir = settings.presets_dir
+        self.visualizer = OutfitVisualizer()
+
+    def _generate_outfit_preview(self, preset_id: str, outfit_data: Dict[str, Any]):
+        """
+        Generate a preview image for an outfit preset
+
+        Args:
+            preset_id: Preset UUID
+            outfit_data: Outfit data dict
+        """
+        try:
+            # Parse outfit data into OutfitSpec
+            outfit_spec = OutfitSpec(**outfit_data)
+
+            # Generate visualization
+            viz_path = self.visualizer.visualize(
+                outfit=outfit_spec,
+                output_dir=self.presets_dir / "outfits",
+                preset_id=preset_id
+            )
+
+            print(f"✅ Generated preview: {viz_path}")
+        except Exception as e:
+            # Don't fail the whole operation if visualization fails
+            print(f"⚠️  Preview generation failed: {e}")
 
     def list_categories(self) -> List[str]:
         """List all preset categories"""
@@ -118,7 +145,8 @@ class PresetService:
         preset_id: str,
         data: Dict[str, Any],
         display_name: Optional[str] = None,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        background_tasks = None
     ):
         """
         Update existing preset by ID
@@ -129,6 +157,7 @@ class PresetService:
             data: Updated preset data
             display_name: Optional new display name
             notes: Optional notes
+            background_tasks: Optional FastAPI BackgroundTasks for async visualization
         """
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
@@ -141,6 +170,14 @@ class PresetService:
         # Load existing data
         with open(preset_path) as f:
             existing_data = json.load(f)
+
+        # Check if outfit data actually changed (not just metadata)
+        outfit_data_changed = False
+        if category == "outfits":
+            # Compare outfit-specific fields (exclude _metadata)
+            old_outfit_data = {k: v for k, v in existing_data.items() if k != "_metadata"}
+            new_outfit_data = {k: v for k, v in data.items() if k != "_metadata"}
+            outfit_data_changed = old_outfit_data != new_outfit_data
 
         # Update fields
         existing_data.update(data)
@@ -158,9 +195,23 @@ class PresetService:
         with open(preset_path, 'w') as f:
             json.dump(existing_data, f, indent=2, default=str)
 
+        # Generate preview visualization ONLY if outfit data changed (not just title)
+        if category == "outfits" and outfit_data_changed:
+            if background_tasks is not None:
+                # Run visualization in background
+                background_tasks.add_task(
+                    self._generate_outfit_preview,
+                    preset_id,
+                    existing_data
+                )
+                print(f"🎨 Queued preview generation for {preset_id}")
+            else:
+                # Fallback to synchronous generation
+                self._generate_outfit_preview(preset_id, existing_data)
+
     def delete_preset(self, category: str, preset_id: str) -> bool:
         """
-        Delete a preset by ID
+        Delete a preset by ID (and its preview image if applicable)
 
         Args:
             category: Category name
@@ -172,12 +223,11 @@ class PresetService:
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
 
-        preset_path = self.presets_dir / category / f"{preset_id}.json"
-        if not preset_path.exists():
+        # Use preset_manager's delete method which also deletes preview images
+        if not self.preset_manager.exists(category, preset_id):
             raise FileNotFoundError(f"Preset not found: {category}/{preset_id}")
 
-        preset_path.unlink()
-        return True
+        return self.preset_manager.delete(category, preset_id)
 
     def duplicate_preset(
         self,

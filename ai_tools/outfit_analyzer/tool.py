@@ -20,6 +20,7 @@ from ai_capabilities.specs import OutfitSpec, SpecMetadata
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.cache import CacheManager
 from ai_tools.shared.preset import PresetManager
+from ai_tools.outfit_visualizer.tool import OutfitVisualizer
 
 
 class OutfitAnalyzer:
@@ -37,7 +38,8 @@ class OutfitAnalyzer:
         self,
         model: Optional[str] = None,
         use_cache: bool = True,
-        cache_ttl: Optional[int] = None
+        cache_ttl: Optional[int] = None,
+        auto_visualize: bool = True
     ):
         """
         Initialize the outfit analyzer
@@ -46,6 +48,7 @@ class OutfitAnalyzer:
             model: Model to use (default from config)
             use_cache: Whether to use caching (default: True)
             cache_ttl: Cache TTL in seconds (default: 7 days)
+            auto_visualize: Auto-generate preview images when saving presets (default: True)
         """
         # Get model from config if not specified
         if model is None:
@@ -56,6 +59,8 @@ class OutfitAnalyzer:
         self.use_cache = use_cache
         self.cache_manager = CacheManager(default_ttl=cache_ttl) if cache_ttl else CacheManager()
         self.preset_manager = PresetManager()
+        self.auto_visualize = auto_visualize
+        self.visualizer = OutfitVisualizer() if auto_visualize else None
 
         # Load prompt template
         self.template_path = Path(__file__).parent / "template.md"
@@ -117,6 +122,20 @@ class OutfitAnalyzer:
                     print(f"⭐ Saved as preset: {save_as_preset}")
                     print(f"   ID: {preset_id}")
                     print(f"   Location: {preset_path}")
+
+                    # Generate preview visualization if enabled
+                    if self.auto_visualize and self.visualizer:
+                        try:
+                            print(f"\n🎨 Generating preview visualization...")
+                            viz_path = self.visualizer.visualize(
+                                outfit=cached,
+                                output_dir=preset_path.parent,
+                                preset_id=preset_id
+                            )
+                            print(f"   Preview: {viz_path}")
+                        except Exception as e:
+                            print(f"⚠️  Preview generation failed: {e}")
+
                 return cached
 
         # Perform analysis
@@ -163,6 +182,19 @@ class OutfitAnalyzer:
                 print(f"⭐ Saved as preset: {save_as_preset}")
                 print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
+
+                # Generate preview visualization if enabled
+                if self.auto_visualize and self.visualizer:
+                    try:
+                        print(f"\n🎨 Generating preview visualization...")
+                        viz_path = self.visualizer.visualize(
+                            outfit=outfit,
+                            output_dir=preset_path.parent,
+                            preset_id=preset_id
+                        )
+                        print(f"   Preview: {viz_path}")
+                    except Exception as e:
+                        print(f"⚠️  Preview generation failed: {e}")
 
             return outfit
 

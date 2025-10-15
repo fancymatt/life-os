@@ -237,7 +237,7 @@ class PresetManager:
 
     def delete(self, tool_type: str, preset_id: str) -> bool:
         """
-        Delete a preset
+        Delete a preset (and its preview image if it exists)
 
         Args:
             tool_type: Type of tool
@@ -251,7 +251,12 @@ class PresetManager:
         if not preset_path.exists():
             return False
 
+        # Delete preset file
         preset_path.unlink()
+
+        # Also delete preview image if it exists
+        self.delete_preview_image(tool_type, preset_id)
+
         return True
 
     def update_display_name(self, tool_type: str, preset_id: str, display_name: str) -> bool:
@@ -415,6 +420,78 @@ class PresetManager:
             info["metadata"] = metadata
 
         return info
+
+    def get_preview_image_path(self, tool_type: str, preset_id: str) -> Path:
+        """
+        Get the path where a preview image for a preset should be stored
+
+        Args:
+            tool_type: Type of tool
+            preset_id: Preset UUID
+
+        Returns:
+            Path to preview image (may not exist yet)
+        """
+        preset_id = preset_id.replace(".json", "")
+        preset_dir = self._get_preset_dir(tool_type)
+        return preset_dir / f"{preset_id}_preview.png"
+
+    def save_preview_image(
+        self,
+        tool_type: str,
+        preset_id: str,
+        image_data: bytes
+    ) -> Path:
+        """
+        Save a preview image for a preset
+
+        Args:
+            tool_type: Type of tool
+            preset_id: Preset UUID
+            image_data: Image bytes (PNG format)
+
+        Returns:
+            Path to saved preview image
+        """
+        preview_path = self.get_preview_image_path(tool_type, preset_id)
+
+        with open(preview_path, 'wb') as f:
+            f.write(image_data)
+
+        return preview_path
+
+    def has_preview_image(self, tool_type: str, preset_id: str) -> bool:
+        """
+        Check if a preset has a preview image
+
+        Args:
+            tool_type: Type of tool
+            preset_id: Preset UUID
+
+        Returns:
+            True if preview image exists
+        """
+        preview_path = self.get_preview_image_path(tool_type, preset_id)
+        return preview_path.exists()
+
+    def delete_preview_image(self, tool_type: str, preset_id: str) -> bool:
+        """
+        Delete a preset's preview image
+
+        Args:
+            tool_type: Type of tool
+            preset_id: Preset UUID
+
+        Returns:
+            True if deleted, False if didn't exist
+        """
+        preview_path = self.get_preview_image_path(tool_type, preset_id)
+
+        if not preview_path.exists():
+            return False
+
+        preview_path.unlink()
+        return True
 
 
 # Convenience functions

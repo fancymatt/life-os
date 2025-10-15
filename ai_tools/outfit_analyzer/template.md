@@ -56,9 +56,6 @@ Comprehensive description including:
 - **Fit**: Slim, relaxed, oversized, tailored, form-fitting
 - **Special details**: Vents, pleats, darts, princess seams
 
-### For Leather Items Specifically
-Always describe as: "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance"
-
 ## Style Genre
 
 Fashion category ONLY - NO environmental or lighting descriptions:

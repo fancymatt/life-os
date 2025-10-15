@@ -13,6 +13,11 @@ function OutfitAnalyzer({ onClose }) {
   const [imagePreview, setImagePreview] = useState(null)
   const [outfitName, setOutfitName] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState(null)
+  const [newPresetId, setNewPresetId] = useState(null)
+
+  // Preview loading state
+  const [loadingPreviews, setLoadingPreviews] = useState(new Set())
 
   // Edit view state
   const [editedData, setEditedData] = useState(null)
@@ -44,6 +49,42 @@ function OutfitAnalyzer({ onClose }) {
     }
   }
 
+  const pollForPreview = async (presetId, maxAttempts = 20, interval = 1000) => {
+    // Mark as loading
+    setLoadingPreviews(prev => new Set([...prev, presetId]))
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`/api/presets/outfits/${presetId}/preview`, {
+          method: 'HEAD'
+        })
+
+        if (response.ok) {
+          // Preview is available
+          setLoadingPreviews(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(presetId)
+            return newSet
+          })
+          return true
+        }
+      } catch (err) {
+        // Continue polling
+      }
+
+      // Wait before next attempt
+      await new Promise(resolve => setTimeout(resolve, interval))
+    }
+
+    // Timeout - stop loading state
+    setLoadingPreviews(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(presetId)
+      return newSet
+    })
+    return false
+  }
+
   const handleCreateNew = () => {
     setView('create')
     setError(null)
@@ -57,6 +98,8 @@ function OutfitAnalyzer({ onClose }) {
     setOutfitName('')
     setSelectedPreset(null)
     setEditedData(null)
+    setAnalysisResult(null)
+    setNewPresetId(null)
     fetchPresets() // Refresh list
   }
 
@@ -163,9 +206,15 @@ function OutfitAnalyzer({ onClose }) {
           throw new Error(data.error || 'Analysis failed')
         }
 
-        // After successful analysis, go back to list
+        // Store analysis result and preset ID
+        setAnalysisResult(data.result)
+        setNewPresetId(data.preset_id)
         setAnalyzing(false)
-        handleBackToList()
+
+        // Start polling for preview image if we have a preset ID
+        if (data.preset_id) {
+          pollForPreview(data.preset_id)
+        }
       }
 
       reader.readAsDataURL(imageFile)
@@ -239,6 +288,11 @@ function OutfitAnalyzer({ onClose }) {
       setEditingItems({})
       setSaving(false)
 
+      // Start polling for updated preview image
+      if (selectedPreset?.preset_id) {
+        pollForPreview(selectedPreset.preset_id)
+      }
+
       // Show success (could add a toast notification here)
       setTimeout(() => handleBackToList(), 1000)
     } catch (err) {
@@ -299,13 +353,32 @@ function OutfitAnalyzer({ onClose }) {
               className="preset-card"
               onClick={() => handleSelectPreset(preset)}
             >
-              <div className="preset-card-header">
-                <h4>{preset.display_name || 'Untitled'}</h4>
-              </div>
-              <div className="preset-card-meta">
-                {preset.created_at && (
-                  <span className="preset-date">{new Date(preset.created_at).toLocaleDateString()}</span>
+              <div className="preset-preview-image">
+                {loadingPreviews.has(preset.preset_id) ? (
+                  <div className="preview-loading">
+                    <div className="loading-spinner"></div>
+                    <span>Generating...</span>
+                  </div>
+                ) : (
+                  <img
+                    key={`preview-${preset.preset_id}-${loadingPreviews.size}`}
+                    src={`/api/presets/outfits/${preset.preset_id}/preview?t=${Date.now()}`}
+                    alt={preset.display_name || 'Outfit preview'}
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                    }}
+                  />
                 )}
+              </div>
+              <div className="preset-card-content">
+                <div className="preset-card-header">
+                  <h4>{preset.display_name || 'Untitled'}</h4>
+                </div>
+                <div className="preset-card-meta">
+                  {preset.created_at && (
+                    <span className="preset-date">{new Date(preset.created_at).toLocaleDateString()}</span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -314,76 +387,144 @@ function OutfitAnalyzer({ onClose }) {
     </>
   )
 
-  const renderCreateView = () => (
-    <>
-      <button className="back-button" onClick={handleBackToList}>
-        ← Back to List
-      </button>
+  const renderCreateView = () => {
+    // Show results if analysis is complete
+    if (analysisResult && newPresetId) {
+      return (
+        <>
+          <button className="back-button" onClick={handleBackToList}>
+            ← Back to List
+          </button>
 
-      <h3>Analyze New Outfit</h3>
+          <h3>Analysis Complete!</h3>
 
-      <div
-        className={`drop-zone ${dragActive ? 'active' : ''}`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-      >
-        {imagePreview ? (
-          <div className="image-preview">
-            <img src={imagePreview} alt="Preview" />
-            <button
-              className="remove-image"
-              onClick={() => {
-                setImageFile(null)
-                setImagePreview(null)
-              }}
-            >
-              Remove
-            </button>
+          <div className="success-message">
+            Outfit "{outfitName}" has been analyzed and saved
           </div>
-        ) : (
-          <div className="drop-zone-content">
-            <p className="drop-zone-text">
-              Drag and drop an image here, or click to select
-            </p>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileInput}
-              className="file-input"
-              id="file-input"
-            />
-            <label htmlFor="file-input" className="file-input-label">
-              Choose File
-            </label>
+
+          {newPresetId && (
+            <div className="preset-preview-container">
+              {loadingPreviews.has(newPresetId) ? (
+                <div className="preview-loading-large">
+                  <div className="loading-spinner"></div>
+                  <span>Generating preview...</span>
+                </div>
+              ) : (
+                <img
+                  key={`preview-${newPresetId}-${loadingPreviews.size}`}
+                  src={`/api/presets/outfits/${newPresetId}/preview?t=${Date.now()}`}
+                  alt={outfitName || 'Outfit preview'}
+                  className="preset-preview-large"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          <div className="results">
+            <h3>Outfit Details</h3>
+            <div className="result-item">
+              <strong>Style Genre:</strong> {analysisResult.style_genre || 'N/A'}
+            </div>
+            <div className="result-item">
+              <strong>Formality:</strong> {analysisResult.formality || 'N/A'}
+            </div>
+            <div className="result-item">
+              <strong>Aesthetic:</strong> {analysisResult.aesthetic || 'N/A'}
+            </div>
           </div>
-        )}
-      </div>
 
-      <div className="form-group">
-        <label htmlFor="outfit-name">Preset Name</label>
-        <input
-          type="text"
-          id="outfit-name"
-          value={outfitName}
-          onChange={(e) => setOutfitName(e.target.value)}
-          placeholder="e.g., casual-summer"
-          disabled={analyzing}
-        />
-      </div>
+          <div className="clothing-items">
+            <h3>Clothing Items ({analysisResult.clothing_items?.length || 0})</h3>
+            {analysisResult.clothing_items?.map((item, index) => (
+              <div key={index} className="result-item">
+                <strong>{item.item}:</strong> {item.color} {item.fabric}
+                {item.details && <div style={{ marginLeft: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>{item.details}</div>}
+              </div>
+            ))}
+          </div>
 
-      {error && <div className="error-message">{error}</div>}
+          <button className="done-button" onClick={handleBackToList}>
+            Done
+          </button>
+        </>
+      )
+    }
 
-      <button
-        className="analyze-button"
-        onClick={handleAnalyze}
-        disabled={analyzing || !imageFile || !outfitName.trim()}
-      >
-        {analyzing ? 'Analyzing...' : 'Analyze Outfit'}
-      </button>
-    </>
-  )
+    // Show upload/analyze form
+    return (
+      <>
+        <button className="back-button" onClick={handleBackToList}>
+          ← Back to List
+        </button>
+
+        <h3>Analyze New Outfit</h3>
+
+        <div
+          className={`drop-zone ${dragActive ? 'active' : ''}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          {imagePreview ? (
+            <div className="image-preview">
+              <img src={imagePreview} alt="Preview" />
+              <button
+                className="remove-image"
+                onClick={() => {
+                  setImageFile(null)
+                  setImagePreview(null)
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="drop-zone-content">
+              <p className="drop-zone-text">
+                Drag and drop an image here, or click to select
+              </p>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileInput}
+                className="file-input"
+                id="file-input"
+              />
+              <label htmlFor="file-input" className="file-input-label">
+                Choose File
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="outfit-name">Preset Name</label>
+          <input
+            type="text"
+            id="outfit-name"
+            value={outfitName}
+            onChange={(e) => setOutfitName(e.target.value)}
+            placeholder="e.g., casual-summer"
+            disabled={analyzing}
+          />
+        </div>
+
+        {error && <div className="error-message">{error}</div>}
+
+        <button
+          className="analyze-button"
+          onClick={handleAnalyze}
+          disabled={analyzing || !imageFile || !outfitName.trim()}
+        >
+          {analyzing ? 'Analyzing...' : 'Analyze Outfit'}
+        </button>
+      </>
+    )
+  }
 
   const renderEditView = () => {
     if (!editedData) return <div className="loading">Loading...</div>
@@ -406,6 +547,27 @@ function OutfitAnalyzer({ onClose }) {
             />
           </div>
         </div>
+
+        {selectedPreset && (
+          <div className="preset-preview-container">
+            {loadingPreviews.has(selectedPreset.preset_id) ? (
+              <div className="preview-loading-large">
+                <div className="loading-spinner"></div>
+                <span>Generating preview...</span>
+              </div>
+            ) : (
+              <img
+                key={`preview-${selectedPreset.preset_id}-${loadingPreviews.size}`}
+                src={`/api/presets/outfits/${selectedPreset.preset_id}/preview?t=${Date.now()}`}
+                alt={selectedPreset.display_name || 'Outfit preview'}
+                className="preset-preview-large"
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                }}
+              />
+            )}
+          </div>
+        )}
 
         {error && <div className="error-message">{error}</div>}
 

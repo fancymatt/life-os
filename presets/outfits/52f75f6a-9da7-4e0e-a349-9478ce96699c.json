@@ -1,0 +1,25 @@
+{
+  "clothing_items": [
+    {
+      "item": "distressed leather moto jacket",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance",
+      "color": "charcoal with faded brown undertones",
+      "details": "Asymmetrical zip-front closure, notched lapel collar with snap details, long sleeves with zip cuffs, multiple zip and snap pockets, belted waist, shoulder epaulettes, distressed finish with visible wear and tear, silver-tone hardware, graphic patch on the back with 'FOLLOW YOUR LEADER' text and cowboy figures"
+    },
+    {
+      "item": "graphic print t-shirt",
+      "fabric": "soft cotton jersey",
+      "color": "black with white graphic print",
+      "details": "Crew neck, short sleeves, graphic print featuring stylized imagery and text, standard fit"
+    }
+  ],
+  "style_genre": "rocker chic",
+  "formality": "casual",
+  "aesthetic": "vintage-inspired, edgy, rebellious",
+  "season": null,
+  "occasion": null,
+  "_metadata": {
+    "preset_id": "52f75f6a-9da7-4e0e-a349-9478ce96699c",
+    "display_name": "Punk Jacket"
+  }
+}
