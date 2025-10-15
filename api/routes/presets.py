@@ -241,7 +241,7 @@ async def generate_test_image(category: str, preset_id: str, background_tasks: B
             raise HTTPException(status_code=400, detail=f"Category '{category}' does not support test generation")
 
         # Queue generation as background task
-        def generate_image():
+        async def generate_image():
             try:
                 generator = ModularImageGenerator()
 
@@ -252,7 +252,7 @@ async def generate_test_image(category: str, preset_id: str, background_tasks: B
                     category_param_map[category]: preset_id  # Pass preset_id to load from preset manager
                 }
 
-                result = generator.generate(**kwargs)
+                result = await generator.agenerate(**kwargs)
                 print(f"✅ Test image generated: {result.file_path}")
 
             except Exception as e:

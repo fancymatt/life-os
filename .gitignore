@@ -37,7 +37,7 @@ venv.bak/
 
 # AI-Studio Specific
 cache/                  # Temporary analysis cache (7-day TTL)
-data/                   # User accounts and persistent data (contains credentials)
+data                    # User accounts and persistent data (contains credentials)
 # output/               # Generated images/videos (uncomment to ignore)
 presets/                # User-created presets
 presets/**
