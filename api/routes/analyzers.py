@@ -88,31 +88,18 @@ async def analyze_image(analyzer_name: str, request: AnalyzeRequest):
         # Get cost info
         analyzer_info = analyzer_service.get_analyzer_info(analyzer_name)
 
-        # Build preset path if saved
-        preset_path = None
-        if request.save_as_preset:
-            if analyzer_name == "comprehensive":
-                preset_path = f"Multiple presets created with prefix: {request.save_as_preset}"
-            else:
-                # Map analyzer name to category
-                category_map = {
-                    "outfit": "outfits",
-                    "visual-style": "visual_styles",
-                    "art-style": "art_styles",
-                    "hair-style": "hair_styles",
-                    "hair-color": "hair_colors",
-                    "makeup": "makeup",
-                    "expression": "expressions",
-                    "accessories": "accessories"
-                }
-                category = category_map.get(analyzer_name)
-                if category:
-                    preset_path = f"presets/{category}/{request.save_as_preset}.json"
+        # Get preset ID if saved
+        preset_id = None
+        preset_display_name = None
+        if request.save_as_preset and result and "_metadata" in result:
+            preset_id = result["_metadata"].get("preset_id")
+            preset_display_name = result["_metadata"].get("display_name")
 
         return AnalyzeResponse(
             status="completed",
             result=result,
-            preset_path=preset_path,
+            preset_id=preset_id,
+            preset_display_name=preset_display_name,
             cost=analyzer_info["estimated_cost"],
             cache_hit=not request.skip_cache,
             processing_time=processing_time

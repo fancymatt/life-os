@@ -3,9 +3,11 @@ Preset Manager
 
 Manages user-editable presets (promoted artifacts from analyses).
 Presets are curated, reusable building blocks stored as JSON files.
+Uses UUID-based storage with display names for easy renaming.
 """
 
 import json
+import uuid
 from pathlib import Path
 from typing import Optional, List, Type, Dict, Any
 from pydantic import BaseModel, ValidationError
@@ -65,62 +67,71 @@ class PresetManager:
         preset_dir.mkdir(parents=True, exist_ok=True)
         return preset_dir
 
-    def _get_preset_path(self, tool_type: str, name: str) -> Path:
-        """Get the full path to a preset file"""
-        # Sanitize name (remove extension if provided)
-        name = name.replace(".json", "")
-
-        # Convert to filename-safe format
-        safe_name = name.replace(" ", "-").replace("/", "-")
-
-        return self._get_preset_dir(tool_type) / f"{safe_name}.json"
+    def _get_preset_path(self, tool_type: str, preset_id: str) -> Path:
+        """Get the full path to a preset file by ID"""
+        # Remove .json extension if provided
+        preset_id = preset_id.replace(".json", "")
+        return self._get_preset_dir(tool_type) / f"{preset_id}.json"
 
     def save(
         self,
         tool_type: str,
-        name: str,
         data: BaseModel,
+        preset_id: Optional[str] = None,
+        display_name: Optional[str] = None,
         notes: Optional[str] = None
-    ) -> Path:
+    ) -> tuple[Path, str]:
         """
         Save a preset
 
         Args:
             tool_type: Type of tool (e.g., "outfits", "visual-styles")
-            name: Preset name
             data: Pydantic model to save
+            preset_id: Optional preset ID (generates UUID if not provided)
+            display_name: Optional display name
             notes: Optional user notes to add to metadata
 
         Returns:
-            Path to saved preset file
+            Tuple of (Path to saved preset file, preset_id)
         """
-        preset_path = self._get_preset_path(tool_type, name)
+        # Generate UUID if not provided
+        if preset_id is None:
+            preset_id = str(uuid.uuid4())
+
+        preset_path = self._get_preset_path(tool_type, preset_id)
 
         # Convert to dict
         preset_dict = data.model_dump(mode='json')
 
-        # Update notes in metadata if present
-        if notes and "_metadata" in preset_dict and preset_dict["_metadata"]:
+        # Ensure metadata exists
+        if "_metadata" not in preset_dict or preset_dict["_metadata"] is None:
+            preset_dict["_metadata"] = {}
+
+        # Update metadata with preset info
+        preset_dict["_metadata"]["preset_id"] = preset_id
+        if display_name is not None:
+            preset_dict["_metadata"]["display_name"] = display_name
+        if notes is not None:
             preset_dict["_metadata"]["notes"] = notes
 
         # Write with pretty printing
         with open(preset_path, 'w') as f:
             json.dump(preset_dict, f, indent=2, default=str)
 
-        return preset_path
+        return preset_path, preset_id
 
     def load(
         self,
         tool_type: str,
-        name: str,
+        preset_id: str,
         spec_class: Type[BaseModel]
     ) -> BaseModel:
         """
-        Load a preset
+        Load a preset by ID
 
         Args:
             tool_type: Type of tool (e.g., "outfits", "visual-styles")
-            name: Preset name
+            preset_id: Preset UUID
             spec_class: Pydantic model class to parse into
 
         Returns:
@@ -130,11 +141,11 @@ class PresetManager:
             PresetNotFoundError: If preset doesn't exist
             PresetValidationError: If preset fails validation
         """
-        preset_path = self._get_preset_path(tool_type, name)
+        preset_path = self._get_preset_path(tool_type, preset_id)
 
         if not preset_path.exists():
             raise PresetNotFoundError(
-                f"Preset not found: {tool_type}/{name}\n"
+                f"Preset not found: {tool_type}/{preset_id}\n"
                 f"Looked at: {preset_path}"
             )
 
@@ -147,33 +158,33 @@ class PresetManager:
             return spec_class.model_validate(preset_data)
         except ValidationError as e:
             raise PresetValidationError(
-                f"Preset validation failed: {tool_type}/{name}\n"
+                f"Preset validation failed: {tool_type}/{preset_id}\n"
                 f"Errors: {e.errors()}"
             )
 
-    def exists(self, tool_type: str, name: str) -> bool:
+    def exists(self, tool_type: str, preset_id: str) -> bool:
         """
         Check if a preset exists
 
         Args:
             tool_type: Type of tool
-            name: Preset name
+            preset_id: Preset UUID
 
         Returns:
             True if preset exists
         """
-        preset_path = self._get_preset_path(tool_type, name)
+        preset_path = self._get_preset_path(tool_type, preset_id)
         return preset_path.exists()
 
-    def list(self, tool_type: str) -> List[str]:
+    def list(self, tool_type: str) -> List[Dict[str, Any]]:
         """
-        List all presets for a tool type
+        List all presets for a tool type with metadata
 
         Args:
             tool_type: Type of tool
 
         Returns:
-            List of preset names (without .json extension)
+            List of dicts with preset_id, display_name, and other metadata
         """
         preset_dir = self._get_preset_dir(tool_type)
 
@@ -183,10 +194,26 @@ class PresetManager:
         # Get all .json files
         presets = []
         for preset_file in preset_dir.glob("*.json"):
-            # Remove .json extension
-            presets.append(preset_file.stem)
+            preset_id = preset_file.stem
 
-        return sorted(presets)
+            # Load metadata
+            try:
+                with open(preset_file, 'r') as f:
+                    data = json.load(f)
+                    metadata = data.get("_metadata", {})
+
+                    presets.append({
+                        "preset_id": preset_id,
+                        "display_name": metadata.get("display_name"),
+                        "created_at": metadata.get("created_at"),
+                        "tool": metadata.get("tool"),
+                        "notes": metadata.get("notes")
+                    })
+            except Exception:
+                # Skip corrupted files
+                continue
+
+        return sorted(presets, key=lambda x: x.get("created_at") or "", reverse=True)
 
     def list_all(self) -> Dict[str, List[str]]:
         """
@@ -208,18 +235,18 @@ class PresetManager:
 
         return all_presets
 
-    def delete(self, tool_type: str, name: str) -> bool:
+    def delete(self, tool_type: str, preset_id: str) -> bool:
         """
         Delete a preset
 
         Args:
             tool_type: Type of tool
-            name: Preset name
+            preset_id: Preset UUID
 
         Returns:
             True if deleted, False if didn't exist
         """
-        preset_path = self._get_preset_path(tool_type, name)
+        preset_path = self._get_preset_path(tool_type, preset_id)
 
         if not preset_path.exists():
             return False
@@ -227,21 +254,55 @@ class PresetManager:
         preset_path.unlink()
         return True
 
-    def get_metadata(self, tool_type: str, name: str) -> Optional[Dict[str, Any]]:
+    def update_display_name(self, tool_type: str, preset_id: str, display_name: str) -> bool:
+        """
+        Update the display name of a preset
+
+        Args:
+            tool_type: Type of tool
+            preset_id: Preset UUID
+            display_name: New display name
+
+        Returns:
+            True if updated successfully
+
+        Raises:
+            PresetNotFoundError: If preset doesn't exist
+        """
+        preset_path = self._get_preset_path(tool_type, preset_id)
+
+        if not preset_path.exists():
+            raise PresetNotFoundError(f"Preset not found: {tool_type}/{preset_id}")
+
+        # Load, update, and save
+        with open(preset_path, 'r') as f:
+            data = json.load(f)
+
+        if "_metadata" not in data:
+            data["_metadata"] = {}
+
+        data["_metadata"]["display_name"] = display_name
+
+        with open(preset_path, 'w') as f:
+            json.dump(data, f, indent=2, default=str)
+
+        return True
+
+    def get_metadata(self, tool_type: str, preset_id: str) -> Optional[Dict[str, Any]]:
         """
         Get metadata for a preset without loading the full spec
 
         Args:
             tool_type: Type of tool
-            name: Preset name
+            preset_id: Preset UUID
 
         Returns:
             Metadata dict or None if no metadata
         """
-        preset_path = self._get_preset_path(tool_type, name)
+        preset_path = self._get_preset_path(tool_type, preset_id)
 
         if not preset_path.exists():
-            raise PresetNotFoundError(f"Preset not found: {tool_type}/{name}")
+            raise PresetNotFoundError(f"Preset not found: {tool_type}/{preset_id}")
 
         with open(preset_path, 'r') as f:
             preset_data = json.load(f)
@@ -369,21 +430,27 @@ def get_preset_manager() -> PresetManager:
     return _default_manager
 
 
-def save_preset(tool_type: str, name: str, data: BaseModel, notes: Optional[str] = None) -> Path:
+def save_preset(
+    tool_type: str,
+    data: BaseModel,
+    preset_id: Optional[str] = None,
+    display_name: Optional[str] = None,
+    notes: Optional[str] = None
+) -> tuple[Path, str]:
     """Quick function to save a preset"""
-    return get_preset_manager().save(tool_type, name, data, notes)
+    return get_preset_manager().save(tool_type, data, preset_id, display_name, notes)
 
 
-def load_preset(tool_type: str, name: str, spec_class: Type[BaseModel]) -> BaseModel:
+def load_preset(tool_type: str, preset_id: str, spec_class: Type[BaseModel]) -> BaseModel:
     """Quick function to load a preset"""
-    return get_preset_manager().load(tool_type, name, spec_class)
+    return get_preset_manager().load(tool_type, preset_id, spec_class)
 
 
-def list_presets(tool_type: str) -> List[str]:
+def list_presets(tool_type: str) -> List[Dict[str, Any]]:
     """Quick function to list presets"""
     return get_preset_manager().list(tool_type)
 
 
-def preset_exists(tool_type: str, name: str) -> bool:
+def preset_exists(tool_type: str, preset_id: str) -> bool:
     """Quick function to check if preset exists"""
-    return get_preset_manager().exists(tool_type, name)
+    return get_preset_manager().exists(tool_type, preset_id)

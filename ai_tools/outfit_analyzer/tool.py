@@ -95,6 +95,28 @@ class OutfitAnalyzer:
             )
             if cached:
                 print(f"✅ Using cached analysis for {image_path.name}")
+                # Save as preset if requested (even for cached results)
+                if save_as_preset:
+                    preset_path, preset_id = self.preset_manager.save(
+                        "outfits",
+                        cached,
+                        display_name=save_as_preset,
+                        notes=preset_notes
+                    )
+                    # Ensure metadata exists and update with preset info
+                    if not cached._metadata:
+                        cached._metadata = SpecMetadata(
+                            tool="outfit-analyzer",
+                            tool_version="1.0.0",
+                            source_image=str(image_path),
+                            source_hash=self.cache_manager.compute_file_hash(image_path),
+                            model_used="cached"
+                        )
+                    cached._metadata.preset_id = preset_id
+                    cached._metadata.display_name = save_as_preset
+                    print(f"⭐ Saved as preset: {save_as_preset}")
+                    print(f"   ID: {preset_id}")
+                    print(f"   Location: {preset_path}")
                 return cached
 
         # Perform analysis
@@ -128,13 +150,18 @@ class OutfitAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
-                preset_path = self.preset_manager.save(
+                preset_path, preset_id = self.preset_manager.save(
                     "outfits",
-                    save_as_preset,
                     outfit,
+                    display_name=save_as_preset,
                     notes=preset_notes
                 )
+                # Update metadata with preset info
+                if outfit._metadata:
+                    outfit._metadata.preset_id = preset_id
+                    outfit._metadata.display_name = save_as_preset
                 print(f"⭐ Saved as preset: {save_as_preset}")
+                print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 
             return outfit
@@ -142,36 +169,36 @@ class OutfitAnalyzer:
         except Exception as e:
             raise Exception(f"Failed to analyze outfit: {e}")
 
-    def analyze_from_preset(self, preset_name: str) -> OutfitSpec:
+    def analyze_from_preset(self, preset_id: str) -> OutfitSpec:
         """
         Load an outfit analysis from a preset
 
         Args:
-            preset_name: Name of the preset
+            preset_id: UUID of the preset
 
         Returns:
             OutfitSpec from preset
         """
-        return self.preset_manager.load("outfits", preset_name, OutfitSpec)
+        return self.preset_manager.load("outfits", preset_id, OutfitSpec)
 
     def save_to_preset(
         self,
         outfit: OutfitSpec,
-        name: str,
+        display_name: str,
         notes: Optional[str] = None
-    ) -> Path:
+    ) -> tuple[Path, str]:
         """
         Save an outfit analysis as a preset
 
         Args:
             outfit: OutfitSpec to save
-            name: Preset name
+            display_name: Display name for the preset
             notes: Optional notes
 
         Returns:
-            Path to saved preset
+            Tuple of (Path to saved preset, preset_id)
         """
-        return self.preset_manager.save("outfits", name, outfit, notes=notes)
+        return self.preset_manager.save("outfits", outfit, display_name=display_name, notes=notes)
 
     def list_presets(self) -> List[str]:
         """List all outfit presets"""
@@ -251,7 +278,8 @@ Examples:
         presets = analyzer.list_presets()
         print(f"\n📋 Outfit Presets ({len(presets)}):")
         for preset in presets:
-            print(f"  - {preset}")
+            display_name = preset.get("display_name") or preset["preset_id"][:8]
+            print(f"  - {display_name} (ID: {preset['preset_id'][:8]}...)")
         return
 
     # Analyze image

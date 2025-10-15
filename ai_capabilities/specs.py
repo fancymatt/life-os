@@ -17,6 +17,8 @@ from enum import Enum
 
 class SpecMetadata(BaseModel):
     """Metadata attached to all analyzed/generated specs"""
+    preset_id: Optional[str] = Field(None, description="Unique preset ID (UUID)")
+    display_name: Optional[str] = Field(None, description="User-editable display name")
     created_at: datetime = Field(default_factory=datetime.now)
     tool: str = Field(..., description="Tool that generated this spec")
     tool_version: str = Field(default="1.0.0")

@@ -27,11 +27,12 @@ class ToolInfo(BaseModel):
 
 class PresetInfo(BaseModel):
     """Preset information"""
-    name: str
+    preset_id: str
+    display_name: Optional[str] = None
     category: str
     created_at: Optional[str] = None
-    size_bytes: int
-    has_metadata: bool
+    tool: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class PresetListResponse(BaseModel):
@@ -45,7 +46,8 @@ class AnalyzeResponse(BaseModel):
     """Response from analysis"""
     status: Literal["completed", "failed"]
     result: Optional[Dict[str, Any]] = None
-    preset_path: Optional[str] = None
+    preset_id: Optional[str] = None
+    preset_display_name: Optional[str] = None
     cost: float
     cache_hit: bool
     processing_time: Optional[float] = None

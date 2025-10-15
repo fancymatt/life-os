@@ -43,15 +43,15 @@ async def list_presets_in_category(category: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/{category}/{name}", response_model=dict)
-async def get_preset(category: str, name: str):
+@router.get("/{category}/{preset_id}", response_model=dict)
+async def get_preset(category: str, preset_id: str):
     """
-    Get a specific preset
+    Get a specific preset by ID
 
     Returns the full preset data for the specified preset.
     """
     try:
-        return preset_service.get_preset(category, name)
+        return preset_service.get_preset(category, preset_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except FileNotFoundError as e:
@@ -84,25 +84,25 @@ async def create_preset(category: str, request: PresetCreate):
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@router.put("/{category}/{name}", response_model=dict)
-async def update_preset(category: str, name: str, request: PresetUpdate):
+@router.put("/{category}/{preset_id}", response_model=dict)
+async def update_preset(category: str, preset_id: str, request: PresetUpdate):
     """
-    Update an existing preset
+    Update an existing preset by ID
 
-    Updates the data for an existing preset.
+    Updates the data and/or display name for an existing preset.
     """
     try:
-        preset_path = preset_service.update_preset(
+        preset_service.update_preset(
             category,
-            name,
+            preset_id,
             request.data,
+            request.display_name,
             request.notes
         )
         return {
             "message": "Preset updated successfully",
-            "path": str(preset_path),
             "category": category,
-            "name": name
+            "preset_id": preset_id
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -110,19 +110,19 @@ async def update_preset(category: str, name: str, request: PresetUpdate):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.delete("/{category}/{name}", response_model=dict)
-async def delete_preset(category: str, name: str):
+@router.delete("/{category}/{preset_id}", response_model=dict)
+async def delete_preset(category: str, preset_id: str):
     """
-    Delete a preset
+    Delete a preset by ID
 
     Permanently deletes the specified preset.
     """
     try:
-        preset_service.delete_preset(category, name)
+        preset_service.delete_preset(category, preset_id)
         return {
             "message": "Preset deleted successfully",
             "category": category,
-            "name": name
+            "preset_id": preset_id
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

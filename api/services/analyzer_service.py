@@ -142,13 +142,24 @@ class AnalyzerService:
                 save_as_preset=save_as_preset
             )
 
-        # Convert Pydantic model to dict
+        # Convert Pydantic model to dict and include metadata
         if hasattr(result, 'model_dump'):
-            return result.model_dump(exclude={'_metadata'})
+            data = result.model_dump()
         elif hasattr(result, 'dict'):
-            return result.dict(exclude={'_metadata'})
+            data = result.dict()
         else:
-            return result
+            data = result if isinstance(result, dict) else {}
+
+        # Manually add metadata if it exists (Pydantic excludes private fields like _metadata)
+        if hasattr(result, '_metadata') and result._metadata:
+            if hasattr(result._metadata, 'model_dump'):
+                data['_metadata'] = result._metadata.model_dump()
+            elif hasattr(result._metadata, 'dict'):
+                data['_metadata'] = result._metadata.dict()
+            else:
+                data['_metadata'] = result._metadata
+
+        return data
 
     def list_analyzers(self) -> list:
         """List all available analyzers"""

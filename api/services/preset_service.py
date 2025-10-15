@@ -47,41 +47,27 @@ class PresetService:
             category: Category name
 
         Returns:
-            List of preset info dicts
+            List of preset info dicts with preset_id and display_name
         """
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
 
-        category_dir = self.presets_dir / category
-        if not category_dir.exists():
-            return []
+        # Use PresetManager's list method which returns metadata
+        presets_with_metadata = self.preset_manager.list(category)
 
-        presets = []
-        for preset_file in category_dir.glob("*.json"):
-            try:
-                stat = preset_file.stat()
-                with open(preset_file) as f:
-                    data = json.load(f)
+        # Add category to each preset
+        for preset in presets_with_metadata:
+            preset["category"] = category
 
-                presets.append({
-                    "name": preset_file.stem,
-                    "category": category,
-                    "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
-                    "size_bytes": stat.st_size,
-                    "has_metadata": "_metadata" in data or "metadata" in data
-                })
-            except Exception:
-                continue
+        return presets_with_metadata
 
-        return sorted(presets, key=lambda x: x["name"])
-
-    def get_preset(self, category: str, name: str) -> Dict[str, Any]:
+    def get_preset(self, category: str, preset_id: str) -> Dict[str, Any]:
         """
-        Get preset data
+        Get preset data by ID
 
         Args:
             category: Category name
-            name: Preset name
+            preset_id: Preset UUID
 
         Returns:
             Preset data dict
@@ -89,9 +75,9 @@ class PresetService:
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
 
-        preset_path = self.presets_dir / category / f"{name}.json"
+        preset_path = self.presets_dir / category / f"{preset_id}.json"
         if not preset_path.exists():
-            raise FileNotFoundError(f"Preset not found: {category}/{name}")
+            raise FileNotFoundError(f"Preset not found: {category}/{preset_id}")
 
         with open(preset_path) as f:
             return json.load(f)
@@ -129,40 +115,56 @@ class PresetService:
     def update_preset(
         self,
         category: str,
-        name: str,
+        preset_id: str,
         data: Dict[str, Any],
+        display_name: Optional[str] = None,
         notes: Optional[str] = None
-    ) -> Path:
+    ):
         """
-        Update existing preset
+        Update existing preset by ID
 
         Args:
             category: Category name
-            name: Preset name
+            preset_id: Preset UUID
             data: Updated preset data
+            display_name: Optional new display name
             notes: Optional notes
-
-        Returns:
-            Path to updated preset
         """
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
 
         # Check if preset exists
-        preset_path = self.presets_dir / category / f"{name}.json"
+        preset_path = self.presets_dir / category / f"{preset_id}.json"
         if not preset_path.exists():
-            raise FileNotFoundError(f"Preset not found: {category}/{name}")
+            raise FileNotFoundError(f"Preset not found: {category}/{preset_id}")
 
-        # Update preset
-        return self.preset_manager.save(category, name, data, notes=notes)
+        # Load existing data
+        with open(preset_path) as f:
+            existing_data = json.load(f)
 
-    def delete_preset(self, category: str, name: str) -> bool:
+        # Update fields
+        existing_data.update(data)
+
+        # Update metadata
+        if "_metadata" not in existing_data:
+            existing_data["_metadata"] = {}
+
+        if display_name is not None:
+            existing_data["_metadata"]["display_name"] = display_name
+        if notes is not None:
+            existing_data["_metadata"]["notes"] = notes
+
+        # Write back
+        with open(preset_path, 'w') as f:
+            json.dump(existing_data, f, indent=2, default=str)
+
+    def delete_preset(self, category: str, preset_id: str) -> bool:
         """
-        Delete a preset
+        Delete a preset by ID
 
         Args:
             category: Category name
-            name: Preset name
+            preset_id: Preset UUID
 
         Returns:
             True if deleted
@@ -170,9 +172,9 @@ class PresetService:
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
 
-        preset_path = self.presets_dir / category / f"{name}.json"
+        preset_path = self.presets_dir / category / f"{preset_id}.json"
         if not preset_path.exists():
-            raise FileNotFoundError(f"Preset not found: {category}/{name}")
+            raise FileNotFoundError(f"Preset not found: {category}/{preset_id}")
 
         preset_path.unlink()
         return True

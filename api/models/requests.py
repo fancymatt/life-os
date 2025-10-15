@@ -118,6 +118,7 @@ class PresetCreate(BaseModel):
 class PresetUpdate(BaseModel):
     """Request to update a preset"""
     data: dict = Field(..., description="Updated preset data")
+    display_name: Optional[str] = Field(None, description="Optional display name")
     notes: Optional[str] = Field(None, description="Optional notes")
 
     class Config:
@@ -126,6 +127,7 @@ class PresetUpdate(BaseModel):
                 "data": {
                     "style_genre": "smart casual",
                     "formality": "semi-formal"
-                }
+                },
+                "display_name": "Updated outfit name"
             }
         }

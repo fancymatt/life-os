@@ -1,0 +1,19 @@
+{
+  "clothing_items": [
+    {
+      "item": "bomber jacket",
+      "fabric": "heavy leather with pronounced folds and wrinkles, puffy and spongy texture, supple and thick, buttery smooth finish, padded construction, rugged and sturdy appearance; fur collar",
+      "color": "dark brown",
+      "details": "heavy leather bomber jacket with a fur collar, zip front closure, ribbed cuffs and hem, flap pockets at the waist, and a zip pocket on the left sleeve. The jacket has a worn-in, vintage appearance."
+    }
+  ],
+  "style_genre": "casual",
+  "formality": "casual",
+  "aesthetic": "vintage-inspired, utilitarian",
+  "season": null,
+  "occasion": null,
+  "_metadata": {
+    "preset_id": "f7e02832-5c72-44b6-889f-a173e223034b",
+    "display_name": "a3-bomber"
+  }
+}

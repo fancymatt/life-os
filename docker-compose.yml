@@ -54,6 +54,15 @@ services:
           cpus: '1.0'
           memory: 2G
 
+  frontend:
+    build: ./frontend
+    container_name: ai-studio-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
 # Optional: Add volumes for named volumes instead of bind mounts
 volumes:
   presets:
