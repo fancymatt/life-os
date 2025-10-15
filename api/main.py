@@ -31,10 +31,13 @@ START_TIME = time.time()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
+
+# Log CORS configuration on startup
+print(f"✅ CORS configured for origins: {settings.cors_origins}")
 
 # Serve static files (generated images, uploads)
 try:

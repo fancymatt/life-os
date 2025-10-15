@@ -26,7 +26,44 @@ class Settings(BaseSettings):
     reload: bool = False  # Set to True for development
 
     # CORS Configuration
-    cors_origins: list = ["*"]  # Configure for production
+    cors_origins: list = []  # Will be populated in __init__
+    cors_allow_credentials: bool = True
+    cors_allow_methods: list = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    cors_allow_headers: list = ["*"]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Set CORS origins based on environment
+        cors_env = os.getenv("CORS_ORIGINS", "")
+        if cors_env:
+            # Parse from environment (comma-separated or JSON array)
+            if cors_env.startswith("["):
+                import json
+                self.cors_origins = json.loads(cors_env)
+            else:
+                self.cors_origins = [origin.strip() for origin in cors_env.split(",")]
+        else:
+            # Default origins based on environment
+            if os.getenv("DOCKER_ENV"):
+                # Production/Docker: Allow localhost and production domains
+                self.cors_origins = [
+                    "http://localhost:3000",
+                    "http://localhost:8000",
+                    "http://127.0.0.1:3000",
+                    "http://127.0.0.1:8000",
+                    "http://os.fcy.sh",
+                    "https://os.fcy.sh",
+                ]
+            else:
+                # Development: Allow localhost on various ports
+                self.cors_origins = [
+                    "http://localhost:3000",
+                    "http://localhost:8000",
+                    "http://localhost:5173",  # Vite default
+                    "http://127.0.0.1:3000",
+                    "http://127.0.0.1:8000",
+                    "http://127.0.0.1:5173",
+                ]
 
     # Path Configuration (Docker volume support)
     base_dir: Path = Path("/app" if os.getenv("DOCKER_ENV") else os.getcwd())
