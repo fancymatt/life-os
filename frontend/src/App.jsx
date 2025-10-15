@@ -4,6 +4,7 @@ import OutfitAnalyzer from './OutfitAnalyzer'
 import GenericAnalyzer from './GenericAnalyzer'
 import ModularGenerator from './ModularGenerator'
 import ComprehensiveAnalyzer from './ComprehensiveAnalyzer'
+import TaskManager from './TaskManager'
 
 function App() {
   const [tools, setTools] = useState([])
@@ -113,6 +114,9 @@ function App() {
       )}
       {showModularGenerator && <ModularGenerator onClose={() => setShowModularGenerator(false)} />}
       {showComprehensiveAnalyzer && <ComprehensiveAnalyzer onClose={() => setShowComprehensiveAnalyzer(false)} />}
+
+      {/* Task Manager - Always visible */}
+      <TaskManager />
     </>
   )
 }

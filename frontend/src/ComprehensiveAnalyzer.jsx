@@ -100,7 +100,7 @@ function ComprehensiveAnalyzer({ onClose }) {
       try {
         const base64Data = reader.result.split(',')[1]
 
-        const response = await fetch('/api/analyze/comprehensive', {
+        const response = await fetch('/api/analyze/comprehensive?async_mode=true', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -121,6 +121,14 @@ function ComprehensiveAnalyzer({ onClose }) {
 
         const data = await response.json()
 
+        // Async mode: close modal immediately, job appears in TaskManager
+        if (data.job_id) {
+          console.log('Analysis queued:', data.job_id)
+          onClose() // Close modal immediately
+          return
+        }
+
+        // Sync mode (fallback - shouldn't happen with async_mode=true)
         if (data.status === 'failed') {
           throw new Error(data.error || 'Analysis failed')
         }

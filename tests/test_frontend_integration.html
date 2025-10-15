@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Integration Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f9fafb;
+        }
+        h1 {
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 1rem;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .test-result {
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+        .test-result.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .test-result.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .test-result.pending {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .test-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        #summary {
+            background: #1f2937;
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+        #summary h2 {
+            color: white;
+            margin-top: 0;
+        }
+        .stat {
+            display: inline-block;
+            margin-right: 2rem;
+            font-size: 1.125rem;
+        }
+        .stat.success { color: #10b981; }
+        .stat.error { color: #ef4444; }
+        .stat.pending { color: #f59e0b; }
+        pre {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Frontend Integration Tests</h1>
+    <p>This page tests the frontend integration with the job queue system.</p>
+
+    <div class="test-section">
+        <h2>API Connectivity Tests</h2>
+        <button class="test-button" onclick="testAPIHealth()">Test API Health</button>
+        <button class="test-button" onclick="testListAnalyzers()">Test List Analyzers</button>
+        <button class="test-button" onclick="testListJobs()">Test List Jobs</button>
+        <div id="api-tests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Job Queue Tests</h2>
+        <button class="test-button" onclick="testAsyncAnalysis()">Test Async Analysis</button>
+        <button class="test-button" onclick="testJobPolling()">Test Job Polling</button>
+        <button class="test-button" onclick="testJobCancellation()">Test Job Cancellation</button>
+        <div id="job-tests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>SSE (Server-Sent Events) Tests</h2>
+        <button class="test-button" onclick="testSSEConnection()">Test SSE Connection</button>
+        <button class="test-button" onclick="disconnectSSE()">Disconnect SSE</button>
+        <div id="sse-tests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Comprehensive Analysis Tests</h2>
+        <button class="test-button" onclick="testComprehensiveAsync()">Test Comprehensive Async</button>
+        <div id="comprehensive-tests"></div>
+    </div>
+
+    <div id="summary">
+        <h2>Test Summary</h2>
+        <div class="stat success">✓ Passed: <span id="passed">0</span></div>
+        <div class="stat error">✗ Failed: <span id="failed">0</span></div>
+        <div class="stat pending">⚠ Pending: <span id="pending">0</span></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8000';
+        let eventSource = null;
+        let stats = { passed: 0, failed: 0, pending: 0 };
+
+        function updateStats() {
+            document.getElementById('passed').textContent = stats.passed;
+            document.getElementById('failed').textContent = stats.failed;
+            document.getElementById('pending').textContent = stats.pending;
+        }
+
+        function addResult(containerId, message, type = 'success') {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = `test-result ${type}`;
+            result.textContent = message;
+            container.appendChild(result);
+
+            if (type === 'success') stats.passed++;
+            if (type === 'error') stats.failed++;
+            if (type === 'pending') stats.pending++;
+            updateStats();
+        }
+
+        function createTestImage() {
+            // Create a simple canvas image and return base64
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(0, 0, 100, 100);
+            return canvas.toDataURL('image/png').split(',')[1];
+        }
+
+        // API Tests
+        async function testAPIHealth() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+
+                if (response.ok && data.status === 'healthy') {
+                    addResult('api-tests', `✓ API is healthy (uptime: ${data.uptime_seconds.toFixed(0)}s)`, 'success');
+                } else {
+                    addResult('api-tests', `⚠ API status: ${data.status}`, 'pending');
+                }
+            } catch (error) {
+                addResult('api-tests', `✗ API health check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testListAnalyzers() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/analyze/`);
+                const data = await response.json();
+
+                if (response.ok && Array.isArray(data)) {
+                    const names = data.map(a => a.name).join(', ');
+                    addResult('api-tests', `✓ Found ${data.length} analyzers: ${names}`, 'success');
+                } else {
+                    addResult('api-tests', '✗ Failed to list analyzers', 'error');
+                }
+            } catch (error) {
+                addResult('api-tests', `✗ List analyzers failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testListJobs() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/jobs`);
+                const data = await response.json();
+
+                if (response.ok && Array.isArray(data)) {
+                    addResult('api-tests', `✓ Jobs endpoint works (${data.length} jobs found)`, 'success');
+                } else {
+                    addResult('api-tests', '✗ Failed to list jobs', 'error');
+                }
+            } catch (error) {
+                addResult('api-tests', `✗ List jobs failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Job Tests
+        async function testAsyncAnalysis() {
+            try {
+                const imageData = createTestImage();
+
+                const response = await fetch(`${BASE_URL}/api/analyze/outfit?async_mode=true`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: { image_data: imageData },
+                        save_as_preset: false,
+                        skip_cache: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.job_id) {
+                    addResult('job-tests', `✓ Async analysis queued: ${data.job_id}`, 'success');
+                } else {
+                    addResult('job-tests', '✗ Failed to queue async analysis', 'error');
+                }
+            } catch (error) {
+                addResult('job-tests', `✗ Async analysis failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testJobPolling() {
+            try {
+                // Create a job
+                const imageData = createTestImage();
+                const createResponse = await fetch(`${BASE_URL}/api/analyze/outfit?async_mode=true`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: { image_data: imageData },
+                        save_as_preset: false,
+                        skip_cache: true
+                    })
+                });
+
+                const createData = await createResponse.json();
+                const jobId = createData.job_id;
+
+                addResult('job-tests', `⏳ Polling job ${jobId}...`, 'pending');
+
+                // Poll for completion
+                let attempts = 0;
+                const maxAttempts = 30;
+
+                const pollInterval = setInterval(async () => {
+                    attempts++;
+
+                    const jobResponse = await fetch(`${BASE_URL}/api/jobs/${jobId}`);
+                    const job = await jobResponse.json();
+
+                    if (job.status === 'completed') {
+                        clearInterval(pollInterval);
+                        addResult('job-tests', `✓ Job completed successfully (${attempts} polls)`, 'success');
+
+                        // Clean up
+                        await fetch(`${BASE_URL}/api/jobs/${jobId}`, { method: 'DELETE' });
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollInterval);
+                        addResult('job-tests', `✗ Job failed: ${job.error}`, 'error');
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(pollInterval);
+                        addResult('job-tests', `✗ Job polling timed out`, 'error');
+                    }
+                }, 1000);
+
+            } catch (error) {
+                addResult('job-tests', `✗ Job polling failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testJobCancellation() {
+            try {
+                // Create a job
+                const imageData = createTestImage();
+                const response = await fetch(`${BASE_URL}/api/analyze/outfit?async_mode=true`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: { image_data: imageData },
+                        save_as_preset: false,
+                        skip_cache: true
+                    })
+                });
+
+                const data = await response.json();
+                const jobId = data.job_id;
+
+                // Immediately cancel it
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const cancelResponse = await fetch(`${BASE_URL}/api/jobs/${jobId}/cancel`, {
+                    method: 'POST'
+                });
+
+                const cancelData = await cancelResponse.json();
+
+                if (cancelResponse.ok && cancelData.status === 'cancelled') {
+                    addResult('job-tests', `✓ Job cancelled successfully`, 'success');
+                } else if (cancelData.status === 'completed') {
+                    addResult('job-tests', `⚠ Job completed before cancellation`, 'pending');
+                } else {
+                    addResult('job-tests', `✗ Job cancellation failed`, 'error');
+                }
+            } catch (error) {
+                addResult('job-tests', `✗ Job cancellation failed: ${error.message}`, 'error');
+            }
+        }
+
+        // SSE Tests
+        function testSSEConnection() {
+            try {
+                eventSource = new EventSource(`${BASE_URL}/api/jobs/stream`);
+
+                eventSource.onopen = () => {
+                    addResult('sse-tests', '✓ SSE connection established', 'success');
+                };
+
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'connected') {
+                        addResult('sse-tests', '✓ SSE connected message received', 'success');
+                    } else if (data.job_id) {
+                        addResult('sse-tests', `✓ Received job update: ${data.job_id} (${data.status})`, 'success');
+                    }
+                };
+
+                eventSource.onerror = (error) => {
+                    addResult('sse-tests', '✗ SSE connection error', 'error');
+                };
+
+            } catch (error) {
+                addResult('sse-tests', `✗ SSE test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function disconnectSSE() {
+            if (eventSource) {
+                eventSource.close();
+                addResult('sse-tests', '✓ SSE disconnected', 'success');
+            }
+        }
+
+        // Comprehensive Tests
+        async function testComprehensiveAsync() {
+            try {
+                const imageData = createTestImage();
+
+                const response = await fetch(`${BASE_URL}/api/analyze/comprehensive?async_mode=true`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: { image_data: imageData },
+                        save_as_preset: false,
+                        skip_cache: true,
+                        selected_analyses: {
+                            outfit: true,
+                            visual_style: true,
+                            hair_style: false,
+                            hair_color: false,
+                            makeup: false,
+                            accessories: false,
+                            art_style: false,
+                            expression: false
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.job_id) {
+                    addResult('comprehensive-tests', `✓ Comprehensive analysis queued: ${data.job_id}`, 'success');
+
+                    // Monitor progress
+                    let attempts = 0;
+                    const pollInterval = setInterval(async () => {
+                        attempts++;
+
+                        const jobResponse = await fetch(`${BASE_URL}/api/jobs/${data.job_id}`);
+                        const job = await jobResponse.json();
+
+                        if (job.status === 'completed') {
+                            clearInterval(pollInterval);
+                            addResult('comprehensive-tests', `✓ Comprehensive analysis completed`, 'success');
+
+                            // Clean up
+                            await fetch(`${BASE_URL}/api/jobs/${data.job_id}`, { method: 'DELETE' });
+                        } else if (job.status === 'failed') {
+                            clearInterval(pollInterval);
+                            addResult('comprehensive-tests', `✗ Comprehensive analysis failed: ${job.error}`, 'error');
+                        } else if (attempts >= 60) {
+                            clearInterval(pollInterval);
+                            addResult('comprehensive-tests', `✗ Comprehensive analysis timed out`, 'error');
+                        }
+                    }, 2000);
+
+                } else {
+                    addResult('comprehensive-tests', '✗ Failed to queue comprehensive analysis', 'error');
+                }
+            } catch (error) {
+                addResult('comprehensive-tests', `✗ Comprehensive test failed: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

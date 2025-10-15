@@ -138,7 +138,7 @@ class ModularGenerateRequest(BaseModel):
     """Request for modular generation with preset IDs"""
     subject_image: str = Field(..., description="Path to subject image (e.g., jenny.png)")
     variations: int = Field(1, ge=1, le=10, description="Number of variations to generate")
-    outfit: Optional[str] = Field(None, description="Outfit preset ID")
+    outfit: Optional[Union[str, List[str]]] = Field(None, description="Outfit preset ID or list of IDs for amalgamation")
     visual_style: Optional[str] = Field(None, description="Visual style preset ID")
     art_style: Optional[str] = Field(None, description="Art style preset ID")
     hair_style: Optional[str] = Field(None, description="Hair style preset ID")
@@ -152,7 +152,7 @@ class ModularGenerateRequest(BaseModel):
             "example": {
                 "subject_image": "jenny.png",
                 "variations": 2,
-                "outfit": "casual-preset-id",
+                "outfit": ["casual-preset-id", "jacket-preset-id"],
                 "visual_style": "film-noir-id"
             }
         }

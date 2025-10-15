@@ -237,17 +237,22 @@ class PresetService:
 
         # Check if data actually changed (not just metadata) - BEFORE updating
         should_generate_preview = False
+        has_preview = self.preset_manager.has_preview_image(category, preset_id)
 
         if category == "outfits":
             # Compare outfit-specific fields (exclude _metadata)
             old_outfit_data = {k: v for k, v in existing_data.items() if k != "_metadata"}
             new_outfit_data = {k: v for k, v in data.items() if k != "_metadata"}
-            should_generate_preview = old_outfit_data != new_outfit_data
+            data_changed = old_outfit_data != new_outfit_data
+            should_generate_preview = data_changed or not has_preview
+            print(f"🔍 Outfit - data changed: {data_changed}, has preview: {has_preview}, will generate: {should_generate_preview}")
         elif category in ["visual_styles", "art_styles", "hair_styles", "hair_colors", "makeup", "expressions", "accessories"]:
             # For non-outfit categories, compare data (excluding metadata)
             old_data = {k: v for k, v in existing_data.items() if k != "_metadata"}
             new_data = {k: v for k, v in data.items() if k != "_metadata"}
-            should_generate_preview = old_data != new_data
+            data_changed = old_data != new_data
+            should_generate_preview = data_changed or not has_preview
+            print(f"🔍 {category} - data changed: {data_changed}, has preview: {has_preview}, will generate: {should_generate_preview}")
 
         # Update fields
         existing_data.update(data)

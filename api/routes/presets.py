@@ -169,6 +169,7 @@ async def get_preset_preview(category: str, preset_id: str):
     Get preview image for a preset
 
     Returns the preview image file for presets that support visualizations (e.g., outfits).
+    If no preview exists, returns 404.
     """
     try:
         # Get the preview image path from preset manager
@@ -182,6 +183,9 @@ async def get_preset_preview(category: str, preset_id: str):
             media_type="image/png",
             filename=f"{preset_id}_preview.png"
         )
+    except HTTPException:
+        # Re-raise HTTPException as-is (don't convert to 500)
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

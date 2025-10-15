@@ -8,12 +8,14 @@ import time
 import tempfile
 import base64
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Query
 from typing import List
 
 from api.models.requests import AnalyzeRequest
 from api.models.responses import AnalyzeResponse, ToolInfo
+from api.models.jobs import JobType
 from api.services import AnalyzerService
+from api.services.job_queue import job_queue_manager
 from api.config import settings
 
 router = APIRouter()
@@ -50,11 +52,46 @@ async def list_analyzers():
     return [ToolInfo(**a) for a in analyzers]
 
 
-@router.post("/{analyzer_name}", response_model=AnalyzeResponse)
+def run_analyzer_job(
+    job_id: str,
+    analyzer_name: str,
+    image_path: Path,
+    request: AnalyzeRequest
+):
+    """Background task to run analyzer and update job"""
+    try:
+        job_queue_manager.start_job(job_id)
+        job_queue_manager.update_progress(job_id, 0.1, "Starting analysis...")
+
+        # Run analyzer
+        result = analyzer_service.analyze(
+            analyzer_name,
+            image_path,
+            save_as_preset=request.save_as_preset,
+            skip_cache=request.skip_cache,
+            background_tasks=None,  # No nested background tasks in async mode
+            selected_analyses=request.selected_analyses
+        )
+
+        job_queue_manager.update_progress(job_id, 0.9, "Finalizing...")
+
+        # Complete job with result
+        job_queue_manager.complete_job(job_id, result)
+
+    except Exception as e:
+        job_queue_manager.fail_job(job_id, str(e))
+    finally:
+        # Cleanup temp file
+        if image_path.exists():
+            image_path.unlink()
+
+
+@router.post("/{analyzer_name}")
 async def analyze_image(
     analyzer_name: str,
     request: AnalyzeRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    async_mode: bool = Query(False, description="Run analysis in background and return job_id")
 ):
     """
     Analyze an image with a specific analyzer
@@ -69,16 +106,53 @@ async def analyze_image(
     - expression: Analyze facial expression
     - accessories: Analyze accessories
     - comprehensive: Run all analyzers
+
+    Query Parameters:
+    - async_mode: If true, returns job_id immediately and processes in background
     """
     if not analyzer_service.validate_analyzer(analyzer_name):
         raise HTTPException(status_code=404, detail=f"Analyzer not found: {analyzer_name}")
 
+    # Download or decode image
+    image_path = await download_or_decode_image(request.image)
+
+    # Async mode: Create job and return immediately
+    if async_mode:
+        # Determine job type
+        if analyzer_name == "comprehensive":
+            job_type = JobType.COMPREHENSIVE_ANALYZE
+            title = "Comprehensive analysis"
+        else:
+            job_type = JobType.ANALYZE
+            title = f"Analyzing {analyzer_name}"
+
+        # Create job
+        job_id = job_queue_manager.create_job(
+            job_type=job_type,
+            title=title,
+            description=f"Image: {image_path.name}"
+        )
+
+        # Queue background task
+        background_tasks.add_task(
+            run_analyzer_job,
+            job_id,
+            analyzer_name,
+            image_path,
+            request
+        )
+
+        # Return job info
+        return {
+            "job_id": job_id,
+            "status": "queued",
+            "message": "Analysis queued. Use /jobs/{job_id} to check status."
+        }
+
+    # Synchronous mode: Run analysis and return result
     start_time = time.time()
 
     try:
-        # Download or decode image
-        image_path = await download_or_decode_image(request.image)
-
         # Run analyzer
         result = analyzer_service.analyze(
             analyzer_name,
@@ -131,8 +205,8 @@ async def analyze_image(
             error=str(e)
         )
     finally:
-        # Cleanup temp file
-        if 'image_path' in locals() and image_path.exists():
+        # Cleanup temp file (only in sync mode, async mode handles its own cleanup)
+        if not async_mode and 'image_path' in locals() and image_path.exists():
             image_path.unlink()
 
 

@@ -72,10 +72,60 @@ class ModularImageGenerator:
         self.router = LLMRouter(model=model)
         self.preset_manager = PresetManager()
 
+    def _merge_outfits(self, outfit_specs: list) -> OutfitSpec:
+        """
+        Merge multiple outfit specs into one amalgamated outfit
+
+        Args:
+            outfit_specs: List of OutfitSpec objects
+
+        Returns:
+            Merged OutfitSpec with all clothing items
+        """
+        if not outfit_specs:
+            return None
+
+        if len(outfit_specs) == 1:
+            return outfit_specs[0]
+
+        # Combine all clothing items from all outfits
+        all_clothing_items = []
+        for outfit in outfit_specs:
+            all_clothing_items.extend(outfit.clothing_items)
+
+        # Take suggested name from first outfit, or create amalgamated name
+        names = [o.suggested_name for o in outfit_specs if o.suggested_name]
+        if len(names) > 1:
+            suggested_name = "Amalgamated Outfit"
+        elif names:
+            suggested_name = names[0]
+        else:
+            suggested_name = "Custom Outfit"
+
+        # Combine style genres, formality levels, and aesthetics
+        style_genres = [o.style_genre for o in outfit_specs if o.style_genre]
+        formality_levels = [o.formality for o in outfit_specs if o.formality]
+        aesthetics = [o.aesthetic for o in outfit_specs if o.aesthetic]
+
+        # Use the most specific values, or combine if multiple
+        style_genre = ", ".join(set(style_genres)) if style_genres else None
+        formality = formality_levels[0] if formality_levels else None
+        aesthetic = ", ".join(set(aesthetics)) if aesthetics else None
+
+        print(f"🔀 Merged {len(outfit_specs)} outfits into one ({len(all_clothing_items)} total items)")
+
+        return OutfitSpec(
+            suggested_name=suggested_name,
+            clothing_items=all_clothing_items,
+            style_genre=style_genre,
+            formality=formality,
+            aesthetic=aesthetic
+        )
+
     def generate(
         self,
         subject_image: Union[Path, str],
-        outfit: Optional[Union[str, OutfitSpec]] = None,
+        outfit: Optional[Union[str, list, OutfitSpec]] = None,
         visual_style: Optional[Union[str, VisualStyleSpec]] = None,
         art_style: Optional[Union[str, ArtStyleSpec]] = None,
         hair_style: Optional[Union[str, HairStyleSpec]] = None,
@@ -91,7 +141,7 @@ class ModularImageGenerator:
 
         Args:
             subject_image: Source image path
-            outfit: Outfit preset name or OutfitSpec
+            outfit: Outfit preset name, list of preset names, or OutfitSpec
             visual_style: Visual style preset name or VisualStyleSpec
             art_style: Art style preset name or ArtStyleSpec
             hair_style: Hair style preset name or HairStyleSpec
@@ -115,8 +165,22 @@ class ModularImageGenerator:
         print(f"{'='*70}\n")
         print(f"Subject: {subject_image.name}")
 
+        # Debug: Check what we received
+        print(f"🔍 DEBUG: outfit parameter type: {type(outfit)}, value: {outfit}")
+
         # Load specs from presets if needed
-        outfit_spec = self._load_spec(outfit, "outfits", OutfitSpec, "Outfit")
+        # Special handling for outfit - can be a list of IDs
+        if isinstance(outfit, list):
+            print(f"📦 Loading {len(outfit)} outfits for amalgamation...")
+            outfit_specs = []
+            for outfit_id in outfit:
+                spec = self._load_spec(outfit_id, "outfits", OutfitSpec, "Outfit")
+                if spec:
+                    outfit_specs.append(spec)
+            outfit_spec = self._merge_outfits(outfit_specs) if outfit_specs else None
+        else:
+            outfit_spec = self._load_spec(outfit, "outfits", OutfitSpec, "Outfit")
+
         visual_style_spec = self._load_spec(visual_style, "visual_styles", VisualStyleSpec, "Visual Style")
         art_style_spec = self._load_spec(art_style, "art_styles", ArtStyleSpec, "Art Style")
         hair_style_spec = self._load_spec(hair_style, "hair_styles", HairStyleSpec, "Hair Style")
@@ -246,11 +310,22 @@ class ModularImageGenerator:
 
         # Outfit
         if outfit:
-            outfit_desc = f"The person is wearing: "
-            for item in outfit.clothing_items:
-                outfit_desc += f"{item.item} ({item.color}, {item.fabric}), "
-            outfit_desc = outfit_desc.rstrip(", ") + "."
-            outfit_desc += f" Style: {outfit.style_genre}, {outfit.formality}."
+            # Emphasize that ALL items should be worn simultaneously with numbered list
+            num_items = len(outfit.clothing_items)
+            outfit_desc = f"**MANDATORY CLOTHING REQUIREMENTS - ALL {num_items} ITEMS MUST APPEAR:**\n\n"
+            outfit_desc += f"The person MUST be wearing ALL {num_items} of the following distinct clothing items simultaneously, layered together:\n\n"
+
+            for idx, item in enumerate(outfit.clothing_items, 1):
+                outfit_desc += f"{idx}. {item.item} - {item.color} {item.fabric}\n"
+
+            outfit_desc += f"\n**Overall Style:** {outfit.style_genre}, {outfit.formality}"
+            outfit_desc += f"\n\n**CRITICAL REQUIREMENTS:**"
+            outfit_desc += f"\n- This is an amalgamated outfit containing {num_items} distinct items"
+            outfit_desc += f"\n- Each numbered item above is a SEPARATE, DISTINCT piece of clothing"
+            outfit_desc += f"\n- ALL {num_items} items must be visible in the image, layered appropriately"
+            outfit_desc += f"\n- Multiple jackets/layers should be stacked on top of each other"
+            outfit_desc += f"\n- All accessories and items must be clearly visible"
+            outfit_desc += f"\n- Do NOT omit any items - every single numbered item is mandatory"
             sections.append(outfit_desc)
 
         # Hair style

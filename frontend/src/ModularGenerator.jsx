@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import './OutfitAnalyzer.css' // Reuse the same styles
+import './OutfitAnalyzer.css' // Reuse the base modal styles
+import './ModularGenerator.css' // Modular generator specific styles
 
 function ModularGenerator({ onClose }) {
   // Subject selection
@@ -17,7 +18,8 @@ function ModularGenerator({ onClose }) {
     { key: 'accessories', label: 'Accessories', apiCategory: 'accessories' }
   ]
 
-  // State for each category: enabled, presets, selected preset
+  // State for each category: enabled, presets, selected preset(s)
+  // Note: outfit category uses an array for multiple selection
   const [categoryStates, setCategoryStates] = useState({})
   const [iterations, setIterations] = useState(1)
   const [generating, setGenerating] = useState(false)
@@ -35,7 +37,8 @@ function ModularGenerator({ onClose }) {
         enabled: false,
         presets: [],
         loadingPresets: false,
-        selectedPreset: null
+        // Outfit uses array for multi-select, others use single value
+        selectedPreset: cat.key === 'outfit' ? [] : null
       }
     })
     setCategoryStates(initialState)
@@ -94,13 +97,34 @@ function ModularGenerator({ onClose }) {
   }
 
   const handleSelectPreset = (categoryKey, presetId) => {
-    setCategoryStates(prev => ({
-      ...prev,
-      [categoryKey]: {
-        ...prev[categoryKey],
-        selectedPreset: presetId
+    setCategoryStates(prev => {
+      const currentState = prev[categoryKey]
+
+      // Outfit category: toggle multi-select
+      if (categoryKey === 'outfit') {
+        const currentSelected = currentState.selectedPreset || []
+        const newSelected = currentSelected.includes(presetId)
+          ? currentSelected.filter(id => id !== presetId)  // Remove if already selected
+          : [...currentSelected, presetId]  // Add if not selected
+
+        return {
+          ...prev,
+          [categoryKey]: {
+            ...currentState,
+            selectedPreset: newSelected
+          }
+        }
       }
-    }))
+
+      // Other categories: single select
+      return {
+        ...prev,
+        [categoryKey]: {
+          ...currentState,
+          selectedPreset: presetId
+        }
+      }
+    })
   }
 
   const pollStatus = async (taskId) => {
@@ -151,7 +175,16 @@ function ModularGenerator({ onClose }) {
       categories.forEach(cat => {
         const state = categoryStates[cat.key]
         if (state?.enabled && state?.selectedPreset) {
-          payload[cat.key] = state.selectedPreset
+          // Outfit can be array (multiple) or single value
+          if (cat.key === 'outfit' && Array.isArray(state.selectedPreset)) {
+            // Only include if array has items
+            if (state.selectedPreset.length > 0) {
+              payload[cat.key] = state.selectedPreset
+            }
+          } else if (state.selectedPreset) {
+            // Other categories: single value
+            payload[cat.key] = state.selectedPreset
+          }
         }
       })
 
@@ -229,6 +262,11 @@ function ModularGenerator({ onClose }) {
                       style={{ fontWeight: '500', cursor: 'pointer', margin: 0 }}
                     >
                       {cat.label}
+                      {cat.key === 'outfit' && (
+                        <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                          (multi-select)
+                        </span>
+                      )}
                     </label>
                   </div>
 
@@ -237,23 +275,29 @@ function ModularGenerator({ onClose }) {
                       {state.loadingPresets ? (
                         <div className="loading">Loading presets...</div>
                       ) : state.presets.length === 0 ? (
-                        <div style={{ fontSize: '0.875rem', color: '#9ca3af' }}>
+                        <div className="preset-grid-empty">
                           No presets available
                         </div>
                       ) : (
-                        <select
-                          value={state.selectedPreset || ''}
-                          onChange={(e) => handleSelectPreset(cat.key, e.target.value)}
-                          disabled={generating}
-                          style={{ width: '100%', padding: '0.5rem' }}
-                        >
-                          <option value="">Select a preset...</option>
-                          {state.presets.map(preset => (
-                            <option key={preset.preset_id} value={preset.preset_id}>
-                              {preset.display_name || preset.preset_id}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="preset-grid">
+                          {state.presets.map(preset => {
+                            // Check selection: array for outfit, single value for others
+                            const isSelected = cat.key === 'outfit'
+                              ? (state.selectedPreset || []).includes(preset.preset_id)
+                              : state.selectedPreset === preset.preset_id
+
+                            return (
+                              <PresetCard
+                                key={preset.preset_id}
+                                preset={preset}
+                                category={cat.apiCategory}
+                                selected={isSelected}
+                                disabled={generating}
+                                onClick={() => handleSelectPreset(cat.key, preset.preset_id)}
+                              />
+                            )
+                          })}
+                        </div>
                       )}
                     </div>
                   )}
@@ -331,6 +375,44 @@ function ModularGenerator({ onClose }) {
             {generating ? 'Generating...' : 'Generate'}
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function PresetCard({ preset, category, selected, disabled, onClick }) {
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageError, setImageError] = useState(false)
+
+  const previewUrl = `/api/presets/${category}/${preset.preset_id}/preview?t=${Date.now()}`
+
+  return (
+    <div
+      className={`preset-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+      onClick={disabled ? undefined : onClick}
+    >
+      <div className="preset-preview">
+        {!imageLoaded && !imageError && (
+          <div className="loading-spinner" />
+        )}
+        {!imageError ? (
+          <img
+            src={previewUrl}
+            alt={preset.display_name || preset.preset_id}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageError(true)
+              setImageLoaded(true)
+            }}
+            style={{ display: imageLoaded ? 'block' : 'none' }}
+          />
+        ) : (
+          <div className="no-image">🖼️</div>
+        )}
+        {selected && <div className="checkmark">✓</div>}
+      </div>
+      <div className="preset-name">
+        {preset.display_name || preset.preset_id}
       </div>
     </div>
   )

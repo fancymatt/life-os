@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from api.config import settings
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets
+from api.routes import discovery, analyzers, generators, presets, jobs
 
 # Create FastAPI app
 app = FastAPI(
@@ -49,6 +49,7 @@ app.include_router(discovery.router, tags=["discovery"])
 app.include_router(analyzers.router, prefix="/analyze", tags=["analyzers"])
 app.include_router(generators.router, prefix="/generate", tags=["generators"])
 app.include_router(presets.router, prefix="/presets", tags=["presets"])
+app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 
 
 @app.get("/", response_model=APIInfo)

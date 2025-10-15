@@ -178,7 +178,7 @@ function OutfitAnalyzer({ onClose }) {
       reader.onloadend = async () => {
         const base64Data = reader.result.split(',')[1]
 
-        const response = await fetch('/api/analyze/outfit', {
+        const response = await fetch('/api/analyze/outfit?async_mode=true', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -198,6 +198,15 @@ function OutfitAnalyzer({ onClose }) {
 
         const data = await response.json()
 
+        // Async mode: close modal immediately, job appears in TaskManager
+        if (data.job_id) {
+          console.log('Analysis queued:', data.job_id)
+          handleBackToList()  // Go back to list view
+          onClose()  // Close modal
+          return
+        }
+
+        // Sync mode (fallback - shouldn't happen with async_mode=true)
         if (data.status === 'failed') {
           throw new Error(data.error || 'Analysis failed')
         }
