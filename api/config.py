@@ -50,6 +50,8 @@ class Settings(BaseSettings):
 
     # Job Configuration
     job_retention_hours: int = 24  # Keep job results for 24 hours
+    job_storage_backend: str = os.getenv("JOB_STORAGE_BACKEND", "redis")  # "redis" or "memory"
+    redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
     # Background Jobs (if using Celery)
     celery_broker_url: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")

@@ -24,6 +24,9 @@ uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
 httpx>=0.25.0
 
+# Job Queue Storage
+redis>=5.0.0
+
 # CLI
 click>=8.1.0
 rich>=13.0.0

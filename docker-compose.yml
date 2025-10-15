@@ -1,4 +1,18 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: ai-studio-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   api:
     build: .
     container_name: ai-studio-api
@@ -9,15 +23,20 @@ services:
     environment:
       # Docker environment flag
       - DOCKER_ENV=1
-
+      # Redis configuration
+      - REDIS_URL=redis://redis:6379/0
+      - JOB_STORAGE_BACKEND=redis
       # API Configuration
       - API_TITLE=AI-Studio API
       - API_VERSION=1.0.0
       - HOST=0.0.0.0
       - PORT=8000
-
       # CORS (adjust for production)
       - CORS_ORIGINS=["*"]
+
+    depends_on:
+      redis:
+        condition: service_healthy
 
     volumes:
       # Persistent volumes
@@ -64,6 +83,8 @@ services:
 
 # Optional: Add volumes for named volumes instead of bind mounts
 volumes:
+  redis_data:
+    driver: local
   presets:
     driver: local
   output:

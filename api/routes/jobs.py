@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from typing import Optional, List
 
 from api.models.jobs import Job, JobStatus
-from api.services.job_queue import job_queue_manager
+from api.services.job_queue import get_job_queue_manager
 
 router = APIRouter()
 
@@ -24,7 +24,7 @@ async def list_jobs(
     - status: Filter by job status (queued, running, completed, failed, cancelled)
     - limit: Maximum number of jobs to return (default: 50)
     """
-    jobs = job_queue_manager.list_jobs(status=status, limit=limit)
+    jobs = get_job_queue_manager().list_jobs(status=status, limit=limit)
     return jobs
 
 
@@ -37,7 +37,7 @@ async def stream_jobs():
     """
     async def event_generator():
         # Subscribe to job updates
-        queue = await job_queue_manager.subscribe()
+        queue = await get_job_queue_manager().subscribe()
 
         try:
             # Send initial connection message
@@ -62,7 +62,7 @@ async def stream_jobs():
             pass
         finally:
             # Unsubscribe
-            job_queue_manager.unsubscribe(queue)
+            get_job_queue_manager().unsubscribe(queue)
 
     return StreamingResponse(
         event_generator(),
@@ -79,7 +79,7 @@ async def stream_jobs():
 async def get_job(job_id: str):
     """Get specific job details"""
     try:
-        job = job_queue_manager.get_job(job_id)
+        job = get_job_queue_manager().get_job(job_id)
         return job
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -89,8 +89,8 @@ async def get_job(job_id: str):
 async def cancel_job(job_id: str):
     """Cancel a running job"""
     try:
-        job_queue_manager.cancel_job(job_id)
-        job = job_queue_manager.get_job(job_id)
+        get_job_queue_manager().cancel_job(job_id)
+        job = get_job_queue_manager().get_job(job_id)
         return job
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -100,7 +100,7 @@ async def cancel_job(job_id: str):
 async def delete_job(job_id: str):
     """Remove a completed/failed job from history"""
     try:
-        job_queue_manager.delete_job(job_id)
+        get_job_queue_manager().delete_job(job_id)
         return {"status": "deleted"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

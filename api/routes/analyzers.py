@@ -15,7 +15,7 @@ from api.models.requests import AnalyzeRequest
 from api.models.responses import AnalyzeResponse, ToolInfo
 from api.models.jobs import JobType
 from api.services import AnalyzerService
-from api.services.job_queue import job_queue_manager
+from api.services.job_queue import get_job_queue_manager
 from api.config import settings
 
 router = APIRouter()
@@ -60,8 +60,8 @@ def run_analyzer_job(
 ):
     """Background task to run analyzer and update job"""
     try:
-        job_queue_manager.start_job(job_id)
-        job_queue_manager.update_progress(job_id, 0.1, "Starting analysis...")
+        get_job_queue_manager().start_job(job_id)
+        get_job_queue_manager().update_progress(job_id, 0.1, "Starting analysis...")
 
         # Run analyzer
         result = analyzer_service.analyze(
@@ -73,13 +73,13 @@ def run_analyzer_job(
             selected_analyses=request.selected_analyses
         )
 
-        job_queue_manager.update_progress(job_id, 0.9, "Finalizing...")
+        get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
 
         # Complete job with result
-        job_queue_manager.complete_job(job_id, result)
+        get_job_queue_manager().complete_job(job_id, result)
 
     except Exception as e:
-        job_queue_manager.fail_job(job_id, str(e))
+        get_job_queue_manager().fail_job(job_id, str(e))
     finally:
         # Cleanup temp file
         if image_path.exists():
@@ -127,7 +127,7 @@ async def analyze_image(
             title = f"Analyzing {analyzer_name}"
 
         # Create job
-        job_id = job_queue_manager.create_job(
+        job_id = get_job_queue_manager().create_job(
             job_type=job_type,
             title=title,
             description=f"Image: {image_path.name}"
