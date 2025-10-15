@@ -55,8 +55,5 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 
-# Scripts
-scripts/
-
 # Workflows
 workflows/

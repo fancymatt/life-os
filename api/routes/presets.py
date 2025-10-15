@@ -61,24 +61,27 @@ async def get_preset(category: str, preset_id: str):
 
 
 @router.post("/{category}", response_model=dict)
-async def create_preset(category: str, request: PresetCreate):
+async def create_preset(category: str, request: PresetCreate, background_tasks: BackgroundTasks):
     """
     Create a new preset
 
     Creates a new preset in the specified category.
+    Visualization generation runs asynchronously in the background.
     """
     try:
-        preset_path = preset_service.create_preset(
+        preset_path, preset_id = preset_service.create_preset(
             category,
             request.name,
             request.data,
-            request.notes
+            request.notes,
+            background_tasks=background_tasks
         )
         return {
             "message": "Preset created successfully",
             "path": str(preset_path),
             "category": category,
-            "name": request.name
+            "name": request.name,
+            "preset_id": preset_id
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -140,14 +143,20 @@ async def delete_preset(category: str, preset_id: str):
 
 
 @router.post("/{category}/{name}/duplicate", response_model=dict)
-async def duplicate_preset(category: str, name: str, new_name: str):
+async def duplicate_preset(category: str, name: str, new_name: str, background_tasks: BackgroundTasks):
     """
     Duplicate a preset
 
     Creates a copy of an existing preset with a new name.
+    Visualization generation runs asynchronously in the background.
     """
     try:
-        preset_path = preset_service.duplicate_preset(category, name, new_name)
+        preset_path = preset_service.duplicate_preset(
+            category,
+            name,
+            new_name,
+            background_tasks=background_tasks
+        )
         return {
             "message": "Preset duplicated successfully",
             "path": str(preset_path),

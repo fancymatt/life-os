@@ -150,8 +150,9 @@ class PresetService:
         category: str,
         name: str,
         data: Dict[str, Any],
-        notes: Optional[str] = None
-    ) -> Path:
+        notes: Optional[str] = None,
+        background_tasks = None
+    ) -> tuple[Path, str]:
         """
         Create a new preset
 
@@ -160,9 +161,10 @@ class PresetService:
             name: Display name for the preset
             data: Preset data dict
             notes: Optional notes
+            background_tasks: Optional FastAPI BackgroundTasks for async visualization
 
         Returns:
-            Path to created preset
+            Tuple of (Path to created preset, preset_id)
         """
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
@@ -201,7 +203,21 @@ class PresetService:
             notes=notes
         )
 
-        return preset_path
+        # Generate preview for the new preset
+        if background_tasks is not None:
+            # Run visualization in background
+            background_tasks.add_task(
+                self._generate_preview,
+                category,
+                preset_id,
+                data
+            )
+            print(f"🎨 Queued preview generation for new preset {preset_id}")
+        else:
+            # Fallback to synchronous generation
+            self._generate_preview(category, preset_id, data)
+
+        return preset_path, preset_id
 
     def update_preset(
         self,
@@ -308,7 +324,8 @@ class PresetService:
         self,
         category: str,
         source_name: str,
-        new_name: str
+        new_name: str,
+        background_tasks = None
     ) -> Path:
         """
         Duplicate a preset
@@ -317,6 +334,7 @@ class PresetService:
             category: Category name
             source_name: Source preset name
             new_name: New preset name
+            background_tasks: Optional FastAPI BackgroundTasks for async visualization
 
         Returns:
             Path to duplicated preset
@@ -328,8 +346,15 @@ class PresetService:
         data.pop("_metadata", None)
         data.pop("metadata", None)
 
-        # Create new preset
-        return self.create_preset(category, new_name, data, notes=f"Duplicated from {source_name}")
+        # Create new preset (returns tuple now)
+        preset_path, preset_id = self.create_preset(
+            category,
+            new_name,
+            data,
+            notes=f"Duplicated from {source_name}",
+            background_tasks=background_tasks
+        )
+        return preset_path
 
     def get_total_presets(self) -> int:
         """Get total number of presets across all categories"""

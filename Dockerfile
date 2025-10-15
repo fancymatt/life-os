@@ -24,6 +24,11 @@ COPY ai_capabilities/ ./ai_capabilities/
 COPY ai_tools/ ./ai_tools/
 COPY api/ ./api/
 COPY configs/ ./configs/
+COPY scripts/ ./scripts/
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Create directories for volumes (will be mounted)
 RUN mkdir -p /app/presets /app/output /app/cache /app/uploads
@@ -35,5 +40,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the API
-CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the API with entrypoint script
+CMD ["/app/docker-entrypoint.sh"]
