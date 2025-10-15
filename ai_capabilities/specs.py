@@ -56,26 +56,41 @@ class OutfitSpec(BaseModel):
     occasion: Optional[str] = Field(None, description="Suitable occasions")
 
 
-class VisualStyleSpec(BaseModel):
-    """Photographic/visual style analysis"""
+class PhotoCompositionSpec(BaseModel):
+    """Photograph composition analysis - what's happening in the frame"""
     _metadata: Optional[SpecMetadata] = None
-    composition: str = Field(..., description="Composition, rule of thirds, visual balance, leading lines")
-    framing: str = Field(..., description="Framing details (close-up, medium shot, full body, etc.)")
-    pose: str = Field(..., description="Body pose - hands, arms, head tilt, stance (no clothing/accessories)")
-    body_position: str = Field(..., description="Body position and orientation (standing, sitting, profile, etc.)")
-    lighting: str = Field(..., description="Lighting analysis including type, direction, quality, shadows, highlights")
-    color_palette: List[str] = Field(..., description="All dominant and accent colors")
-    color_grading: str = Field(..., description="Color grading and toning (warm/cool/desaturated/etc.)")
-    mood: str = Field(..., description="Overall mood, atmosphere, and emotional tone")
-    background: str = Field(..., description="Detailed background including depth, bokeh, environmental elements")
-    photographic_style: str = Field(..., description="Specific photo style (fashion editorial, candid, portrait, etc.)")
-    artistic_style: str = Field(..., description="Artistic aesthetic style (retro 80s, film noir, minimalist, etc.)")
-    film_grain: str = Field(..., description="Presence and intensity of film grain or noise")
-    image_quality: str = Field(..., description="Quality characteristics (sharp, soft focus, motion blur, etc.)")
-    era_aesthetic: str = Field(..., description="Time period aesthetic (1980s, modern, vintage, etc.)")
-    camera_angle: str = Field(..., description="Camera angle and perspective (eye level, low angle, etc.)")
-    depth_of_field: str = Field(..., description="DOF characteristics (shallow with bokeh, deep, selective focus)")
-    post_processing: str = Field(..., description="Post-processing effects (HDR, cross-processing, filters, etc.)")
+    subject_action: str = Field(
+        ...,
+        description="DETAILED 4-8 sentence paragraph describing body position, head angle, gaze, facial expression, arms/hands, and body language. MINIMUM 200 characters required."
+    )
+    setting: str = Field(
+        ...,
+        description="DETAILED 4-8 sentence paragraph describing background with exact colors, textures, objects, and atmosphere. MINIMUM 200 characters required."
+    )
+    framing: str = Field(..., description="Camera framing: 'extreme close-up', 'close-up portrait', 'medium shot', 'full body', or 'wide shot'")
+    camera_angle: str = Field(..., description="Camera angle: 'eye level', 'low angle', 'high angle', 'slightly from below', or 'slightly from above'")
+    lighting: str = Field(
+        ...,
+        description="DETAILED 4-6 sentence paragraph about light direction, quality, intensity, color temperature, shadows, and highlights. MINIMUM 200 characters required."
+    )
+    mood: str = Field(
+        ...,
+        description="DETAILED 4-6 sentence paragraph about emotional tone, energy, atmosphere, and impact. MINIMUM 200 characters required."
+    )
+
+    @field_validator('subject_action', 'setting', 'lighting', 'mood')
+    @classmethod
+    def validate_min_length(cls, v: str, info) -> str:
+        """Ensure detailed fields have minimum length"""
+        if len(v) < 200:
+            raise ValueError(f'{info.field_name} must be at least 200 characters (got {len(v)}). Provide a detailed, multi-sentence paragraph.')
+        word_count = len(v.split())
+        if word_count < 40:
+            raise ValueError(f'{info.field_name} must be at least 40 words (got {word_count}). Provide detailed descriptions, not brief summaries.')
+        return v
+
+# Keep VisualStyleSpec as an alias for backward compatibility
+VisualStyleSpec = PhotoCompositionSpec
 
 
 class ArtStyleSpec(BaseModel):
@@ -95,14 +110,51 @@ class ArtStyleSpec(BaseModel):
 class HairStyleSpec(BaseModel):
     """Hair style structure analysis (not color)"""
     _metadata: Optional[SpecMetadata] = None
-    cut: str = Field(..., description="Haircut type and shape")
-    length: str = Field(..., description="Overall length")
-    layers: str = Field(..., description="Layering structure")
-    texture: str = Field(..., description="Natural texture and styling")
-    volume: str = Field(..., description="Volume and body")
-    parting: str = Field(..., description="Part placement and style")
-    front_styling: str = Field(..., description="Bangs, framing, front details")
-    overall_style: str = Field(..., description="Style category")
+    cut: str = Field(
+        ...,
+        description="DETAILED 3-5 sentence description of the haircut including cut type, shape, perimeter, interior technique, and overall silhouette. MINIMUM 150 characters required."
+    )
+    length: str = Field(..., description="Overall length (e.g., 'chin-length', 'shoulder-length', 'mid-back', 'waist-length')")
+    layers: str = Field(
+        ...,
+        description="DETAILED 3-5 sentence description of the layering structure including layer placement, graduation, weight distribution, and how layers create movement and shape. MINIMUM 150 characters required."
+    )
+    texture: str = Field(
+        ...,
+        description="DETAILED 3-5 sentence description of both the natural texture and how it's styled, including curl pattern, smoothness, finish, and styling techniques used. MINIMUM 150 characters required."
+    )
+    volume: str = Field(..., description="Volume and body (e.g., 'flat at roots', 'lifted crown', 'full throughout', 'voluminous with body')")
+    parting: str = Field(..., description="Part placement and style (e.g., 'deep side part', 'center part', 'no visible part', 'zigzag part')")
+    front_styling: str = Field(
+        ...,
+        description="DETAILED 2-4 sentence description of front styling including bang type, framing pieces, face-framing layers, and how the front is shaped and styled. MINIMUM 100 characters required."
+    )
+    overall_style: str = Field(
+        ...,
+        description="DETAILED 2-4 sentence professional description of the overall hairstyle including its category, distinctive features, and styling approach. MINIMUM 100 characters required."
+    )
+
+    @field_validator('cut', 'layers', 'texture')
+    @classmethod
+    def validate_detailed_fields(cls, v: str, info) -> str:
+        """Ensure detailed fields have minimum length"""
+        if len(v) < 150:
+            raise ValueError(f'{info.field_name} must be at least 150 characters (got {len(v)}). Provide a detailed, professional multi-sentence description.')
+        word_count = len(v.split())
+        if word_count < 25:
+            raise ValueError(f'{info.field_name} must be at least 25 words (got {word_count}). Provide detailed professional descriptions.')
+        return v
+
+    @field_validator('front_styling', 'overall_style')
+    @classmethod
+    def validate_moderate_fields(cls, v: str, info) -> str:
+        """Ensure moderate detail fields have minimum length"""
+        if len(v) < 100:
+            raise ValueError(f'{info.field_name} must be at least 100 characters (got {len(v)}). Provide a detailed, professional description.')
+        word_count = len(v.split())
+        if word_count < 15:
+            raise ValueError(f'{info.field_name} must be at least 15 words (got {word_count}). Provide detailed professional descriptions.')
+        return v
 
 
 class HairColorSpec(BaseModel):

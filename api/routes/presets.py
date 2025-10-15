@@ -186,3 +186,77 @@ async def get_preset_preview(category: str, preset_id: str):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{category}/{preset_id}/generate-test")
+async def generate_test_image(category: str, preset_id: str, background_tasks: BackgroundTasks):
+    """
+    Generate a test image using jenny.png with this preset applied
+
+    Uses the jenny.png image from the project root as the subject
+    and applies the specified preset to generate a test image.
+    """
+    try:
+        # Import here to avoid circular dependencies
+        from ai_tools.modular_image_generator.tool import ModularImageGenerator
+
+        # Check if jenny.png exists
+        jenny_path = Path("jenny.png")
+        if not jenny_path.exists():
+            raise HTTPException(status_code=404, detail="jenny.png not found in project root")
+
+        # Load the preset data
+        preset_data = preset_service.get_preset(category, preset_id)
+
+        # Remove metadata if present
+        if '_metadata' in preset_data:
+            del preset_data['_metadata']
+
+        # Map category to the appropriate parameter
+        category_param_map = {
+            "outfits": "outfit",
+            "visual_styles": "visual_style",
+            "art_styles": "art_style",
+            "hair_styles": "hair_style",
+            "hair_colors": "hair_color",
+            "makeup": "makeup",
+            "expressions": "expression",
+            "accessories": "accessories"
+        }
+
+        if category not in category_param_map:
+            raise HTTPException(status_code=400, detail=f"Category '{category}' does not support test generation")
+
+        # Queue generation as background task
+        def generate_image():
+            try:
+                generator = ModularImageGenerator()
+
+                # Build kwargs with only this preset
+                kwargs = {
+                    "subject_image": str(jenny_path),
+                    "output_dir": f"output/test_generations/{category}",
+                    category_param_map[category]: preset_id  # Pass preset_id to load from preset manager
+                }
+
+                result = generator.generate(**kwargs)
+                print(f"✅ Test image generated: {result.file_path}")
+
+            except Exception as e:
+                print(f"⚠️ Test generation failed: {e}")
+
+        background_tasks.add_task(generate_image)
+
+        return {
+            "message": "Test image generation started",
+            "status": "generating",
+            "category": category,
+            "preset_id": preset_id
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

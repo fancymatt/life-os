@@ -1,0 +1,43 @@
+{
+  "clothing_items": [
+    {
+      "item": "biker jacket",
+      "fabric": "heavyweight leather",
+      "color": "jet black",
+      "details": "classic biker jacket silhouette, silver hardware including asymmetrical zip closure, snap-down lapels, and zippered cuffs, multiple pockets with zip closures, fitted silhouette"
+    },
+    {
+      "item": "mini dress",
+      "fabric": "cotton blend",
+      "color": "bubblegum pink",
+      "details": "short dress with a V-neckline, sleeveless design, A-line silhouette, scalloped hemline with triangular cutouts, knee-length"
+    },
+    {
+      "item": "ankle boots",
+      "fabric": "leather",
+      "color": "jet black",
+      "details": "chunky ankle boots with a block heel, rounded toe, silver hardware accents, pull-on style with elastic side panels"
+    },
+    {
+      "item": "choker necklace",
+      "fabric": "leather",
+      "color": "jet black",
+      "details": "thin choker necklace with a silver metal pendant"
+    },
+    {
+      "item": "hair ribbons",
+      "fabric": "grosgrain ribbon",
+      "color": "scarlet red",
+      "details": "thin ribbons tied around the hair buns"
+    }
+  ],
+  "style_genre": "punk-inspired street style",
+  "formality": "casual",
+  "aesthetic": "youthful, edgy, and rebellious with a touch of sweetness",
+  "season": null,
+  "occasion": null,
+  "_metadata": {
+    "preset_id": "30680f95-40af-495b-9ab4-952e7add2ee9",
+    "display_name": "Marnie Outfit"
+  }
+}

@@ -190,7 +190,7 @@ class ArtStyleAnalyzer:
         Returns:
             Path to saved preset
         """
-        return self.preset_manager.save("art_styles", name, art_style, notes=notes)
+        return self.preset_manager.save("art_styles", art_style, display_name=name, notes=notes)
 
     def list_presets(self) -> List[str]:
         """List all art style presets"""

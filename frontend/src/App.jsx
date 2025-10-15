@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import OutfitAnalyzer from './OutfitAnalyzer'
+import GenericAnalyzer from './GenericAnalyzer'
 
 function App() {
   const [tools, setTools] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showOutfitAnalyzer, setShowOutfitAnalyzer] = useState(false)
+  const [activeAnalyzer, setActiveAnalyzer] = useState(null)
 
   useEffect(() => {
     fetch('/api/tools')
@@ -60,10 +62,14 @@ function App() {
             {analyzers.map(tool => (
               <div
                 key={tool.name}
-                className={`tool-card ${tool.name === 'outfit' ? 'clickable' : ''}`}
+                className="tool-card clickable"
                 onClick={() => {
                   if (tool.name === 'outfit') {
                     setShowOutfitAnalyzer(true)
+                  } else if (tool.name === 'comprehensive') {
+                    // Skip comprehensive for now - too complex
+                  } else {
+                    setActiveAnalyzer(tool.name)
                   }
                 }}
               >
@@ -87,6 +93,12 @@ function App() {
         </section>
       </div>
       {showOutfitAnalyzer && <OutfitAnalyzer onClose={() => setShowOutfitAnalyzer(false)} />}
+      {activeAnalyzer && (
+        <GenericAnalyzer
+          analyzerType={activeAnalyzer}
+          onClose={() => setActiveAnalyzer(null)}
+        />
+      )}
     </>
   )
 }

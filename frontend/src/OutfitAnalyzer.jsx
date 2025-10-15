@@ -24,6 +24,7 @@ function OutfitAnalyzer({ onClose }) {
   const [expandedItems, setExpandedItems] = useState({})
   const [editingItems, setEditingItems] = useState({})
   const [saving, setSaving] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   // Shared state
   const [error, setError] = useState(null)
@@ -321,6 +322,31 @@ function OutfitAnalyzer({ onClose }) {
       handleBackToList()
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  const handleGenerateTest = async () => {
+    if (!selectedPreset) return
+
+    setGenerating(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/presets/outfits/${selectedPreset.preset_id}/generate-test`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to start test generation')
+      }
+
+      const data = await response.json()
+
+      setGenerating(false)
+    } catch (err) {
+      setError(err.message)
+      setGenerating(false)
     }
   }
 
@@ -688,6 +714,13 @@ function OutfitAnalyzer({ onClose }) {
             disabled={saving}
           >
             {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button
+            className="analyze-button"
+            onClick={handleGenerateTest}
+            disabled={generating}
+          >
+            {generating ? 'Generating...' : 'Generate Test Image'}
           </button>
           <button
             className="delete-preset-button"

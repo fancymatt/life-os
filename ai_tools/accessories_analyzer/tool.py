@@ -136,13 +136,23 @@ class AccessoriesAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
-                preset_path = self.preset_manager.save(
+                preset_path, preset_id = self.preset_manager.save(
                     "accessories",
-                    save_as_preset,
                     result,
+                    display_name=save_as_preset,
                     notes=preset_notes
+
                 )
+
+                # Update metadata with preset info
+
+                if result._metadata:
+
+                    result._metadata.preset_id = preset_id
+
+                    result._metadata.display_name = save_as_preset
                 print(f"⭐ Saved as preset: {save_as_preset}")
+                print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 
             return result
@@ -161,7 +171,7 @@ class AccessoriesAnalyzer:
         notes: Optional[str] = None
     ) -> Path:
         """Save analysis as a preset"""
-        return self.preset_manager.save("accessories", name, result, notes=notes)
+        return self.preset_manager.save("accessories", result, display_name=name, notes=notes)
 
     def list_presets(self) -> List[str]:
         """List all presets"""

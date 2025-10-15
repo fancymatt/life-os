@@ -265,13 +265,13 @@ class ModularImageGenerator:
                     acc_desc += f"Bag: {accessories.bags}. "
                 sections.append(acc_desc.strip())
 
-        # Visual style
+        # Visual style (photograph composition)
         if visual_style:
-            style_desc = f"Photographic style: {visual_style.photographic_style}. "
-            style_desc += f"Lighting: {visual_style.lighting}. "
-            style_desc += f"Composition: {visual_style.composition}. "
-            style_desc += f"Background: {visual_style.background}. "
-            style_desc += f"Mood: {visual_style.mood}."
+            style_desc = f"Composition: {visual_style.framing} from {visual_style.camera_angle}. "
+            style_desc += f"Subject: {visual_style.subject_action} "
+            style_desc += f"Setting: {visual_style.setting} "
+            style_desc += f"Lighting: {visual_style.lighting} "
+            style_desc += f"Mood: {visual_style.mood}"
             sections.append(style_desc)
 
         # Art style

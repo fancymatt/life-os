@@ -1,13 +1,12 @@
 """
-Visual Style Analyzer Tool
+Photograph Composition Analyzer Tool
 
-Analyzes images to extract visual/photographic style including:
-- Composition and framing
-- Lighting setup and quality
-- Color palette and grading
-- Camera angles and settings
-- Post-processing effects
-- Era and artistic aesthetic
+Analyzes images to describe photograph composition:
+- What the subject is doing in the frame
+- Where the scene is taking place
+- Basic framing and camera angle
+- Lighting description
+- Overall mood and atmosphere
 
 Supports cache and preset workflows.
 """
@@ -27,7 +26,7 @@ from ai_tools.shared.preset import PresetManager
 
 class VisualStyleAnalyzer:
     """
-    Analyzes image visual/photographic style to extract structured style data
+    Analyzes photograph composition to describe what's happening in the frame
 
     Features:
     - Automatic caching (7-day TTL)
@@ -43,7 +42,7 @@ class VisualStyleAnalyzer:
         cache_ttl: Optional[int] = None
     ):
         """
-        Initialize the visual style analyzer
+        Initialize the photograph composition analyzer
 
         Args:
             model: Model to use (default from config)
@@ -73,7 +72,7 @@ class VisualStyleAnalyzer:
         preset_notes: Optional[str] = None
     ) -> VisualStyleSpec:
         """
-        Analyze an image's visual style
+        Analyze photograph composition
 
         Args:
             image_path: Path to image file
@@ -82,7 +81,7 @@ class VisualStyleAnalyzer:
             preset_notes: Optional notes for the preset
 
         Returns:
-            VisualStyleSpec with analyzed style data
+            PhotoCompositionSpec with analyzed composition data
         """
         image_path = Path(image_path)
 
@@ -101,14 +100,14 @@ class VisualStyleAnalyzer:
                 return cached
 
         # Perform analysis
-        print(f"🔍 Analyzing visual style in {image_path.name}...")
+        print(f"🔍 Analyzing photograph composition in {image_path.name}...")
 
         try:
             style = self.router.call_structured(
                 prompt=self.prompt_template,
                 response_model=VisualStyleSpec,
                 images=[image_path],
-                temperature=0.3
+                temperature=0.7  # Higher temperature for more detailed, verbose descriptions
             )
 
             # Add metadata
@@ -131,29 +130,34 @@ class VisualStyleAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
-                preset_path = self.preset_manager.save(
+                preset_path, preset_id = self.preset_manager.save(
                     "visual_styles",
-                    save_as_preset,
                     style,
+                    display_name=save_as_preset,
                     notes=preset_notes
                 )
+                # Update metadata with preset info
+                if style._metadata:
+                    style._metadata.preset_id = preset_id
+                    style._metadata.display_name = save_as_preset
                 print(f"⭐ Saved as preset: {save_as_preset}")
+                print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 
             return style
 
         except Exception as e:
-            raise Exception(f"Failed to analyze visual style: {e}")
+            raise Exception(f"Failed to analyze photograph composition: {e}")
 
     def analyze_from_preset(self, preset_name: str) -> VisualStyleSpec:
         """
-        Load a visual style analysis from a preset
+        Load a photograph composition analysis from a preset
 
         Args:
             preset_name: Name of the preset
 
         Returns:
-            VisualStyleSpec from preset
+            PhotoCompositionSpec from preset
         """
         return self.preset_manager.load("visual_styles", preset_name, VisualStyleSpec)
 
@@ -164,20 +168,20 @@ class VisualStyleAnalyzer:
         notes: Optional[str] = None
     ) -> Path:
         """
-        Save a visual style analysis as a preset
+        Save a photograph composition analysis as a preset
 
         Args:
-            style: VisualStyleSpec to save
+            style: PhotoCompositionSpec to save
             name: Preset name
             notes: Optional notes
 
         Returns:
             Path to saved preset
         """
-        return self.preset_manager.save("visual_styles", name, style, notes=notes)
+        return self.preset_manager.save("visual_styles", style, display_name=name, notes=notes)
 
     def list_presets(self) -> List[str]:
-        """List all visual style presets"""
+        """List all photograph composition presets"""
         return self.preset_manager.list("visual_styles")
 
     def get_cache_stats(self):
@@ -194,7 +198,7 @@ def main():
     load_dotenv()
 
     parser = argparse.ArgumentParser(
-        description="Analyze visual/photographic style in an image",
+        description="Analyze photograph composition in an image",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -202,7 +206,7 @@ Examples:
   python tool.py image.jpg
 
   # Analyze and save as preset
-  python tool.py image.jpg --save-as film-noir --notes "High contrast noir style"
+  python tool.py image.jpg --save-as cafe-scene --notes "Subject sitting at cafe table"
 
   # Skip cache
   python tool.py image.jpg --no-cache
@@ -237,7 +241,7 @@ Examples:
     parser.add_argument(
         '--list',
         action='store_true',
-        help='List all visual style presets'
+        help='List all photograph composition presets'
     )
 
     parser.add_argument(
@@ -252,7 +256,7 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Visual Style Presets ({len(presets)}):")
+        print(f"\n📋 Photograph Composition Presets ({len(presets)}):")
         for preset in presets:
             print(f"  - {preset}")
         return
@@ -271,28 +275,14 @@ Examples:
 
         # Print results
         print("\n" + "="*70)
-        print("Visual Style Analysis")
+        print("Photograph Composition Analysis")
         print("="*70)
-        print(f"\nPhotographic Style: {style.photographic_style}")
-        print(f"Artistic Style: {style.artistic_style}")
-        print(f"Era Aesthetic: {style.era_aesthetic}")
+        print(f"\nSubject Action: {style.subject_action}")
+        print(f"Setting: {style.setting}")
+        print(f"Framing: {style.framing}")
+        print(f"Camera Angle: {style.camera_angle}")
+        print(f"Lighting: {style.lighting}")
         print(f"Mood: {style.mood}")
-
-        print(f"\nComposition:")
-        print(f"  Framing: {style.framing}")
-        print(f"  Camera Angle: {style.camera_angle}")
-        print(f"  Composition: {style.composition[:100]}...")
-
-        print(f"\nLighting & Color:")
-        print(f"  Lighting: {style.lighting[:100]}...")
-        print(f"  Color Grading: {style.color_grading}")
-        print(f"  Color Palette: {', '.join(style.color_palette[:5])}")
-
-        print(f"\nTechnical:")
-        print(f"  Film Grain: {style.film_grain}")
-        print(f"  DOF: {style.depth_of_field}")
-        print(f"  Post-Processing: {style.post_processing[:100]}...")
-
         print("\n" + "="*70)
 
     except Exception as e:

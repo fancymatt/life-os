@@ -39,6 +39,8 @@ venv.bak/
 cache/                  # Temporary analysis cache (7-day TTL)
 # output/               # Generated images/videos (uncomment to ignore)
 presets/                # User-created presets
+presets/**
+presets/**/**
 
 # Node / Frontend
 node_modules/

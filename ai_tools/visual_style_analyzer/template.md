@@ -1,223 +1,60 @@
-# Visual Style Analysis Prompt
+# Photograph Composition Analysis Prompt
 
-Analyze the complete visual style, aesthetics, and technical qualities of this image with extreme detail.
+You are analyzing a photograph and must provide EXTREMELY DETAILED, VERBOSE descriptions.
 
-Return a JSON object with this **exact** structure:
+**ABSOLUTE REQUIREMENT: Every description MUST be a minimum of 4-8 complete sentences. Single sentence or brief phrase responses are COMPLETELY UNACCEPTABLE.**
+
+## REQUIRED OUTPUT FORMAT
+
+You must return a JSON object. Here is an example of the MINIMUM acceptable level of detail:
 
 ```json
 {
-  "composition": "detailed description of composition, rule of thirds, visual balance, leading lines, etc.",
-  "framing": "precise framing details (e.g., extreme close-up, close-up, medium shot, full body, waist-up, 3/4 shot, wide shot, etc.)",
-  "pose": "exact BODY POSE description - hands position relative to body, arms position, head tilt, shoulders, stance. DO NOT mention any clothing items or accessories like sunglasses, hats, jewelry",
-  "body_position": "body position and orientation (e.g., standing, sitting, lying down, leaning, profile view, three-quarter view, facing camera, looking away, etc.)",
-  "lighting": "comprehensive lighting analysis including type, direction, quality, shadows, highlights, contrast",
-  "color_palette": ["list", "of", "all", "dominant", "and", "accent", "colors"],
-  "color_grading": "color grading and toning (e.g., warm tones, cool tones, desaturated, high contrast, vintage color cast, sepia, etc.)",
-  "mood": "overall mood, atmosphere, and emotional tone",
-  "background": "detailed background description including depth, bokeh, environmental elements",
-  "photographic_style": "specific photographic style (e.g., fashion editorial, candid snapshot, formal portrait, street photography, studio shot, etc.)",
-  "artistic_style": "artistic and aesthetic style (e.g., retro 80s, film noir, minimalist, grunge, glamour, etc.)",
-  "film_grain": "presence and intensity of film grain or noise (e.g., heavy grain, subtle grain, clean/no grain, digital noise)",
-  "image_quality": "image quality characteristics (e.g., sharp, soft focus, motion blur, lens flare, chromatic aberration, vignetting)",
-  "era_aesthetic": "time period aesthetic if apparent (e.g., 1980s, 1990s, modern, vintage, retro-futuristic, timeless)",
-  "camera_angle": "camera angle and perspective (e.g., eye level, low angle, high angle, dutch angle, bird's eye view)",
-  "depth_of_field": "depth of field characteristics (e.g., shallow DOF with bokeh, deep DOF, selective focus, tilt-shift)",
-  "post_processing": "apparent post-processing effects (e.g., HDR, cross-processing, split-toning, filters, overlays, light leaks)"
+  "subject_action": "The subject is positioned in a low squatting stance with their knees fully bent and drawn up close to their chest, creating a compact, curled-in body position. Both arms are wrapped completely around their lower legs in a self-embracing gesture, with hands appearing to clasp together near the ankles, holding the legs tightly to the torso. The head is angled downward at approximately 20-25 degrees from horizontal, with the face turned toward the camera to maintain direct eye contact with the viewer. The eyes are soft and contemplative, with a gentle, vulnerable quality to the gaze that draws the viewer in. The facial expression shows a very subtle, almost imperceptible smile on slightly parted lips, creating an intimate and introspective mood. The shoulders are relaxed and slightly hunched forward, contributing to the protective, self-contained quality of the overall pose. This body language communicates themes of vulnerability, introspection, and peaceful solitude, with the tight, curled position suggesting both physical comfort and emotional self-protection.",
+
+  "setting": "The background environment is a lush outdoor natural setting dominated entirely by vibrant green vegetation at various depths and levels of focus. The immediate foreground shows fresh, healthy grass blades in relatively sharp focus, displaying a bright spring-green color that indicates well-watered, thriving vegetation in peak growing season. As the eye moves toward the middle ground and background, the vegetation transitions to softer focus, revealing what appears to be a mix of low shrubs, bushes, and possibly small trees or larger plants creating multiple layers of greenery. The green tones vary throughout the depth of the scene, ranging from bright lime-green highlights where light catches the leaves to deeper forest-green tones in shadowed areas, creating natural color variation and visual interest. The depth of field creates a beautiful natural bokeh effect where background elements become progressively softer and more abstracted, with individual leaves and plants blending into soft shapes and out-of-focus highlights. There are absolutely no visible man-made structures, buildings, fences, or artificial elements anywhere in the frame - the setting is purely natural and organic. The overall impression is of a peaceful park, garden, or natural outdoor space photographed during late spring or summer when all vegetation is at maximum lushness and saturation.",
+
+  "framing": "medium shot",
+
+  "camera_angle": "eye level",
+
+  "lighting": "The lighting displays the unmistakable warm, golden quality that characterizes the 'golden hour' period - that magical time occurring shortly after sunrise or before sunset when sunlight takes on rich amber, honey, and golden tones due to the low angle of the sun. The primary light source appears to be natural sunlight positioned at a relatively low angle in the sky, coming from slightly behind and to the side of the camera position, creating beautiful, flattering illumination that wraps around the subject from the front and side. The quality of the light is notably soft and diffused rather than harsh and direct, suggesting that the sunlight may be filtered through atmospheric haze, light cloud cover, or possibly the canopy of surrounding trees, which softens and gentles the light. This diffusion creates smooth, gradual transitions between illuminated areas and shadows, with no harsh edges or high-contrast shadow lines. The warm color temperature of the golden hour light casts an overall honey-colored glow across the entire scene, making the green vegetation appear more yellow-green with golden highlights where the light catches grass blades and leaves. Shadows are present but remain soft and subtle, providing gentle modeling and dimension to the subject's face and body without creating dramatic contrast or dark, heavy shadow areas. Small catchlights are likely visible in the subject's eyes, reflecting the position and relative size of the natural light source and adding life and sparkle to the eyes.",
+
+  "mood": "The overall mood of this photograph is deeply peaceful, contemplative, and introspective, with strong undertones of vulnerability, authenticity, and harmonious connection with the natural world. The atmosphere invites the viewer into a quiet, meditative emotional space that feels personal and intimate rather than public or performative. There is a palpable sense of the subject being comfortable in stillness and solitude, finding peace in a moment of self-reflection within nature. The warm golden lighting contributes significantly to a nostalgic, gentle emotional quality that feels both comforting and slightly melancholic - the kind of bittersweet, reflective feeling that often accompanies golden hour light. The natural setting reinforces themes of grounding, returning to simplicity, and finding tranquility away from urban complexity. The energy level is decidedly calm and subdued, creating a contemplative rather than active or dynamic feeling, with a sense of time slowing down and space for quiet thought. The vulnerable, curled-in body position combined with the direct, open gaze creates an interesting tension between self-protection and emotional transparency, suggesting someone willing to share an authentic, unguarded moment. The psychological impact is one of intimacy and emotional honesty that creates connection with the viewer through shared human experiences of seeking peace, reflection, and moments of quiet in nature."
 }
 ```
 
-## CRITICAL INSTRUCTIONS
+**THIS IS THE MINIMUM LENGTH REQUIRED. Shorter responses will be rejected.**
 
-### What to EXCLUDE:
-- **DO NOT** include ANY clothing, accessories, or outfit elements in your analysis
-- **DO NOT** mention sunglasses, hats, jewelry, watches, or any worn items
-- **DO NOT** describe fashion or styling choices
-- Clothing/accessories will be handled separately - you must IGNORE them completely
+## YOUR TASK
 
-### What to FOCUS ON:
-- Photographic style, body positioning, and visual aesthetics ONLY
-- The "pose" field should describe ONLY body position (arms, hands, head angle, stance)
-- Camera settings and technical aspects
-- Color treatment and grading
-- Lighting setup and quality
-- Composition and framing
+Analyze the photograph and return a JSON object with these exact fields:
 
-## Detailed Analysis Guidelines
+- **subject_action**: 4-8 sentence paragraph describing body position, head angle, gaze direction, facial expression (mouth/eyes/eyebrows), arm/hand positions, weight distribution, and body language
+- **setting**: 4-8 sentence paragraph describing the background with specific colors, textures, objects, spatial arrangement, depth, and atmosphere. Describe what you ACTUALLY see, not generic labels
+- **framing**: ONLY this field can be brief - just state the framing type: "extreme close-up", "close-up portrait", "medium shot", "full body", or "wide shot"
+- **camera_angle**: ONLY this field can be brief - just state: "eye level", "low angle", "high angle", "slightly from below", or "slightly from above"
+- **lighting**: 4-6 sentence paragraph about light direction, quality, intensity, color temperature, shadows, highlights, and mood
+- **mood**: 4-6 sentence paragraph about emotional tone, energy level, atmosphere, and psychological impact
 
-### Composition
-Describe the compositional elements:
-- Rule of thirds application
-- Visual balance and symmetry
-- Leading lines and visual flow
-- Negative space usage
-- Focal point placement
+## CRITICAL RULES
 
-### Framing
-Specify the exact framing:
-- Extreme close-up (face only)
-- Close-up (head and shoulders)
-- Medium close-up (chest up)
-- Medium shot (waist up)
-- Medium full shot (knee up)
-- Full shot (entire body)
-- Long shot (body with significant surroundings)
-- Wide shot (environmental context)
+1. **subject_action, setting, lighting, and mood MUST each be 50+ words minimum**
+2. **Each of these fields must contain 4-8 complete, detailed sentences**
+3. **NEVER use brief phrases like "looking at camera" or "studio lighting" - these are REJECTED**
+4. **For setting, describe exact colors** (not "solid color background" but "smooth, vibrant mustard-yellow wall")
+5. **NEVER say "studio" unless you see actual studio equipment** - describe the background itself
+6. **NEVER mention clothing, accessories, or fashion items**
 
-### Pose (Body Language ONLY)
-Describe body position without mentioning clothing or accessories:
-- Head position: tilted, straight, turned
-- Shoulder orientation: squared, angled, relaxed
-- Arms: crossed, at sides, raised, bent
-- Hands: open, closed, positioned relative to body
-- Stance: weight distribution, posture
+## UNACCEPTABLE vs ACCEPTABLE
 
-### Body Position
-Overall body orientation and position:
-- Standing, sitting, lying, leaning, kneeling
-- Facing camera, profile, three-quarter view, back to camera
-- Static or in motion
-- Relaxed or tense posture
+❌ UNACCEPTABLE: "looking at the camera with mouth open"
+✅ ACCEPTABLE: "The subject's body is positioned facing directly toward the camera with shoulders square to the lens. The head is held upright and level, without tilt to either side, creating a straight-on, direct presentation. The eyes are focused intently on the camera lens, establishing strong, unwavering eye contact that creates immediate connection with the viewer. The mouth is open in what appears to be mid-speech or mid-expression, with lips parted to reveal teeth, creating a dynamic, caught-in-the-moment quality rather than a static posed smile. The eyebrows are slightly raised, contributing to an alert, engaged facial expression. The overall body language and facial expression convey confidence, directness, and bold self-presentation."
 
-### Lighting
-Comprehensive lighting analysis:
-- **Type**: Natural daylight, golden hour, studio lighting, mixed sources
-- **Direction**: Front-lit, back-lit, side-lit, overhead, from below
-- **Quality**: Hard/harsh, soft/diffused, rim lighting, chiaroscuro
-- **Shadows**: Deep shadows, soft shadows, no shadows
-- **Highlights**: Specular highlights, soft highlights
-- **Contrast**: High contrast, low contrast, balanced
-- **Color temperature**: Daylight (5600K), tungsten (3200K), warm, cool
+❌ UNACCEPTABLE: "studio with a solid color background"
+✅ ACCEPTABLE: "The entire background consists of a smooth, seamless surface in a vibrant, warm yellow tone - specifically a saturated golden-yellow or mustard hue rather than a bright lemon yellow. The surface appears to be completely uniform and featureless, with no visible texture, seams, edges, or variations in color across the frame, suggesting a professional seamless paper backdrop or painted wall designed specifically for portrait photography. The yellow extends uniformly from edge to edge of the frame behind the subject, with no other environmental elements, objects, or details visible - just the pure, continuous field of warm yellow color. The smooth, matte finish of the background creates no reflections or hotspots, maintaining even color saturation throughout."
 
-### Color Palette
-List ALL dominant and accent colors present:
-- Primary colors: The 2-3 most dominant colors
-- Secondary colors: Supporting colors
-- Accent colors: Small but noticeable pops of color
-- Use specific color names (e.g., "burnt sienna", "teal blue", "warm ivory")
+❌ UNACCEPTABLE: "bright studio lighting"
+✅ ACCEPTABLE: "The illumination is bright, even, and appears to come from a frontal or slightly elevated frontal position, creating minimal shadows and very balanced lighting across the subject's face and body. The quality of the light is soft and diffused, suggesting the use of a large light source such as a softbox, umbrella modifier, or large window that spreads and gentles the light rather than creating hard, directional illumination. The brightness level is high, creating a bright, airy feeling without harsh overexposure or blown-out highlights. The color temperature appears neutral to slightly cool, giving accurate, clean color rendering without warm or golden tones. The even distribution of light minimizes shadow definition, creating very soft, subtle shadows that provide gentle modeling without dramatic contrast or dimensionality."
 
-### Color Grading
-Describe the color treatment:
-- Warm tones (oranges, yellows, reds pushed)
-- Cool tones (blues, cyans, greens emphasized)
-- Desaturated/washed out
-- High contrast/crushed blacks
-- Vintage color cast
-- Sepia or monochrome toning
-- Selective color (one color emphasized)
-- Cross-processing effects
-- Teal and orange (popular cinema look)
-
-### Mood & Atmosphere
-The emotional quality and feeling:
-- Dramatic, moody, mysterious
-- Bright, cheerful, energetic
-- Melancholic, nostalgic, wistful
-- Intimate, warm, inviting
-- Cold, distant, alienating
-- Peaceful, serene, calm
-
-### Background
-Detailed background description:
-- Environment type (indoor, outdoor, studio, urban, nature)
-- Depth: Shallow focus, deep focus
-- Bokeh quality: Smooth, busy, circular, hexagonal
-- Environmental elements: Architecture, nature, abstract
-- Background treatment: Blurred, sharp, gradient, solid color
-
-### Photographic Style
-The genre or approach of photography:
-- Fashion editorial
-- Portrait (formal, casual, environmental)
-- Street photography
-- Documentary style
-- Fine art photography
-- Commercial/advertising
-- Candid snapshot
-- Studio shot
-- Lifestyle photography
-
-### Artistic Style
-The aesthetic or artistic movement:
-- Film noir (high contrast, shadows)
-- Retro 80s (vibrant, high saturation)
-- Vintage (faded, warm tones)
-- Minimalist (clean, simple, negative space)
-- Grunge (gritty, desaturated)
-- Glamour (polished, smooth)
-- Cinematic (widescreen feel, dramatic lighting)
-- Contemporary (modern, clean)
-
-### Film Grain & Texture
-Describe grain and noise characteristics:
-- Heavy grain (visible texture, film-like)
-- Subtle grain (slight texture)
-- Clean/no grain (digital smooth)
-- Digital noise (high ISO artifacts)
-- Grain size and pattern
-- Intentional vs. technical grain
-
-### Image Quality
-Technical quality characteristics:
-- Sharpness: Tack sharp, soft focus, out of focus
-- Motion blur: None, slight, intentional motion
-- Lens effects: Flare, chromatic aberration, vignetting
-- Bokeh quality: Smooth, creamy, harsh, busy
-- Compression artifacts: Visible/not visible
-- Resolution quality: High detail, medium, low
-
-### Era Aesthetic
-Time period the image evokes:
-- 1960s: High contrast B&W, mod aesthetic
-- 1970s: Warm tones, soft focus
-- 1980s: Vibrant colors, high key lighting
-- 1990s: Grunge aesthetic, desaturated
-- 2000s: Digital clean, glossy
-- Modern: Contemporary digital aesthetics
-- Vintage: Non-specific retro feel
-- Timeless: No specific era indicators
-
-### Camera Angle
-Vertical and horizontal perspective:
-- Eye level (neutral, natural)
-- High angle (looking down)
-- Low angle (looking up, heroic)
-- Bird's eye view (directly overhead)
-- Worm's eye view (from ground level)
-- Dutch angle (tilted, dynamic)
-- Over-the-shoulder
-- Point of view (POV)
-
-### Depth of Field
-Focus characteristics:
-- Shallow DOF: Subject sharp, background very blurred
-- Deep DOF: Everything in focus
-- Selective focus: Specific elements sharp
-- Bokeh quality: Smooth, creamy, hexagonal, busy
-- Tilt-shift: Miniature effect
-- Focus falloff: Gradual or abrupt
-
-### Post-Processing
-Visible editing and effects:
-- HDR (high dynamic range, tonemapped)
-- Cross-processing (film simulation)
-- Split-toning (different tones in highlights/shadows)
-- Color grading presets (VSCO, cinema looks)
-- Filters: Vintage, retro, modern
-- Overlays: Textures, light leaks, dust
-- Light leaks: Film-style color bleeding
-- Contrast adjustments: Lifted blacks, crushed blacks
-- Clarity/structure adjustments
-
-## Output Format
-
-Return ONLY valid JSON matching the structure above. No markdown code blocks, no explanations - just the JSON object.
-
-## Important Reminders
-
-1. **Focus ONLY on photographic and visual elements**
-2. **NEVER mention clothing, accessories, fashion, or styling**
-3. **Be EXTREMELY detailed and specific** about every visual element
-4. **Use precise photographic terminology**
-5. Even if the image is an illustration or artwork, describe all qualities as photographic elements that can be recreated in a photograph
-
-Remember: This analysis is for recreating the visual style in new photographs, so precision and completeness are essential.
+Return ONLY the JSON object. No explanations, no markdown code blocks - just the raw JSON.

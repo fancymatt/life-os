@@ -14,7 +14,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from ai_tools.shared.preset import PresetManager
 from ai_tools.outfit_visualizer.tool import OutfitVisualizer
-from ai_capabilities.specs import OutfitSpec
+from ai_tools.shared.visualizer import PresetVisualizer
+from ai_capabilities.specs import (
+    OutfitSpec,
+    VisualStyleSpec,
+    ArtStyleSpec,
+    HairStyleSpec,
+    HairColorSpec,
+    MakeupSpec,
+    ExpressionSpec,
+    AccessoriesSpec
+)
 from api.config import settings
 
 
@@ -36,26 +46,52 @@ class PresetService:
         """Initialize preset service"""
         self.preset_manager = PresetManager()
         self.presets_dir = settings.presets_dir
-        self.visualizer = OutfitVisualizer()
+        self.outfit_visualizer = OutfitVisualizer()
+        self.generic_visualizer = PresetVisualizer()
 
-    def _generate_outfit_preview(self, preset_id: str, outfit_data: Dict[str, Any]):
+    def _generate_preview(self, category: str, preset_id: str, data: Dict[str, Any]):
         """
-        Generate a preview image for an outfit preset
+        Generate a preview image for any preset type
 
         Args:
+            category: Category name (outfits, visual_styles, etc.)
             preset_id: Preset UUID
-            outfit_data: Outfit data dict
+            data: Preset data dict
         """
         try:
-            # Parse outfit data into OutfitSpec
-            outfit_spec = OutfitSpec(**outfit_data)
+            # Use outfit visualizer for outfits (special case)
+            if category == "outfits":
+                outfit_spec = OutfitSpec(**data)
+                viz_path = self.outfit_visualizer.visualize(
+                    outfit=outfit_spec,
+                    output_dir=self.presets_dir / category,
+                    preset_id=preset_id
+                )
+            else:
+                # Use generic visualizer for all other types
+                spec_class_map = {
+                    "visual_styles": VisualStyleSpec,
+                    "art_styles": ArtStyleSpec,
+                    "hair_styles": HairStyleSpec,
+                    "hair_colors": HairColorSpec,
+                    "makeup": MakeupSpec,
+                    "expressions": ExpressionSpec,
+                    "accessories": AccessoriesSpec
+                }
 
-            # Generate visualization
-            viz_path = self.visualizer.visualize(
-                outfit=outfit_spec,
-                output_dir=self.presets_dir / "outfits",
-                preset_id=preset_id
-            )
+                if category not in spec_class_map:
+                    print(f"⚠️  No visualizer for category: {category}")
+                    return
+
+                spec_class = spec_class_map[category]
+                spec = spec_class(**data)
+
+                viz_path = self.generic_visualizer.visualize(
+                    spec_type=category,
+                    spec=spec,
+                    output_dir=self.presets_dir / category,
+                    preset_id=preset_id
+                )
 
             print(f"✅ Generated preview: {viz_path}")
         except Exception as e:
@@ -171,13 +207,19 @@ class PresetService:
         with open(preset_path) as f:
             existing_data = json.load(f)
 
-        # Check if outfit data actually changed (not just metadata)
-        outfit_data_changed = False
+        # Check if data actually changed (not just metadata) - BEFORE updating
+        should_generate_preview = False
+
         if category == "outfits":
             # Compare outfit-specific fields (exclude _metadata)
             old_outfit_data = {k: v for k, v in existing_data.items() if k != "_metadata"}
             new_outfit_data = {k: v for k, v in data.items() if k != "_metadata"}
-            outfit_data_changed = old_outfit_data != new_outfit_data
+            should_generate_preview = old_outfit_data != new_outfit_data
+        elif category in ["visual_styles", "art_styles", "hair_styles", "hair_colors", "makeup", "expressions", "accessories"]:
+            # For non-outfit categories, compare data (excluding metadata)
+            old_data = {k: v for k, v in existing_data.items() if k != "_metadata"}
+            new_data = {k: v for k, v in data.items() if k != "_metadata"}
+            should_generate_preview = old_data != new_data
 
         # Update fields
         existing_data.update(data)
@@ -195,19 +237,19 @@ class PresetService:
         with open(preset_path, 'w') as f:
             json.dump(existing_data, f, indent=2, default=str)
 
-        # Generate preview visualization ONLY if outfit data changed (not just title)
-        if category == "outfits" and outfit_data_changed:
+        if should_generate_preview:
             if background_tasks is not None:
                 # Run visualization in background
                 background_tasks.add_task(
-                    self._generate_outfit_preview,
+                    self._generate_preview,
+                    category,
                     preset_id,
                     existing_data
                 )
                 print(f"🎨 Queued preview generation for {preset_id}")
             else:
                 # Fallback to synchronous generation
-                self._generate_outfit_preview(preset_id, existing_data)
+                self._generate_preview(category, preset_id, existing_data)
 
     def delete_preset(self, category: str, preset_id: str) -> bool:
         """

@@ -35,7 +35,7 @@ class AnalyzerService:
         },
         "visual-style": {
             "class": VisualStyleAnalyzer,
-            "description": "Analyze photographic style with 17 fields",
+            "description": "Analyze photograph composition (subject action, setting, framing, lighting, mood)",
             "category": "analyzer",
             "cost": 0.001,
             "avg_time": 3.0
@@ -180,37 +180,72 @@ class AnalyzerService:
         # Queue visualization generation if we saved a preset and have background tasks
         if (background_tasks is not None and
             save_as_preset and
-            analyzer_name == "outfit" and
             "_metadata" in data and
             "preset_id" in data["_metadata"]):
 
             from ai_tools.outfit_visualizer.tool import OutfitVisualizer
-            from ai_capabilities.specs import OutfitSpec
+            from ai_tools.shared.visualizer import PresetVisualizer
+            from ai_tools.shared.preset import PresetManager
+            from ai_capabilities.specs import (
+                OutfitSpec,
+                VisualStyleSpec,
+                ArtStyleSpec,
+                HairStyleSpec,
+                HairColorSpec,
+                MakeupSpec,
+                ExpressionSpec,
+                AccessoriesSpec
+            )
 
             preset_id = data["_metadata"]["preset_id"]
 
-            def generate_visualization():
-                """Background task to generate outfit visualization"""
-                try:
-                    visualizer = OutfitVisualizer()
-                    outfit_spec = OutfitSpec(**data)
+            # Map analyzer names to category names and spec classes
+            analyzer_category_map = {
+                "outfit": ("outfits", OutfitSpec),
+                "visual-style": ("visual_styles", VisualStyleSpec),
+                "art-style": ("art_styles", ArtStyleSpec),
+                "hair-style": ("hair_styles", HairStyleSpec),
+                "hair-color": ("hair_colors", HairColorSpec),
+                "makeup": ("makeup", MakeupSpec),
+                "expression": ("expressions", ExpressionSpec),
+                "accessories": ("accessories", AccessoriesSpec)
+            }
 
-                    # Get preset directory
-                    from ai_tools.shared.preset import PresetManager
-                    preset_manager = PresetManager()
-                    preset_dir = preset_manager._get_preset_dir("outfits")
+            if analyzer_name in analyzer_category_map:
+                category, spec_class = analyzer_category_map[analyzer_name]
 
-                    visualizer.visualize(
-                        outfit=outfit_spec,
-                        output_dir=preset_dir,
-                        preset_id=preset_id
-                    )
-                    print(f"✅ Generated preview for {preset_id}")
-                except Exception as e:
-                    print(f"⚠️  Preview generation failed: {e}")
+                def generate_visualization():
+                    """Background task to generate preset visualization"""
+                    try:
+                        preset_manager = PresetManager()
+                        preset_dir = preset_manager._get_preset_dir(category)
 
-            background_tasks.add_task(generate_visualization)
-            print(f"🎨 Queued preview generation for {preset_id}")
+                        if analyzer_name == "outfit":
+                            # Use outfit-specific visualizer
+                            visualizer = OutfitVisualizer()
+                            spec = spec_class(**data)
+                            visualizer.visualize(
+                                outfit=spec,
+                                output_dir=preset_dir,
+                                preset_id=preset_id
+                            )
+                        else:
+                            # Use generic visualizer for all other types
+                            visualizer = PresetVisualizer()
+                            spec = spec_class(**data)
+                            visualizer.visualize(
+                                spec_type=category,
+                                spec=spec,
+                                output_dir=preset_dir,
+                                preset_id=preset_id
+                            )
+
+                        print(f"✅ Generated preview for {preset_id}")
+                    except Exception as e:
+                        print(f"⚠️  Preview generation failed: {e}")
+
+                background_tasks.add_task(generate_visualization)
+                print(f"🎨 Queued preview generation for {preset_id}")
 
         return data
 

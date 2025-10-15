@@ -61,7 +61,7 @@ async def analyze_image(
 
     Available analyzers:
     - outfit: Analyze outfit details
-    - visual-style: Analyze photographic style
+    - visual-style: Analyze photograph composition
     - art-style: Analyze artistic style
     - hair-style: Analyze hair structure
     - hair-color: Analyze hair color

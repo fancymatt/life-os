@@ -35,6 +35,9 @@ services:
       # Mount configs (read-only)
       - ./configs:/app/configs:ro
 
+      # Mount test images
+      - ./jenny.png:/app/jenny.png:ro
+
     restart: unless-stopped
 
     healthcheck:

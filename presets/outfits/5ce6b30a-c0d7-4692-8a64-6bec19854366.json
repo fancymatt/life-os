@@ -1,0 +1,37 @@
+{
+  "clothing_items": [
+    {
+      "item": "full plate armor",
+      "fabric": "polished steel with gold and green enamel detailing",
+      "color": "silver, gold, green, and red",
+      "details": "Full suit of articulated plate armor, including a breastplate, pauldrons, rerebraces, vambraces, gauntlets, faulds, cuisses, poleyns, greaves, and sabatons. The armor is decorated with intricate gold and green enamel designs. Leather straps and buckles secure the various components. A chainmail skirt is visible beneath the faulds."
+    },
+    {
+      "item": "padded tunic",
+      "fabric": "brocade",
+      "color": "red and gold",
+      "details": "A padded tunic worn under the armor, made from a rich red brocade fabric with gold floral patterns. The tunic has a high collar and long sleeves, visible at the neck and wrists."
+    },
+    {
+      "item": "leather straps",
+      "fabric": "leather",
+      "color": "brown",
+      "details": "Various leather straps and buckles are used to secure the armor pieces together. These straps are visible at the shoulders, waist, and legs."
+    },
+    {
+      "item": "leather boots",
+      "fabric": "leather",
+      "color": "brown",
+      "details": "Simple leather boots are worn under the sabatons, providing additional comfort and protection."
+    }
+  ],
+  "style_genre": "historical fantasy",
+  "formality": "formal",
+  "aesthetic": "renaissance-inspired, ornate, and regal",
+  "season": null,
+  "occasion": null,
+  "_metadata": {
+    "preset_id": "5ce6b30a-c0d7-4692-8a64-6bec19854366",
+    "display_name": "Plate Armor"
+  }
+}
