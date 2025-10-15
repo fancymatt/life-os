@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import './OutfitAnalyzer.css'
+import api from './api/client'
 
 function GenericAnalyzer({ analyzerType, displayName, onClose }) {
   // Map analyzer types to API endpoints and categories
   const analyzerConfig = {
-    'visual-style': { category: 'visual_styles', endpoint: '/api/analyze/visual-style', title: 'Photograph Composition' },
-    'art-style': { category: 'art_styles', endpoint: '/api/analyze/art-style', title: 'Art Style' },
-    'hair-style': { category: 'hair_styles', endpoint: '/api/analyze/hair-style', title: 'Hair Style' },
-    'hair-color': { category: 'hair_colors', endpoint: '/api/analyze/hair-color', title: 'Hair Color' },
-    'makeup': { category: 'makeup', endpoint: '/api/analyze/makeup', title: 'Makeup' },
-    'expression': { category: 'expressions', endpoint: '/api/analyze/expression', title: 'Expression' },
-    'accessories': { category: 'accessories', endpoint: '/api/analyze/accessories', title: 'Accessories' }
+    'visual-style': { category: 'visual_styles', endpoint: '/analyze/visual-style', title: 'Photograph Composition' },
+    'art-style': { category: 'art_styles', endpoint: '/analyze/art-style', title: 'Art Style' },
+    'hair-style': { category: 'hair_styles', endpoint: '/analyze/hair-style', title: 'Hair Style' },
+    'hair-color': { category: 'hair_colors', endpoint: '/analyze/hair-color', title: 'Hair Color' },
+    'makeup': { category: 'makeup', endpoint: '/analyze/makeup', title: 'Makeup' },
+    'expression': { category: 'expressions', endpoint: '/analyze/expression', title: 'Expression' },
+    'accessories': { category: 'accessories', endpoint: '/analyze/accessories', title: 'Accessories' }
   }
 
   const config = analyzerConfig[analyzerType]
@@ -50,13 +51,10 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
   const fetchPresets = async () => {
     try {
       setLoadingPresets(true)
-      const response = await fetch(`/api/presets/${config.category}`)
-      if (!response.ok) throw new Error('Failed to fetch presets')
-
-      const data = await response.json()
-      setPresets(data.presets || [])
+      const response = await api.get(`/presets/${config.category}`)
+      setPresets(response.data.presets || [])
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
     } finally {
       setLoadingPresets(false)
     }
@@ -67,18 +65,14 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        const response = await fetch(`/api/presets/${config.category}/${presetId}/preview`, {
-          method: 'HEAD'
-        })
+        await api.head(`/presets/${config.category}/${presetId}/preview`)
 
-        if (response.ok) {
-          setLoadingPreviews(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(presetId)
-            return newSet
-          })
-          return true
-        }
+        setLoadingPreviews(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(presetId)
+          return newSet
+        })
+        return true
       } catch (err) {
         // Continue polling
       }
@@ -115,16 +109,13 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
   const handleSelectPreset = async (preset) => {
     try {
       setError(null)
-      const response = await fetch(`/api/presets/${config.category}/${preset.preset_id}`)
-      if (!response.ok) throw new Error('Failed to load preset')
-
-      const data = await response.json()
+      const response = await api.get(`/presets/${config.category}/${preset.preset_id}`)
       setSelectedPreset(preset)
-      setEditedData(JSON.parse(JSON.stringify(data)))
+      setEditedData(JSON.parse(JSON.stringify(response.data)))
       setPresetName(preset.display_name || '')
       setView('edit')
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
     }
   }
 
@@ -184,25 +175,14 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
       try {
         const base64Data = reader.result.split(',')[1]
 
-        const response = await fetch(`${config.endpoint}?async_mode=true`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const response = await api.post(`${config.endpoint}?async_mode=true`, {
+          image: {
+            image_data: base64Data
           },
-          body: JSON.stringify({
-            image: {
-              image_data: base64Data
-            },
-            save_as_preset: true  // Auto-generate name
-          })
+          save_as_preset: true  // Auto-generate name
         })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.detail || 'Analysis failed')
-        }
-
-        const data = await response.json()
+        const data = response.data
 
         // Async mode: close modal immediately, job appears in TaskManager
         if (data.job_id) {
@@ -227,7 +207,7 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
         }
       } catch (err) {
         console.error('Analysis error:', err)
-        setError(err.message)
+        setError(err.response?.data?.detail || err.message)
         setAnalyzing(false)
       }
     }
@@ -250,21 +230,10 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
     setError(null)
 
     try {
-      const response = await fetch(`/api/presets/${config.category}/${selectedPreset.preset_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: editedData,
-          display_name: presetName.trim() || undefined
-        })
+      await api.put(`/presets/${config.category}/${selectedPreset.preset_id}`, {
+        data: editedData,
+        display_name: presetName.trim() || undefined
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to save preset')
-      }
 
       setSaving(false)
 
@@ -274,7 +243,7 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
 
       setTimeout(() => handleBackToList(), 1000)
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
       setSaving(false)
     }
   }
@@ -287,18 +256,10 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
     }
 
     try {
-      const response = await fetch(`/api/presets/${config.category}/${selectedPreset.preset_id}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to delete preset')
-      }
-
+      await api.delete(`/presets/${config.category}/${selectedPreset.preset_id}`)
       handleBackToList()
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
     }
   }
 
@@ -309,20 +270,10 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
     setError(null)
 
     try {
-      const response = await fetch(`/api/presets/${config.category}/${selectedPreset.preset_id}/generate-test`, {
-        method: 'POST'
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to start test generation')
-      }
-
-      const data = await response.json()
-
+      await api.post(`/presets/${config.category}/${selectedPreset.preset_id}/generate-test`)
       setGenerating(false)
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
       setGenerating(false)
     }
   }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './TaskManager.css'
+import api from './api/client'
 
 function TaskManager() {
   const [jobs, setJobs] = useState([])
@@ -76,9 +77,8 @@ function TaskManager() {
   // Fetch initial jobs
   const fetchJobs = async () => {
     try {
-      const response = await fetch('/api/jobs?limit=20')
-      const data = await response.json()
-      setJobs(data)
+      const response = await api.get('/jobs?limit=20')
+      setJobs(response.data)
     } catch (err) {
       console.error('Failed to fetch jobs:', err)
     }
@@ -87,16 +87,10 @@ function TaskManager() {
   // Cancel job
   const handleCancel = async (jobId) => {
     try {
-      const response = await fetch(`/api/jobs/${jobId}/cancel`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        const updatedJob = await response.json()
-        setJobs(prevJobs =>
-          prevJobs.map(j => j.job_id === jobId ? updatedJob : j)
-        )
-      }
+      const response = await api.post(`/jobs/${jobId}/cancel`)
+      setJobs(prevJobs =>
+        prevJobs.map(j => j.job_id === jobId ? response.data : j)
+      )
     } catch (err) {
       console.error('Failed to cancel job:', err)
     }
@@ -105,10 +99,7 @@ function TaskManager() {
   // Dismiss completed/failed job
   const handleDismiss = async (jobId) => {
     try {
-      await fetch(`/api/jobs/${jobId}`, {
-        method: 'DELETE'
-      })
-
+      await api.delete(`/jobs/${jobId}`)
       setJobs(prevJobs => prevJobs.filter(j => j.job_id !== jobId))
     } catch (err) {
       console.error('Failed to dismiss job:', err)

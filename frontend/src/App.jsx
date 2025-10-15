@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { useAuth } from './contexts/AuthContext'
+import Login from './components/Login'
 import OutfitAnalyzer from './OutfitAnalyzer'
 import GenericAnalyzer from './GenericAnalyzer'
 import ModularGenerator from './ModularGenerator'
 import ComprehensiveAnalyzer from './ComprehensiveAnalyzer'
 import TaskManager from './TaskManager'
+import api from './api/client'
 
 function App() {
+  const { user, loading: authLoading, logout, isAuthenticated } = useAuth()
   const [tools, setTools] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -16,21 +20,39 @@ function App() {
   const [showComprehensiveAnalyzer, setShowComprehensiveAnalyzer] = useState(false)
 
   useEffect(() => {
-    fetch('/api/tools')
+    // Only fetch tools if authenticated
+    if (!isAuthenticated) {
+      setLoading(false)
+      return
+    }
+
+    api.get('/tools')
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch tools')
-        return res.json()
-      })
-      .then(data => {
-        setTools(data)
+        setTools(res.data)
         setLoading(false)
       })
       .catch(err => {
-        setError(err.message)
+        setError(err.response?.data?.detail || err.message)
         setLoading(false)
       })
-  }, [])
+  }, [isAuthenticated])
 
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="container">
+        <h1>AI-Studio Tools</h1>
+        <p>Loading...</p>
+      </div>
+    )
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <Login />
+  }
+
+  // Show loading while fetching tools
   if (loading) {
     return (
       <div className="container">
@@ -57,8 +79,18 @@ function App() {
     <>
       <div className="container">
         <header>
-          <h1>🎨 AI-Studio</h1>
-          <p className="subtitle">Available Tools</p>
+          <div className="header-content">
+            <div>
+              <h1>🎨 AI-Studio</h1>
+              <p className="subtitle">Available Tools</p>
+            </div>
+            <div className="header-actions">
+              <span className="user-info">👤 {user?.username}</span>
+              <button className="logout-button" onClick={logout}>
+                Logout
+              </button>
+            </div>
+          </div>
         </header>
 
         <section>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './OutfitAnalyzer.css'
+import api from './api/client'
 
 function OutfitAnalyzer({ onClose }) {
   // View state: 'list' | 'create' | 'edit'
@@ -38,13 +39,10 @@ function OutfitAnalyzer({ onClose }) {
   const fetchPresets = async () => {
     try {
       setLoadingPresets(true)
-      const response = await fetch('/api/presets/outfits')
-      if (!response.ok) throw new Error('Failed to fetch presets')
-
-      const data = await response.json()
-      setPresets(data.presets || [])
+      const response = await api.get('/presets/outfits')
+      setPresets(response.data.presets || [])
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
     } finally {
       setLoadingPresets(false)
     }
@@ -56,19 +54,15 @@ function OutfitAnalyzer({ onClose }) {
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        const response = await fetch(`/api/presets/outfits/${presetId}/preview`, {
-          method: 'HEAD'
-        })
+        await api.head(`/presets/outfits/${presetId}/preview`)
 
-        if (response.ok) {
-          // Preview is available
-          setLoadingPreviews(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(presetId)
-            return newSet
-          })
-          return true
-        }
+        // Preview is available
+        setLoadingPreviews(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(presetId)
+          return newSet
+        })
+        return true
       } catch (err) {
         // Continue polling
       }
@@ -108,16 +102,13 @@ function OutfitAnalyzer({ onClose }) {
     try {
       setError(null)
       // Fetch full preset data
-      const response = await fetch(`/api/presets/outfits/${preset.preset_id}`)
-      if (!response.ok) throw new Error('Failed to load preset')
-
-      const data = await response.json()
+      const response = await api.get(`/presets/outfits/${preset.preset_id}`)
       setSelectedPreset(preset)
-      setEditedData(JSON.parse(JSON.stringify(data))) // Deep copy
+      setEditedData(JSON.parse(JSON.stringify(response.data))) // Deep copy
       setOutfitName(preset.display_name || '')
       setView('edit')
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
     }
   }
 
@@ -178,48 +169,41 @@ function OutfitAnalyzer({ onClose }) {
       reader.onloadend = async () => {
         const base64Data = reader.result.split(',')[1]
 
-        const response = await fetch('/api/analyze/outfit?async_mode=true', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        try {
+          const response = await api.post('/analyze/outfit?async_mode=true', {
             image: {
               image_data: base64Data
             },
             save_as_preset: true  // Auto-generate name
           })
-        })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.detail || 'Analysis failed')
-        }
+          const data = response.data
 
-        const data = await response.json()
+          // Async mode: close modal immediately, job appears in TaskManager
+          if (data.job_id) {
+            console.log('Analysis queued:', data.job_id)
+            handleBackToList()  // Go back to list view
+            onClose()  // Close modal
+            return
+          }
 
-        // Async mode: close modal immediately, job appears in TaskManager
-        if (data.job_id) {
-          console.log('Analysis queued:', data.job_id)
-          handleBackToList()  // Go back to list view
-          onClose()  // Close modal
-          return
-        }
+          // Sync mode (fallback - shouldn't happen with async_mode=true)
+          if (data.status === 'failed') {
+            throw new Error(data.error || 'Analysis failed')
+          }
 
-        // Sync mode (fallback - shouldn't happen with async_mode=true)
-        if (data.status === 'failed') {
-          throw new Error(data.error || 'Analysis failed')
-        }
+          // Store analysis result, preset ID, and AI-generated name
+          setAnalysisResult(data.result)
+          setNewPresetId(data.preset_id)
+          setOutfitName(data.preset_display_name || data.result?.suggested_name || 'Outfit Analysis')
+          setAnalyzing(false)
 
-        // Store analysis result, preset ID, and AI-generated name
-        setAnalysisResult(data.result)
-        setNewPresetId(data.preset_id)
-        setOutfitName(data.preset_display_name || data.result?.suggested_name || 'Outfit Analysis')
-        setAnalyzing(false)
-
-        // Start polling for preview image if we have a preset ID
-        if (data.preset_id) {
-          pollForPreview(data.preset_id)
+          // Start polling for preview image if we have a preset ID
+          if (data.preset_id) {
+            pollForPreview(data.preset_id)
+          }
+        } catch (err) {
+          throw new Error(err.response?.data?.detail || 'Analysis failed')
         }
       }
 
@@ -274,21 +258,10 @@ function OutfitAnalyzer({ onClose }) {
     setError(null)
 
     try {
-      const response = await fetch(`/api/presets/outfits/${selectedPreset.preset_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: editedData,
-          display_name: outfitName.trim() || undefined
-        })
+      await api.put(`/presets/outfits/${selectedPreset.preset_id}`, {
+        data: editedData,
+        display_name: outfitName.trim() || undefined
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to save preset')
-      }
 
       // Clear editing states
       setEditingItems({})
@@ -302,7 +275,7 @@ function OutfitAnalyzer({ onClose }) {
       // Show success (could add a toast notification here)
       setTimeout(() => handleBackToList(), 1000)
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
       setSaving(false)
     }
   }
@@ -315,18 +288,10 @@ function OutfitAnalyzer({ onClose }) {
     }
 
     try {
-      const response = await fetch(`/api/presets/outfits/${selectedPreset.preset_id}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to delete preset')
-      }
-
+      await api.delete(`/presets/outfits/${selectedPreset.preset_id}`)
       handleBackToList()
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
     }
   }
 
@@ -337,20 +302,10 @@ function OutfitAnalyzer({ onClose }) {
     setError(null)
 
     try {
-      const response = await fetch(`/api/presets/outfits/${selectedPreset.preset_id}/generate-test`, {
-        method: 'POST'
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to start test generation')
-      }
-
-      const data = await response.json()
-
+      await api.post(`/presets/outfits/${selectedPreset.preset_id}/generate-test`)
       setGenerating(false)
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
       setGenerating(false)
     }
   }

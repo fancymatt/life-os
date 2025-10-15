@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './OutfitAnalyzer.css' // Reuse the base modal styles
 import './ModularGenerator.css' // Modular generator specific styles
+import api from './api/client'
 
 function ModularGenerator({ onClose }) {
   // Subject selection
@@ -61,20 +62,18 @@ function ModularGenerator({ onClose }) {
     if (newEnabled) {
       // Fetch presets for this category
       try {
-        const response = await fetch(`/api/presets/${apiCategory}`)
-        if (!response.ok) throw new Error('Failed to fetch presets')
-
-        const data = await response.json()
+        const response = await api.get(`/presets/${apiCategory}`)
         setCategoryStates(prev => ({
           ...prev,
           [categoryKey]: {
             ...prev[categoryKey],
-            presets: data.presets || [],
+            presets: response.data.presets || [],
             loadingPresets: false
           }
         }))
       } catch (err) {
-        setError(`Failed to load ${categoryKey} presets: ${err.message}`)
+        const errorMsg = err.response?.data?.detail || err.message
+        setError(`Failed to load ${categoryKey} presets: ${errorMsg}`)
         setCategoryStates(prev => ({
           ...prev,
           [categoryKey]: {
@@ -129,12 +128,9 @@ function ModularGenerator({ onClose }) {
 
   const pollStatus = async (taskId) => {
     try {
-      const response = await fetch(`/api/generate/modular/status/${taskId}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch status')
-      }
+      const response = await api.get(`/generate/modular/status/${taskId}`)
+      const status = response.data
 
-      const status = await response.json()
       setProgress(status.progress || 0)
       setProgressMessage(status.message || '')
 
@@ -151,7 +147,7 @@ function ModularGenerator({ onClose }) {
         setTimeout(() => pollStatus(taskId), 1000)
       }
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
       setGenerating(false)
       setTaskId(null)
     }
@@ -189,26 +185,13 @@ function ModularGenerator({ onClose }) {
       })
 
       // Call the generation endpoint
-      const response = await fetch('/api/generate/modular', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Generation failed')
-      }
-
-      const data = await response.json()
-      setTaskId(data.task_id)
+      const response = await api.post('/generate/modular', payload)
+      setTaskId(response.data.task_id)
 
       // Start polling for status
-      setTimeout(() => pollStatus(data.task_id), 1000)
+      setTimeout(() => pollStatus(response.data.task_id), 1000)
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message)
       setGenerating(false)
     }
   }

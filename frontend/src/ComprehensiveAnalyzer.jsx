@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './OutfitAnalyzer.css' // Reuse the same styles
+import api from './api/client'
 
 function ComprehensiveAnalyzer({ onClose }) {
   const [imageFile, setImageFile] = useState(null)
@@ -100,26 +101,15 @@ function ComprehensiveAnalyzer({ onClose }) {
       try {
         const base64Data = reader.result.split(',')[1]
 
-        const response = await fetch('/api/analyze/comprehensive?async_mode=true', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const response = await api.post('/analyze/comprehensive?async_mode=true', {
+          image: {
+            image_data: base64Data
           },
-          body: JSON.stringify({
-            image: {
-              image_data: base64Data
-            },
-            save_as_preset: true,
-            selected_analyses: selectedAnalyses
-          })
+          save_as_preset: true,
+          selected_analyses: selectedAnalyses
         })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.detail || 'Analysis failed')
-        }
-
-        const data = await response.json()
+        const data = response.data
 
         // Async mode: close modal immediately, job appears in TaskManager
         if (data.job_id) {
@@ -137,7 +127,7 @@ function ComprehensiveAnalyzer({ onClose }) {
         setAnalyzing(false)
       } catch (err) {
         console.error('Analysis error:', err)
-        setError(err.message)
+        setError(err.response?.data?.detail || err.message)
         setAnalyzing(false)
       }
     }
