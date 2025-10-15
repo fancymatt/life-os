@@ -126,7 +126,8 @@ class AnalyzerService:
         image_path: Path,
         save_as_preset: Optional[str] = None,
         skip_cache: bool = False,
-        background_tasks = None
+        background_tasks = None,
+        selected_analyses: Optional[dict] = None
     ) -> Dict[str, Any]:
         """
         Run analyzer on image
@@ -151,14 +152,49 @@ class AnalyzerService:
                 image_path,
                 skip_cache=skip_cache,
                 save_all_presets=(save_as_preset is not None),
-                preset_prefix=save_as_preset
+                preset_prefix=None,  # No longer used - each preset gets AI-generated name
+                selected_analyses=selected_analyses
             )
         else:
+            # For individual analyzers, analyze first without saving
             result = analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
-                save_as_preset=save_as_preset
+                save_as_preset=None  # Don't save yet
             )
+
+            # If user wanted to save, use the AI-generated suggested_name
+            if save_as_preset:
+                suggested_name = getattr(result, 'suggested_name', None)
+                if suggested_name:
+                    # Map analyzer names to category names
+                    category_map = {
+                        "outfit": "outfits",
+                        "visual-style": "visual_styles",
+                        "art-style": "art_styles",
+                        "hair-style": "hair_styles",
+                        "hair-color": "hair_colors",
+                        "makeup": "makeup",
+                        "expression": "expressions",
+                        "accessories": "accessories"
+                    }
+
+                    # Save using PresetManager directly
+                    from ai_tools.shared.preset import PresetManager
+                    preset_manager = PresetManager()
+                    category = category_map.get(analyzer_name)
+
+                    if category:
+                        preset_path, preset_id = preset_manager.save(
+                            category,
+                            result,
+                            display_name=suggested_name
+                        )
+                        # Update metadata
+                        if result._metadata:
+                            result._metadata.preset_id = preset_id
+                            result._metadata.display_name = suggested_name
+                        print(f"⭐ Saved as preset: {suggested_name} (ID: {preset_id})")
 
         # Convert Pydantic model to dict and include metadata
         if hasattr(result, 'model_dump'):
@@ -177,12 +213,30 @@ class AnalyzerService:
             else:
                 data['_metadata'] = result._metadata
 
-        # Queue visualization generation if we saved a preset and have background tasks
-        if (background_tasks is not None and
-            save_as_preset and
-            "_metadata" in data and
-            "preset_id" in data["_metadata"]):
+        # For comprehensive analyzer, convert all Pydantic models in results to dicts
+        if analyzer_name == "comprehensive" and "results" in data:
+            for result_type, result_data in data["results"].items():
+                if result_data and not isinstance(result_data, dict):
+                    # Convert Pydantic model to dict
+                    if hasattr(result_data, 'model_dump'):
+                        result_dict = result_data.model_dump()
+                    elif hasattr(result_data, 'dict'):
+                        result_dict = result_data.dict()
+                    else:
+                        continue
 
+                    # Add metadata if it exists on the object
+                    if hasattr(result_data, '_metadata') and result_data._metadata:
+                        if hasattr(result_data._metadata, 'model_dump'):
+                            result_dict['_metadata'] = result_data._metadata.model_dump()
+                        elif hasattr(result_data._metadata, 'dict'):
+                            result_dict['_metadata'] = result_data._metadata.dict()
+
+                    # Replace the Pydantic model with the dict
+                    data["results"][result_type] = result_dict
+
+        # Queue visualization generation if we saved a preset and have background tasks
+        if background_tasks is not None and save_as_preset:
             from ai_tools.outfit_visualizer.tool import OutfitVisualizer
             from ai_tools.shared.visualizer import PresetVisualizer
             from ai_tools.shared.preset import PresetManager
@@ -197,55 +251,122 @@ class AnalyzerService:
                 AccessoriesSpec
             )
 
-            preset_id = data["_metadata"]["preset_id"]
-
             # Map analyzer names to category names and spec classes
+            # Note: comprehensive analyzer uses underscores (visual_style), individual analyzers use hyphens (visual-style)
             analyzer_category_map = {
                 "outfit": ("outfits", OutfitSpec),
                 "visual-style": ("visual_styles", VisualStyleSpec),
+                "visual_style": ("visual_styles", VisualStyleSpec),  # Comprehensive analyzer format
                 "art-style": ("art_styles", ArtStyleSpec),
+                "art_style": ("art_styles", ArtStyleSpec),  # Comprehensive analyzer format
                 "hair-style": ("hair_styles", HairStyleSpec),
+                "hair_style": ("hair_styles", HairStyleSpec),  # Comprehensive analyzer format
                 "hair-color": ("hair_colors", HairColorSpec),
+                "hair_color": ("hair_colors", HairColorSpec),  # Comprehensive analyzer format
                 "makeup": ("makeup", MakeupSpec),
                 "expression": ("expressions", ExpressionSpec),
                 "accessories": ("accessories", AccessoriesSpec)
             }
 
-            if analyzer_name in analyzer_category_map:
-                category, spec_class = analyzer_category_map[analyzer_name]
+            # Handle comprehensive analyzer - queue visualizations for all saved presets
+            if analyzer_name == "comprehensive" and "results" in data:
+                for result_type, result_data in data["results"].items():
+                    if result_data and result_type in analyzer_category_map:
+                        # Convert Pydantic model to dict if needed
+                        if not isinstance(result_data, dict):
+                            if hasattr(result_data, 'model_dump'):
+                                result_dict = result_data.model_dump()
+                            elif hasattr(result_data, 'dict'):
+                                result_dict = result_data.dict()
+                            else:
+                                continue
 
-                def generate_visualization():
-                    """Background task to generate preset visualization"""
-                    try:
-                        preset_manager = PresetManager()
-                        preset_dir = preset_manager._get_preset_dir(category)
-
-                        if analyzer_name == "outfit":
-                            # Use outfit-specific visualizer
-                            visualizer = OutfitVisualizer()
-                            spec = spec_class(**data)
-                            visualizer.visualize(
-                                outfit=spec,
-                                output_dir=preset_dir,
-                                preset_id=preset_id
-                            )
+                            # Add metadata if it exists on the object
+                            if hasattr(result_data, '_metadata') and result_data._metadata:
+                                if hasattr(result_data._metadata, 'model_dump'):
+                                    result_dict['_metadata'] = result_data._metadata.model_dump()
+                                elif hasattr(result_data._metadata, 'dict'):
+                                    result_dict['_metadata'] = result_data._metadata.dict()
                         else:
-                            # Use generic visualizer for all other types
-                            visualizer = PresetVisualizer()
-                            spec = spec_class(**data)
-                            visualizer.visualize(
-                                spec_type=category,
-                                spec=spec,
-                                output_dir=preset_dir,
-                                preset_id=preset_id
-                            )
+                            result_dict = result_data
 
-                        print(f"✅ Generated preview for {preset_id}")
-                    except Exception as e:
-                        print(f"⚠️  Preview generation failed: {e}")
+                        # Check if this result has a preset_id
+                        if "_metadata" in result_dict and "preset_id" in result_dict["_metadata"]:
+                            category, spec_class = analyzer_category_map[result_type]
+                            preset_id = result_dict["_metadata"]["preset_id"]
 
-                background_tasks.add_task(generate_visualization)
-                print(f"🎨 Queued preview generation for {preset_id}")
+                            def generate_visualization(cat=category, spec_cls=spec_class, res_data=result_dict, pid=preset_id, analyzer_type=result_type):
+                                """Background task to generate preset visualization"""
+                                try:
+                                    preset_manager = PresetManager()
+                                    preset_dir = preset_manager._get_preset_dir(cat)
+
+                                    if analyzer_type == "outfit":
+                                        # Use outfit-specific visualizer
+                                        visualizer = OutfitVisualizer()
+                                        spec = spec_cls(**res_data)
+                                        visualizer.visualize(
+                                            outfit=spec,
+                                            output_dir=preset_dir,
+                                            preset_id=pid
+                                        )
+                                    else:
+                                        # Use generic visualizer for all other types
+                                        visualizer = PresetVisualizer()
+                                        spec = spec_cls(**res_data)
+                                        visualizer.visualize(
+                                            spec_type=cat,
+                                            spec=spec,
+                                            output_dir=preset_dir,
+                                            preset_id=pid
+                                        )
+
+                                    print(f"✅ Generated preview for {pid} ({cat})")
+                                except Exception as e:
+                                    print(f"⚠️  Preview generation failed for {pid}: {e}")
+
+                            background_tasks.add_task(generate_visualization)
+                            print(f"🎨 Queued preview generation for {preset_id} ({category})")
+
+            # Handle individual analyzer
+            elif "_metadata" in data and "preset_id" in data["_metadata"]:
+                preset_id = data["_metadata"]["preset_id"]
+
+                if analyzer_name in analyzer_category_map:
+                    category, spec_class = analyzer_category_map[analyzer_name]
+
+                    def generate_visualization():
+                        """Background task to generate preset visualization"""
+                        try:
+                            preset_manager = PresetManager()
+                            preset_dir = preset_manager._get_preset_dir(category)
+
+                            if analyzer_name == "outfit":
+                                # Use outfit-specific visualizer
+                                visualizer = OutfitVisualizer()
+                                spec = spec_class(**data)
+                                visualizer.visualize(
+                                    outfit=spec,
+                                    output_dir=preset_dir,
+                                    preset_id=preset_id
+                                )
+                            else:
+                                # Use generic visualizer for all other types
+                                visualizer = PresetVisualizer()
+                                spec = spec_class(**data)
+                                visualizer.visualize(
+                                    spec_type=category,
+                                    spec=spec,
+                                    output_dir=preset_dir,
+                                    preset_id=preset_id
+                                )
+
+                            print(f"✅ Generated preview for {preset_id}")
+                        except Exception as e:
+                            print(f"⚠️  Preview generation failed: {e}")
+
+                    background_tasks.add_task(generate_visualization)
+                    print(f"🎨 Queued preview generation for {preset_id}")
 
         return data
 

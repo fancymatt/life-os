@@ -20,14 +20,15 @@ class ImageInput(BaseModel):
 class AnalyzeRequest(BaseModel):
     """Request to analyze an image"""
     image: ImageInput
-    save_as_preset: Optional[str] = Field(None, description="Save result as preset with this name")
+    save_as_preset: Optional[Union[str, bool]] = Field(None, description="Save result as preset (True for auto-name, or custom name)")
     skip_cache: bool = Field(False, description="Skip cache lookup")
+    selected_analyses: Optional[dict] = Field(None, description="For comprehensive analyzer: dict of which analyses to run")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "image": {"image_url": "http://example.com/photo.jpg"},
-                "save_as_preset": "my-outfit",
+                "save_as_preset": True,
                 "skip_cache": False
             }
         }
@@ -129,5 +130,29 @@ class PresetUpdate(BaseModel):
                     "formality": "semi-formal"
                 },
                 "display_name": "Updated outfit name"
+            }
+        }
+
+
+class ModularGenerateRequest(BaseModel):
+    """Request for modular generation with preset IDs"""
+    subject_image: str = Field(..., description="Path to subject image (e.g., jenny.png)")
+    variations: int = Field(1, ge=1, le=10, description="Number of variations to generate")
+    outfit: Optional[str] = Field(None, description="Outfit preset ID")
+    visual_style: Optional[str] = Field(None, description="Visual style preset ID")
+    art_style: Optional[str] = Field(None, description="Art style preset ID")
+    hair_style: Optional[str] = Field(None, description="Hair style preset ID")
+    hair_color: Optional[str] = Field(None, description="Hair color preset ID")
+    makeup: Optional[str] = Field(None, description="Makeup preset ID")
+    expression: Optional[str] = Field(None, description="Expression preset ID")
+    accessories: Optional[str] = Field(None, description="Accessories preset ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "subject_image": "jenny.png",
+                "variations": 2,
+                "outfit": "casual-preset-id",
+                "visual_style": "film-noir-id"
             }
         }

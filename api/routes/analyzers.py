@@ -85,7 +85,8 @@ async def analyze_image(
             image_path,
             save_as_preset=request.save_as_preset,
             skip_cache=request.skip_cache,
-            background_tasks=background_tasks
+            background_tasks=background_tasks,
+            selected_analyses=request.selected_analyses
         )
 
         processing_time = time.time() - start_time
@@ -93,7 +94,19 @@ async def analyze_image(
         # Get cost info
         analyzer_info = analyzer_service.get_analyzer_info(analyzer_name)
 
-        # Get preset ID if saved
+        # Handle comprehensive analyzer differently (it returns created_presets structure)
+        if analyzer_name == "comprehensive":
+            return AnalyzeResponse(
+                status="completed",
+                result=result,  # Contains 'created_presets' and 'results'
+                preset_id=None,  # Comprehensive doesn't have single preset_id
+                preset_display_name=None,
+                cost=analyzer_info["estimated_cost"],
+                cache_hit=not request.skip_cache,
+                processing_time=processing_time
+            )
+
+        # Get preset ID if saved (for individual analyzers)
         preset_id = None
         preset_display_name = None
         if request.save_as_preset and result and "_metadata" in result:

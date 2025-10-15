@@ -10,6 +10,8 @@ Return a JSON object with these fields:
 
 ```json
 {
+  "suggested_name": "Short descriptive name (2-4 words)",
+
   "cut": "DETAILED 3-5 sentence professional description of the haircut. Include: cut type/name, shape and silhouette, perimeter technique (blunt, textured, graduated), interior layering method, weight line placement, and overall structure. Example: 'This is a precision blunt bob with a strong geometric perimeter that falls just below the jawline. The cut features a classic one-length technique with minimal internal texturing, creating a solid, dense shape. The perimeter is razor-sharp and maintains a perfect horizontal line all around the head. The weight is concentrated at the ends, giving the style its characteristic bold, graphic silhouette. The interior has subtle point-cutting to remove bulk while maintaining the dense appearance.'",
 
   "length": "Overall hair length using professional descriptors (e.g., 'chin-length', 'shoulder-length', 'collarbone-length', 'mid-back length', 'waist-length', 'very short/cropped', 'pixie length')",
@@ -27,6 +29,14 @@ Return a JSON object with these fields:
   "overall_style": "DETAILED 2-4 sentence professional description of the complete hairstyle. Include: style category/name, key distinctive features, styling approach, and overall aesthetic. Example: 'This is a modern interpretation of classic anime-inspired twin pigtails styled with a fashion-forward, editorial approach. The style features two high-positioned ponytails with extreme length and volume, secured at the crown area with a slight outward angle. The ponytails are styled with deliberately exaggerated movement and lift, creating a playful yet sophisticated silhouette that references Japanese street fashion and cosplay culture.'"
 }
 ```
+
+## Suggested Name
+
+Generate a short, descriptive name (2-4 words) that describes the hairstyle:
+- Use structure and length (e.g., "Long Layered Waves", "Short Pixie Cut")
+- Can include texture or styling (e.g., "Sleek Straight Bob", "Messy Beach Waves")
+- Keep it hairstyling-focused
+- Examples: "Blunt Bob Cut", "Long Layered Hair", "Curly Shoulder-Length", "Slicked Back Ponytail"
 
 ## CRITICAL REQUIREMENTS
 

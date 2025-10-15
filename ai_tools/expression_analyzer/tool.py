@@ -62,7 +62,7 @@ class ExpressionAnalyzer:
         self,
         image_path: Union[Path, str],
         skip_cache: bool = False,
-        save_as_preset: Optional[str] = None,
+        save_as_preset: Optional[Union[str, bool]] = None,
         preset_notes: Optional[str] = None
     ) -> ExpressionSpec:
         """
@@ -94,13 +94,14 @@ class ExpressionAnalyzer:
 
                 # Save as preset if requested
                 if save_as_preset:
-                    preset_path = self.preset_manager.save(
-                        "expressions",
-                        save_as_preset,
-                        cached,
+                    preset_name = cached.suggested_name if save_as_preset is True else save_as_preset
+                    preset_path, preset_id = self.preset_manager.save(
+                        tool_type="expressions",
+                        data=cached,
+                        display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {save_as_preset}")
+                    print(f"⭐ Saved as preset: {preset_name}")
                     print(f"   Location: {preset_path}")
 
                 return cached
@@ -136,10 +137,11 @@ class ExpressionAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
+                preset_name = result.suggested_name if save_as_preset is True else save_as_preset
                 preset_path, preset_id = self.preset_manager.save(
-                    "expressions",
-                    result,
-                    display_name=save_as_preset,
+                    tool_type="expressions",
+                    data=result,
+                    display_name=preset_name,
                     notes=preset_notes
 
                 )
@@ -150,8 +152,8 @@ class ExpressionAnalyzer:
 
                     result._metadata.preset_id = preset_id
 
-                    result._metadata.display_name = save_as_preset
-                print(f"⭐ Saved as preset: {save_as_preset}")
+                    result._metadata.display_name = preset_name
+                print(f"⭐ Saved as preset: {preset_name}")
                 print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 

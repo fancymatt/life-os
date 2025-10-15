@@ -62,7 +62,7 @@ class AccessoriesAnalyzer:
         self,
         image_path: Union[Path, str],
         skip_cache: bool = False,
-        save_as_preset: Optional[str] = None,
+        save_as_preset: Optional[Union[str, bool]] = None,
         preset_notes: Optional[str] = None
     ) -> AccessoriesSpec:
         """
@@ -71,7 +71,7 @@ class AccessoriesAnalyzer:
         Args:
             image_path: Path to image file
             skip_cache: Skip cache lookup (default: False)
-            save_as_preset: Save result as preset with this name
+            save_as_preset: Save result as preset with this name, or True to use suggested_name
             preset_notes: Optional notes for the preset
 
         Returns:
@@ -94,13 +94,15 @@ class AccessoriesAnalyzer:
 
                 # Save as preset if requested
                 if save_as_preset:
-                    preset_path = self.preset_manager.save(
-                        "accessories",
-                        save_as_preset,
-                        cached,
+                    # Use suggested_name if save_as_preset is True (boolean)
+                    preset_name = cached.suggested_name if save_as_preset is True else save_as_preset
+                    preset_path, preset_id = self.preset_manager.save(
+                        tool_type="accessories",
+                        data=cached,
+                        display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {save_as_preset}")
+                    print(f"⭐ Saved as preset: {preset_name}")
                     print(f"   Location: {preset_path}")
 
                 return cached
@@ -136,10 +138,12 @@ class AccessoriesAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
+                # Use suggested_name if save_as_preset is True (boolean)
+                preset_name = result.suggested_name if save_as_preset is True else save_as_preset
                 preset_path, preset_id = self.preset_manager.save(
-                    "accessories",
-                    result,
-                    display_name=save_as_preset,
+                    tool_type="accessories",
+                    data=result,
+                    display_name=preset_name,
                     notes=preset_notes
 
                 )
@@ -150,8 +154,8 @@ class AccessoriesAnalyzer:
 
                     result._metadata.preset_id = preset_id
 
-                    result._metadata.display_name = save_as_preset
-                print(f"⭐ Saved as preset: {save_as_preset}")
+                    result._metadata.display_name = preset_name
+                print(f"⭐ Saved as preset: {preset_name}")
                 print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 

@@ -176,11 +176,6 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
       return
     }
 
-    if (!presetName.trim()) {
-      setError('Please enter a preset name')
-      return
-    }
-
     setAnalyzing(true)
     setError(null)
 
@@ -198,7 +193,7 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
             image: {
               image_data: base64Data
             },
-            save_as_preset: presetName.trim()
+            save_as_preset: true  // Auto-generate name
           })
         })
 
@@ -215,6 +210,7 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
 
         setAnalysisResult(data.result)
         setNewPresetId(data.preset_id)
+        setPresetName(data.preset_display_name || data.result?.suggested_name || 'Analysis')
         setAnalyzing(false)
 
         if (data.preset_id) {
@@ -493,24 +489,12 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="preset-name">Preset Name</label>
-          <input
-            type="text"
-            id="preset-name"
-            value={presetName}
-            onChange={(e) => setPresetName(e.target.value)}
-            placeholder={`e.g., ${title.toLowerCase()}-example`}
-            disabled={analyzing}
-          />
-        </div>
-
         {error && <div className="error-message">{error}</div>}
 
         <button
           className="analyze-button"
           onClick={handleAnalyze}
-          disabled={analyzing || !imageFile || !presetName.trim()}
+          disabled={analyzing || !imageFile}
         >
           {analyzing ? 'Analyzing...' : `Analyze ${title}`}
         </button>

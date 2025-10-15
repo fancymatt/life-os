@@ -220,6 +220,30 @@ class ModularImageGenerator:
         # Subject instruction
         sections.append("Generate a 9:16 portrait format image of the person shown in the reference image.")
 
+        # VISUAL STYLE FIRST - This defines the entire composition and must be followed exactly
+        if visual_style:
+            style_section = "**PHOTOGRAPH COMPOSITION - FOLLOW EXACTLY:**\n\n"
+
+            # Subject pose and interaction - MOST CRITICAL
+            style_section += f"**SUBJECT POSE & ACTION (MANDATORY):**\n{visual_style.subject_action}\n\n"
+
+            # Camera framing
+            style_section += f"**FRAMING:** {visual_style.framing}\n"
+            style_section += f"**CAMERA ANGLE:** {visual_style.camera_angle}\n\n"
+
+            # Environment/setting
+            style_section += f"**SETTING & BACKGROUND:**\n{visual_style.setting}\n\n"
+
+            # Lighting
+            style_section += f"**LIGHTING:**\n{visual_style.lighting}\n\n"
+
+            # Mood
+            style_section += f"**MOOD & ATMOSPHERE:**\n{visual_style.mood}\n\n"
+
+            style_section += "**CRITICAL: The subject's pose, body position, gaze direction, and interaction with the environment described above are MANDATORY and must be reproduced exactly as specified. Do not default to a standard camera-facing pose.**"
+
+            sections.append(style_section)
+
         # Outfit
         if outfit:
             outfit_desc = f"The person is wearing: "
@@ -264,15 +288,6 @@ class ModularImageGenerator:
                 if accessories.bags:
                     acc_desc += f"Bag: {accessories.bags}. "
                 sections.append(acc_desc.strip())
-
-        # Visual style (photograph composition)
-        if visual_style:
-            style_desc = f"Composition: {visual_style.framing} from {visual_style.camera_angle}. "
-            style_desc += f"Subject: {visual_style.subject_action} "
-            style_desc += f"Setting: {visual_style.setting} "
-            style_desc += f"Lighting: {visual_style.lighting} "
-            style_desc += f"Mood: {visual_style.mood}"
-            sections.append(style_desc)
 
         # Art style
         if art_style:

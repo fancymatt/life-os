@@ -10,6 +10,8 @@ Return a JSON object with these fields:
 
 ```json
 {
+  "suggested_name": "Short descriptive name (2-4 words)",
+
   "complexion": "DETAILED description of base, blush, bronzer, highlighter, and contour. Include: foundation finish (dewy/matte/natural), coverage level, blush placement and color, highlighter placement and intensity, contour technique if visible, overall skin finish. Example: 'Medium coverage dewy foundation with a natural, skin-like finish. Warm peachy blush applied to the apples of the cheeks and blended up toward the temples. Champagne highlighter on cheekbones, bridge of nose, and cupid's bow creating a subtle glow. No visible contouring - emphasis on fresh, luminous skin.'",
 
   "eyes": "DETAILED description of eyeshadow, eyeliner, mascara, and brows. Include: eyeshadow colors and placement (lid/crease/outer corner), blending technique, eyeliner style and placement, mascara application, brow shape and fill. Example: 'Soft brown matte shadow in the crease for definition, champagne shimmer on the lid, deeper brown in outer V. Thin black liner tight-lined along upper lash line, no wing. Full, dark lashes with volumizing mascara on top and bottom. Brows are naturally full, groomed and filled with soft brown powder in hair-like strokes, following natural arch.'",
@@ -23,6 +25,14 @@ Return a JSON object with these fields:
   "color_palette": ["List", "ALL", "visible", "makeup", "colors", "like", "soft brown", "champagne", "nude pink", "warm peach", "black", "taupe"]
 }
 ```
+
+## Suggested Name
+
+Generate a short, descriptive name (2-4 words) that captures the makeup look:
+- Focus on key feature or style (e.g., "Smokey Eye Glam", "Natural Fresh Face")
+- Can reference intensity (e.g., "Bold Red Lip", "Soft Nude Look")
+- Keep it makeup-focused
+- Examples: "Classic Cat Eye", "Dewy Natural Glow", "Dramatic Smokey Eye", "Peachy Coral Blush"
 
 ## CRITICAL REQUIREMENTS
 

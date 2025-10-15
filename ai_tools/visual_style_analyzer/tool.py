@@ -130,17 +130,20 @@ class VisualStyleAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
+                # If save_as_preset is True (boolean), use the AI-generated suggested_name
+                preset_name = style.suggested_name if save_as_preset is True else save_as_preset
+
                 preset_path, preset_id = self.preset_manager.save(
                     "visual_styles",
                     style,
-                    display_name=save_as_preset,
+                    display_name=preset_name,
                     notes=preset_notes
                 )
                 # Update metadata with preset info
                 if style._metadata:
                     style._metadata.preset_id = preset_id
-                    style._metadata.display_name = save_as_preset
-                print(f"⭐ Saved as preset: {save_as_preset}")
+                    style._metadata.display_name = preset_name
+                print(f"⭐ Saved as preset: {preset_name}")
                 print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 

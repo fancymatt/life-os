@@ -6,12 +6,13 @@ Endpoints for running image generators.
 
 import time
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from typing import List
 
-from api.models.requests import GenerateRequest
+from api.models.requests import GenerateRequest, ModularGenerateRequest
 from api.models.responses import GenerateResponse, ToolInfo
 from api.services import GeneratorService, PresetService
+from api.services.task_tracker import get_task_tracker
 from api.config import settings
 from api.routes.analyzers import download_or_decode_image
 
@@ -25,6 +26,108 @@ async def list_generators():
     """List all available generators"""
     generators = generator_service.list_generators()
     return [ToolInfo(**g) for g in generators]
+
+
+@router.post("/modular")
+async def generate_modular(request: ModularGenerateRequest, background_tasks: BackgroundTasks):
+    """
+    Modular generation endpoint for frontend workflow
+
+    Accepts a subject image path and preset IDs for any combination of categories.
+    Generates multiple variations in the background.
+    """
+    from ai_tools.modular_image_generator.tool import ModularImageGenerator
+
+    # Validate subject image exists
+    subject_path = Path(request.subject_image)
+    if not subject_path.exists():
+        raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
+
+    # Create task for tracking
+    tracker = get_task_tracker()
+    task = tracker.create_task("modular_generation", total=request.variations)
+
+    # Build kwargs for generator
+    kwargs = {
+        "subject_image": str(subject_path),
+        "output_dir": "output/generated"
+    }
+
+    # Add preset IDs for enabled categories
+    if request.outfit:
+        kwargs["outfit"] = request.outfit
+    if request.visual_style:
+        kwargs["visual_style"] = request.visual_style
+    if request.art_style:
+        kwargs["art_style"] = request.art_style
+    if request.hair_style:
+        kwargs["hair_style"] = request.hair_style
+    if request.hair_color:
+        kwargs["hair_color"] = request.hair_color
+    if request.makeup:
+        kwargs["makeup"] = request.makeup
+    if request.expression:
+        kwargs["expression"] = request.expression
+    if request.accessories:
+        kwargs["accessories"] = request.accessories
+
+    # Define background task
+    def generate_variations():
+        """Generate all requested variations"""
+        try:
+            task.set_in_progress("Starting generation...")
+            generator = ModularImageGenerator()
+            file_paths = []
+
+            for i in range(request.variations):
+                task.update(
+                    current=i,
+                    message=f"Generating variation {i + 1}/{request.variations}..."
+                )
+                print(f"🎨 Generating variation {i + 1}/{request.variations}...")
+
+                result = generator.generate(**kwargs)
+                file_paths.append(str(result.file_path))
+                print(f"✅ Variation {i + 1} complete: {result.file_path}")
+
+            # Mark as completed
+            task.set_completed(
+                result={"file_paths": file_paths},
+                message=f"Generated {request.variations} variation(s) successfully"
+            )
+            print(f"🎉 All {request.variations} variation(s) generated successfully!")
+
+        except Exception as e:
+            error_msg = str(e)
+            task.set_failed(error_msg)
+            print(f"⚠️ Modular generation failed: {e}")
+
+    # Start generation in background
+    background_tasks.add_task(generate_variations)
+
+    return {
+        "message": "Modular generation started",
+        "status": "generating",
+        "task_id": task.task_id,
+        "variations": request.variations,
+        "output_dir": "output/generated"
+    }
+
+
+@router.get("/modular/status/{task_id}")
+async def get_generation_status(task_id: str):
+    """
+    Get the status of a modular generation task
+
+    Returns progress information including current/total and status
+    """
+    tracker = get_task_tracker()
+    task = tracker.get_task(task_id)
+
+    if not task:
+        raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
+
+    return task.to_dict()
 
 
 @router.post("/{generator_name}", response_model=GenerateResponse)

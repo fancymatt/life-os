@@ -105,13 +105,16 @@ class ArtStyleAnalyzer:
 
                 # Save as preset if requested
                 if save_as_preset:
-                    preset_path = self.preset_manager.save(
-                        "art_styles",
-                        save_as_preset,
-                        cached,
+                    # If save_as_preset is True (boolean), use the AI-generated suggested_name
+                    preset_name = cached.suggested_name if save_as_preset is True else save_as_preset
+
+                    preset_path, preset_id = self.preset_manager.save(
+                        tool_type="art_styles",
+                        data=cached,
+                        display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {save_as_preset}")
+                    print(f"⭐ Saved as preset: {preset_name}")
                     print(f"   Location: {preset_path}")
 
                 return cached
@@ -147,13 +150,16 @@ class ArtStyleAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
-                preset_path = self.preset_manager.save(
-                    "art_styles",
-                    save_as_preset,
-                    art_style,
+                # If save_as_preset is True (boolean), use the AI-generated suggested_name
+                preset_name = art_style.suggested_name if save_as_preset is True else save_as_preset
+
+                preset_path, preset_id = self.preset_manager.save(
+                    tool_type="art_styles",
+                    data=art_style,
+                    display_name=preset_name,
                     notes=preset_notes
                 )
-                print(f"⭐ Saved as preset: {save_as_preset}")
+                print(f"⭐ Saved as preset: {preset_name}")
                 print(f"   Location: {preset_path}")
 
             return art_style

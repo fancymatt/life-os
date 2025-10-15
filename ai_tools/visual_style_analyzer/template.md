@@ -10,6 +10,8 @@ You must return a JSON object. Here is an example of the MINIMUM acceptable leve
 
 ```json
 {
+  "suggested_name": "Short descriptive name (2-4 words)",
+
   "subject_action": "The subject is positioned in a low squatting stance with their knees fully bent and drawn up close to their chest, creating a compact, curled-in body position. Both arms are wrapped completely around their lower legs in a self-embracing gesture, with hands appearing to clasp together near the ankles, holding the legs tightly to the torso. The head is angled downward at approximately 20-25 degrees from horizontal, with the face turned toward the camera to maintain direct eye contact with the viewer. The eyes are soft and contemplative, with a gentle, vulnerable quality to the gaze that draws the viewer in. The facial expression shows a very subtle, almost imperceptible smile on slightly parted lips, creating an intimate and introspective mood. The shoulders are relaxed and slightly hunched forward, contributing to the protective, self-contained quality of the overall pose. This body language communicates themes of vulnerability, introspection, and peaceful solitude, with the tight, curled position suggesting both physical comfort and emotional self-protection.",
 
   "setting": "The background environment is a lush outdoor natural setting dominated entirely by vibrant green vegetation at various depths and levels of focus. The immediate foreground shows fresh, healthy grass blades in relatively sharp focus, displaying a bright spring-green color that indicates well-watered, thriving vegetation in peak growing season. As the eye moves toward the middle ground and background, the vegetation transitions to softer focus, revealing what appears to be a mix of low shrubs, bushes, and possibly small trees or larger plants creating multiple layers of greenery. The green tones vary throughout the depth of the scene, ranging from bright lime-green highlights where light catches the leaves to deeper forest-green tones in shadowed areas, creating natural color variation and visual interest. The depth of field creates a beautiful natural bokeh effect where background elements become progressively softer and more abstracted, with individual leaves and plants blending into soft shapes and out-of-focus highlights. There are absolutely no visible man-made structures, buildings, fences, or artificial elements anywhere in the frame - the setting is purely natural and organic. The overall impression is of a peaceful park, garden, or natural outdoor space photographed during late spring or summer when all vegetation is at maximum lushness and saturation.",
@@ -30,26 +32,49 @@ You must return a JSON object. Here is an example of the MINIMUM acceptable leve
 
 Analyze the photograph and return a JSON object with these exact fields:
 
-- **subject_action**: 4-8 sentence paragraph describing body position, head angle, gaze direction, facial expression (mouth/eyes/eyebrows), arm/hand positions, weight distribution, and body language
+- **suggested_name**: Short descriptive name (2-4 words) - see guidelines below
+- **subject_action**: 4-8 sentence paragraph describing:
+  - **GAZE & CAMERA INTERACTION (CRITICAL):** Is the subject looking directly at the camera/viewer, or looking away/at something else? If looking away, describe EXACTLY where they're looking (mirror, window, off to the left, down at hands, etc.)
+  - Body position and orientation relative to camera
+  - Head angle and rotation
+  - Arm/hand positions and what they're doing
+  - Weight distribution and body language
+  - Any interaction with objects or environment (touching mirror, leaning on wall, holding something, etc.)
+  - **DO NOT describe facial expressions** - that is handled by a separate expression analyzer
 - **setting**: 4-8 sentence paragraph describing the background with specific colors, textures, objects, spatial arrangement, depth, and atmosphere. Describe what you ACTUALLY see, not generic labels
 - **framing**: ONLY this field can be brief - just state the framing type: "extreme close-up", "close-up portrait", "medium shot", "full body", or "wide shot"
 - **camera_angle**: ONLY this field can be brief - just state: "eye level", "low angle", "high angle", "slightly from below", or "slightly from above"
 - **lighting**: 4-6 sentence paragraph about light direction, quality, intensity, color temperature, shadows, highlights, and mood
 - **mood**: 4-6 sentence paragraph about emotional tone, energy level, atmosphere, and psychological impact
 
+## Suggested Name
+
+Generate a short, descriptive name (2-4 words) that captures the key composition:
+- Focus on the shot type and setting (e.g., "Mirror Selfie Portrait", "Outdoor Golden Hour")
+- Can include subject position or action (e.g., "Sitting Window Shot", "Standing Profile View")
+- Keep it simple and visual
+- Examples: "Close-up Mirror Selfie", "Outdoor Sunset Shot", "Indoor Window Portrait", "Full Body Beach Photo"
+
 ## CRITICAL RULES
 
 1. **subject_action, setting, lighting, and mood MUST each be 50+ words minimum**
 2. **Each of these fields must contain 4-8 complete, detailed sentences**
 3. **NEVER use brief phrases like "looking at camera" or "studio lighting" - these are REJECTED**
-4. **For setting, describe exact colors** (not "solid color background" but "smooth, vibrant mustard-yellow wall")
-5. **NEVER say "studio" unless you see actual studio equipment** - describe the background itself
-6. **NEVER mention clothing, accessories, or fashion items**
+4. **For subject_action, ALWAYS explicitly state if they ARE or ARE NOT looking at the camera** - this is critical for reproduction
+5. **If the subject is interacting with something (mirror, object, person), describe it in detail**
+6. **NEVER describe facial expressions in subject_action** - no mentions of smiling, frowning, emotions, mouth position, or eye expression. Only describe gaze direction (where they're looking), not the expression itself
+7. **For setting, describe exact colors** (not "solid color background" but "smooth, vibrant mustard-yellow wall")
+8. **NEVER say "studio" unless you see actual studio equipment** - describe the background itself
+9. **NEVER mention clothing, accessories, or fashion items**
 
 ## UNACCEPTABLE vs ACCEPTABLE
 
 ❌ UNACCEPTABLE: "looking at the camera with mouth open"
-✅ ACCEPTABLE: "The subject's body is positioned facing directly toward the camera with shoulders square to the lens. The head is held upright and level, without tilt to either side, creating a straight-on, direct presentation. The eyes are focused intently on the camera lens, establishing strong, unwavering eye contact that creates immediate connection with the viewer. The mouth is open in what appears to be mid-speech or mid-expression, with lips parted to reveal teeth, creating a dynamic, caught-in-the-moment quality rather than a static posed smile. The eyebrows are slightly raised, contributing to an alert, engaged facial expression. The overall body language and facial expression convey confidence, directness, and bold self-presentation."
+✅ ACCEPTABLE: "The subject's body is positioned facing directly toward the camera with shoulders square to the lens. The head is held upright and level, without tilt to either side, creating a straight-on, direct presentation. The eyes are focused intently on the camera lens, establishing strong, unwavering eye contact that creates immediate connection with the viewer. The arms are relaxed at the sides with hands loosely positioned near the hips. The weight is evenly distributed on both feet, creating a balanced, grounded stance. The posture is open and frontal, with no rotation or twist in the torso, presenting a straightforward, direct orientation to the camera. The overall body language conveys confidence and directness through the squared shoulders, upright posture, and centered positioning within the frame."
+
+**EXAMPLE: Subject NOT looking at camera (looking at mirror reflection)**
+❌ UNACCEPTABLE: "looking at their reflection in a mirror"
+✅ ACCEPTABLE: "The subject is positioned with their body angled approximately 30-45 degrees away from the camera, turned toward the left side of the frame where a large rectangular mirror is mounted on the wall. The head is rotated even further than the body, turned almost 90 degrees from the camera to face the mirror directly. The eyes are focused intently on their own reflection in the mirror rather than at the camera - there is NO eye contact with the viewer. The gaze is directed at the mirror surface, with the line of sight clearly pointed at their reflected image rather than toward the lens. One hand is raised and touching the edge of the mirror frame or reaching toward the mirror surface, creating a physical interaction with the reflective object. The other arm hangs naturally at the side with the hand resting near the thigh. The body weight is shifted slightly onto the leg furthest from the camera, creating a natural, relaxed stance. The positioning creates an intimate, observational quality where the viewer witnesses someone absorbed in viewing themselves in the mirror rather than acknowledging the camera's presence."
 
 ❌ UNACCEPTABLE: "studio with a solid color background"
 ✅ ACCEPTABLE: "The entire background consists of a smooth, seamless surface in a vibrant, warm yellow tone - specifically a saturated golden-yellow or mustard hue rather than a bright lemon yellow. The surface appears to be completely uniform and featureless, with no visible texture, seams, edges, or variations in color across the frame, suggesting a professional seamless paper backdrop or painted wall designed specifically for portrait photography. The yellow extends uniformly from edge to edge of the frame behind the subject, with no other environmental elements, objects, or details visible - just the pure, continuous field of warm yellow color. The smooth, matte finish of the background creates no reflections or hotspots, maintaining even color saturation throughout."

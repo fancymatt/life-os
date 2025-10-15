@@ -8,6 +8,8 @@ Return a JSON object with these fields:
 
 ```json
 {
+  "suggested_name": "Short descriptive name (2-4 words)",
+
   "base_color": "Primary/base hair color (blonde, brunette, black, red, auburn, gray, white, platinum, etc.)",
 
   "undertones": "Color undertones and depth (warm, cool, neutral, ashy, golden, coppery, etc.)",
@@ -23,6 +25,14 @@ Return a JSON object with these fields:
   "finish": "Surface appearance (matte, natural, glossy, shiny, etc.)"
 }
 ```
+
+## Suggested Name
+
+Generate a short, descriptive name (2-4 words) that describes the hair color:
+- Use color depth and tone (e.g., "Platinum Blonde Highlights", "Rich Chocolate Brown")
+- Can include technique (e.g., "Balayage Caramel", "Ombre Auburn")
+- Keep it color-focused
+- Examples: "Ash Blonde Balayage", "Deep Burgundy Red", "Natural Brown Tones", "Icy Platinum Blonde"
 
 ## Guidelines
 

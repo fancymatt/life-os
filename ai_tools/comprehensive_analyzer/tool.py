@@ -75,8 +75,9 @@ class ComprehensiveAnalyzer:
         image_path: Union[Path, str],
         skip_cache: bool = False,
         save_all_presets: bool = False,
-        preset_prefix: Optional[str] = None
-    ) -> ComprehensiveSpec:
+        preset_prefix: Optional[str] = None,
+        selected_analyses: Optional[dict] = None
+    ) -> dict:
         """
         Run comprehensive analysis
 
@@ -85,106 +86,160 @@ class ComprehensiveAnalyzer:
             skip_cache: Skip cache lookup for all analyzers
             save_all_presets: Save all individual analyses as presets
             preset_prefix: Prefix for preset names if saving
+            selected_analyses: Dict of which analyses to run (e.g., {'outfit': True, 'art_style': False})
 
         Returns:
-            ComprehensiveSpec with all analyses
+            Dict with created_presets list and individual results
         """
         image_path = Path(image_path)
 
         if not image_path.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
 
+        # Default to all analyses if not specified
+        if selected_analyses is None:
+            selected_analyses = {
+                'outfit': True,
+                'visual_style': True,
+                'art_style': True,
+                'hair_style': True,
+                'hair_color': True,
+                'makeup': True,
+                'expression': True,
+                'accessories': True
+            }
+
         print(f"\n{'='*70}")
         print(f"COMPREHENSIVE ANALYSIS: {image_path.name}")
         print(f"{'='*70}\n")
 
-        # Determine preset names
-        if save_all_presets and not preset_prefix:
-            preset_prefix = image_path.stem
+        created_presets = []
+        results = {}
 
-        # Run all analyzers
-        print("[1/8] Analyzing outfit...")
-        outfit = self.outfit_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-outfit" if save_all_presets else None
-        )
+        # Run selected analyzers
+        step = 1
+        total_selected = sum(1 for v in selected_analyses.values() if v)
 
-        print("\n[2/8] Analyzing visual style...")
-        visual_style = self.visual_style_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-style" if save_all_presets else None
-        )
+        if selected_analyses.get('outfit', False):
+            print(f"[{step}/{total_selected}] Analyzing outfit...")
+            outfit = self.outfit_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['outfit'] = outfit
+            if save_all_presets:
+                created_presets.append({'type': 'Outfit', 'name': outfit.suggested_name})
+            step += 1
+        else:
+            results['outfit'] = None
 
-        print("\n[3/8] Analyzing art style...")
-        art_style = self.art_style_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-art" if save_all_presets else None
-        )
+        if selected_analyses.get('visual_style', False):
+            print(f"[{step}/{total_selected}] Analyzing visual style...")
+            result = self.visual_style_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['visual_style'] = result
+            if save_all_presets:
+                created_presets.append({'type': 'Photograph Composition', 'name': result.suggested_name})
+            step += 1
+        else:
+            results['visual_style'] = None
 
-        print("\n[4/8] Analyzing hair style...")
-        hair_style = self.hair_style_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-hairstyle" if save_all_presets else None
-        )
+        if selected_analyses.get('art_style', False):
+            print(f"[{step}/{total_selected}] Analyzing art style...")
+            result = self.art_style_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['art_style'] = result
+            if save_all_presets:
+                created_presets.append({'type': 'Art Style', 'name': result.suggested_name})
+            step += 1
+        else:
+            results['art_style'] = None
 
-        print("\n[5/8] Analyzing hair color...")
-        hair_color = self.hair_color_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-haircolor" if save_all_presets else None
-        )
+        if selected_analyses.get('hair_style', False):
+            print(f"[{step}/{total_selected}] Analyzing hair style...")
+            result = self.hair_style_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['hair_style'] = result
+            if save_all_presets:
+                created_presets.append({'type': 'Hair Style', 'name': result.suggested_name})
+            step += 1
+        else:
+            results['hair_style'] = None
 
-        print("\n[6/8] Analyzing makeup...")
-        makeup = self.makeup_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-makeup" if save_all_presets else None
-        )
+        if selected_analyses.get('hair_color', False):
+            print(f"[{step}/{total_selected}] Analyzing hair color...")
+            result = self.hair_color_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['hair_color'] = result
+            if save_all_presets:
+                created_presets.append({'type': 'Hair Color', 'name': result.suggested_name})
+            step += 1
+        else:
+            results['hair_color'] = None
 
-        print("\n[7/8] Analyzing expression...")
-        expression = self.expression_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-expression" if save_all_presets else None
-        )
+        if selected_analyses.get('makeup', False):
+            print(f"[{step}/{total_selected}] Analyzing makeup...")
+            result = self.makeup_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['makeup'] = result
+            if save_all_presets:
+                created_presets.append({'type': 'Makeup', 'name': result.suggested_name})
+            step += 1
+        else:
+            results['makeup'] = None
 
-        print("\n[8/8] Analyzing accessories...")
-        accessories = self.accessories_analyzer.analyze(
-            image_path,
-            skip_cache=skip_cache,
-            save_as_preset=f"{preset_prefix}-accessories" if save_all_presets else None
-        )
+        if selected_analyses.get('expression', False):
+            print(f"[{step}/{total_selected}] Analyzing expression...")
+            result = self.expression_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['expression'] = result
+            if save_all_presets:
+                created_presets.append({'type': 'Expression', 'name': result.suggested_name})
+            step += 1
+        else:
+            results['expression'] = None
 
-        # Create comprehensive spec
-        comprehensive = ComprehensiveSpec(
-            outfit=outfit,
-            visual_style=visual_style,
-            art_style=art_style,
-            hair_style=hair_style,
-            hair_color=hair_color,
-            makeup=makeup,
-            expression=expression,
-            accessories=accessories
-        )
-
-        # Add metadata
-        comprehensive._metadata = SpecMetadata(
-            tool="comprehensive_analyzer",
-            tool_version="1.0.0",
-            source_image=str(image_path),
-            source_hash=self.cache_manager.compute_file_hash(image_path),
-            model_used=self.outfit_analyzer.router.model
-        )
+        if selected_analyses.get('accessories', False):
+            print(f"[{step}/{total_selected}] Analyzing accessories...")
+            result = self.accessories_analyzer.analyze(
+                image_path,
+                skip_cache=skip_cache,
+                save_as_preset=True if save_all_presets else None
+            )
+            results['accessories'] = result
+            if save_all_presets:
+                created_presets.append({'type': 'Accessories', 'name': result.suggested_name})
+            step += 1
+        else:
+            results['accessories'] = None
 
         print(f"\n{'='*70}")
-        print("COMPREHENSIVE ANALYSIS COMPLETE")
+        print(f"COMPREHENSIVE ANALYSIS COMPLETE - {len(created_presets)} presets created")
         print(f"{'='*70}\n")
 
-        return comprehensive
+        return {
+            'created_presets': created_presets,
+            'results': results
+        }
 
 
 def main():
@@ -253,7 +308,7 @@ Examples:
         print("SUMMARY")
         print("="*70)
         print(f"\n✅ Outfit: {result.outfit.style_genre} ({result.outfit.formality})")
-        print(f"✅ Visual Style: {result.visual_style.photographic_style}")
+        print(f"✅ Visual Style: {result.visual_style.framing} / {result.visual_style.camera_angle}")
         print(f"✅ Art Style: {result.art_style.artistic_movement}")
         print(f"✅ Hair Style: {result.hair_style.overall_style}")
         print(f"✅ Hair Color: {result.hair_color.base_color}")

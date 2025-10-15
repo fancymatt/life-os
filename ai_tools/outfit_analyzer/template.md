@@ -6,6 +6,7 @@ Return a JSON object with this **exact** structure:
 
 ```json
 {
+  "suggested_name": "Short descriptive name (2-4 words)",
   "clothing_items": [
     {
       "item": "garment type",
@@ -19,6 +20,15 @@ Return a JSON object with this **exact** structure:
   "aesthetic": "overall aesthetic influences and design philosophy"
 }
 ```
+
+## Suggested Name
+
+Generate a short, descriptive name (2-4 words) that captures the key essence of this outfit:
+- Focus on the most prominent or distinctive item (e.g., "Black Leather Jacket")
+- Include key color if notable (e.g., "Red Floral Dress")
+- Can reference the overall style (e.g., "Casual Denim Look", "Elegant Evening Wear")
+- Keep it simple and memorable
+- Examples: "Blue Denim Jacket", "Summer Floral Dress", "Black Suit Ensemble", "Cozy Sweater Look"
 
 ## Clothing Items Analysis
 

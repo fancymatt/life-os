@@ -157,7 +157,7 @@ class PresetService:
 
         Args:
             category: Category name
-            name: Preset name
+            name: Display name for the preset
             data: Preset data dict
             notes: Optional notes
 
@@ -167,13 +167,41 @@ class PresetService:
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category: {category}")
 
-        # Check if preset already exists
-        preset_path = self.presets_dir / category / f"{name}.json"
-        if preset_path.exists():
-            raise FileExistsError(f"Preset already exists: {category}/{name}")
+        # Check if a preset with this display name already exists
+        existing_presets = self.list_presets(category)
+        for preset in existing_presets:
+            if preset.get("display_name") == name:
+                raise FileExistsError(f"Preset with display name '{name}' already exists in {category}")
 
-        # Save preset
-        return self.preset_manager.save(category, name, data, notes=notes)
+        # Get the appropriate spec class
+        spec_class_map = {
+            "outfits": OutfitSpec,
+            "visual_styles": VisualStyleSpec,
+            "art_styles": ArtStyleSpec,
+            "hair_styles": HairStyleSpec,
+            "hair_colors": HairColorSpec,
+            "makeup": MakeupSpec,
+            "expressions": ExpressionSpec,
+            "accessories": AccessoriesSpec
+        }
+
+        if category not in spec_class_map:
+            raise ValueError(f"Unknown category: {category}")
+
+        # Convert dict to spec instance
+        spec_class = spec_class_map[category]
+        spec = spec_class(**data)
+
+        # Save preset with generated UUID, using name as display_name
+        preset_path, preset_id = self.preset_manager.save(
+            tool_type=category,
+            data=spec,
+            preset_id=None,  # Generate new UUID
+            display_name=name,
+            notes=notes
+        )
+
+        return preset_path
 
     def update_preset(
         self,

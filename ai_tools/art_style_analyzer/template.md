@@ -10,6 +10,8 @@ Return a JSON object with these fields:
 
 ```json
 {
+  "suggested_name": "Short descriptive name (2-4 words)",
+
   "medium": "What artistic medium does this resemble? (oil painting, watercolor, digital art, charcoal, ink, acrylic, mixed media, etc.)",
 
   "technique": "What artistic techniques are evident? (impasto, glazing, dry brush, stippling, cross-hatching, digital painting, etc.)",
@@ -29,6 +31,14 @@ Return a JSON object with these fields:
   "level_of_detail": "How detailed vs. loose is the rendering? (highly detailed/realistic, moderately detailed, loose/impressionistic, abstract/minimal, etc.)"
 }
 ```
+
+## Suggested Name
+
+Generate a short, descriptive name (2-4 words) that captures the artistic style:
+- Combine medium and movement (e.g., "Impressionist Oil Painting", "Digital Pop Art")
+- Or use technique and mood (e.g., "Loose Watercolor Sketch", "Detailed Pencil Drawing")
+- Keep it art-focused
+- Examples: "Abstract Acrylic Art", "Realistic Oil Portrait", "Vintage Comic Style", "Modern Digital Illustration"
 
 ## Guidelines
 

@@ -102,10 +102,13 @@ class OutfitAnalyzer:
                 print(f"✅ Using cached analysis for {image_path.name}")
                 # Save as preset if requested (even for cached results)
                 if save_as_preset:
+                    # If save_as_preset is True (boolean), use the AI-generated suggested_name
+                    preset_name = cached.suggested_name if save_as_preset is True else save_as_preset
+
                     preset_path, preset_id = self.preset_manager.save(
                         "outfits",
                         cached,
-                        display_name=save_as_preset,
+                        display_name=preset_name,
                         notes=preset_notes
                     )
                     # Ensure metadata exists and update with preset info
@@ -118,8 +121,8 @@ class OutfitAnalyzer:
                             model_used="cached"
                         )
                     cached._metadata.preset_id = preset_id
-                    cached._metadata.display_name = save_as_preset
-                    print(f"⭐ Saved as preset: {save_as_preset}")
+                    cached._metadata.display_name = preset_name
+                    print(f"⭐ Saved as preset: {preset_name}")
                     print(f"   ID: {preset_id}")
                     print(f"   Location: {preset_path}")
 
@@ -169,17 +172,20 @@ class OutfitAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
+                # If save_as_preset is True (boolean), use the AI-generated suggested_name
+                preset_name = outfit.suggested_name if save_as_preset is True else save_as_preset
+
                 preset_path, preset_id = self.preset_manager.save(
                     "outfits",
                     outfit,
-                    display_name=save_as_preset,
+                    display_name=preset_name,
                     notes=preset_notes
                 )
                 # Update metadata with preset info
                 if outfit._metadata:
                     outfit._metadata.preset_id = preset_id
-                    outfit._metadata.display_name = save_as_preset
-                print(f"⭐ Saved as preset: {save_as_preset}")
+                    outfit._metadata.display_name = preset_name
+                print(f"⭐ Saved as preset: {preset_name}")
                 print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 

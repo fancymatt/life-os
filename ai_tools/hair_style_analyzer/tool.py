@@ -94,13 +94,14 @@ class HairStyleAnalyzer:
 
                 # Save as preset if requested
                 if save_as_preset:
-                    preset_path = self.preset_manager.save(
-                        "hair_styles",
-                        save_as_preset,
-                        cached,
+                    preset_name = cached.suggested_name if save_as_preset is True else save_as_preset
+                    preset_path, preset_id = self.preset_manager.save(
+                        tool_type="hair_styles",
+                        data=cached,
+                        display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {save_as_preset}")
+                    print(f"⭐ Saved as preset: {preset_name}")
                     print(f"   Location: {preset_path}")
 
                 return cached
@@ -136,10 +137,11 @@ class HairStyleAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
+                preset_name = result.suggested_name if save_as_preset is True else save_as_preset
                 preset_path, preset_id = self.preset_manager.save(
-                    "hair_styles",
-                    result,
-                    display_name=save_as_preset,
+                    tool_type="hair_styles",
+                    data=result,
+                    display_name=preset_name,
                     notes=preset_notes
 
                 )
@@ -150,8 +152,8 @@ class HairStyleAnalyzer:
 
                     result._metadata.preset_id = preset_id
 
-                    result._metadata.display_name = save_as_preset
-                print(f"⭐ Saved as preset: {save_as_preset}")
+                    result._metadata.display_name = preset_name
+                print(f"⭐ Saved as preset: {preset_name}")
                 print(f"   ID: {preset_id}")
                 print(f"   Location: {preset_path}")
 

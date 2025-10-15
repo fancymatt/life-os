@@ -170,11 +170,6 @@ function OutfitAnalyzer({ onClose }) {
       return
     }
 
-    if (!outfitName.trim()) {
-      setError('Please enter an outfit name')
-      return
-    }
-
     setAnalyzing(true)
     setError(null)
 
@@ -192,7 +187,7 @@ function OutfitAnalyzer({ onClose }) {
             image: {
               image_data: base64Data
             },
-            save_as_preset: outfitName.trim()
+            save_as_preset: true  // Auto-generate name
           })
         })
 
@@ -207,9 +202,10 @@ function OutfitAnalyzer({ onClose }) {
           throw new Error(data.error || 'Analysis failed')
         }
 
-        // Store analysis result and preset ID
+        // Store analysis result, preset ID, and AI-generated name
         setAnalysisResult(data.result)
         setNewPresetId(data.preset_id)
+        setOutfitName(data.preset_display_name || data.result?.suggested_name || 'Outfit Analysis')
         setAnalyzing(false)
 
         // Start polling for preview image if we have a preset ID
@@ -527,24 +523,12 @@ function OutfitAnalyzer({ onClose }) {
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="outfit-name">Preset Name</label>
-          <input
-            type="text"
-            id="outfit-name"
-            value={outfitName}
-            onChange={(e) => setOutfitName(e.target.value)}
-            placeholder="e.g., casual-summer"
-            disabled={analyzing}
-          />
-        </div>
-
         {error && <div className="error-message">{error}</div>}
 
         <button
           className="analyze-button"
           onClick={handleAnalyze}
-          disabled={analyzing || !imageFile || !outfitName.trim()}
+          disabled={analyzing || !imageFile}
         >
           {analyzing ? 'Analyzing...' : 'Analyze Outfit'}
         </button>

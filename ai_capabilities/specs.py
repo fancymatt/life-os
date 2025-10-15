@@ -48,6 +48,7 @@ class ClothingItem(BaseModel):
 class OutfitSpec(BaseModel):
     """Complete outfit analysis"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for this outfit (2-4 words, e.g., 'Black Leather Jacket Look', 'Summer Floral Dress')")
     clothing_items: List[ClothingItem] = Field(..., description="All clothing items")
     style_genre: str = Field(..., description="Overall style category")
     formality: str = Field(..., description="Formality level")
@@ -59,6 +60,7 @@ class OutfitSpec(BaseModel):
 class PhotoCompositionSpec(BaseModel):
     """Photograph composition analysis - what's happening in the frame"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for this photo composition (2-4 words, e.g., 'Mirror Selfie Portrait', 'Outdoor Golden Hour Shot')")
     subject_action: str = Field(
         ...,
         description="DETAILED 4-8 sentence paragraph describing body position, head angle, gaze, facial expression, arms/hands, and body language. MINIMUM 200 characters required."
@@ -96,6 +98,7 @@ VisualStyleSpec = PhotoCompositionSpec
 class ArtStyleSpec(BaseModel):
     """Artistic style analysis"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for this art style (2-4 words, e.g., 'Impressionist Oil Painting', 'Digital Pop Art')")
     medium: str = Field(..., description="Artistic medium")
     technique: str = Field(..., description="Application technique")
     color_palette: List[str] = Field(..., description="Dominant colors")
@@ -110,6 +113,7 @@ class ArtStyleSpec(BaseModel):
 class HairStyleSpec(BaseModel):
     """Hair style structure analysis (not color)"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for this hair style (2-4 words, e.g., 'Long Layered Waves', 'Blunt Bob Cut')")
     cut: str = Field(
         ...,
         description="DETAILED 3-5 sentence description of the haircut including cut type, shape, perimeter, interior technique, and overall silhouette. MINIMUM 150 characters required."
@@ -160,6 +164,7 @@ class HairStyleSpec(BaseModel):
 class HairColorSpec(BaseModel):
     """Hair color analysis (not style)"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for this hair color (2-4 words, e.g., 'Platinum Blonde Highlights', 'Rich Chocolate Brown')")
     base_color: str = Field(..., description="Primary hair color")
     undertones: str = Field(..., description="Color undertones")
     highlights: Optional[str] = Field(None, description="Highlight colors and placement")
@@ -172,6 +177,7 @@ class HairColorSpec(BaseModel):
 class MakeupSpec(BaseModel):
     """Makeup analysis"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for this makeup look (2-4 words, e.g., 'Smokey Eye Glam', 'Natural Fresh Face')")
     complexion: str = Field(..., description="Foundation, blush, highlighter, contour")
     eyes: str = Field(..., description="Shadow, liner, mascara, brows")
     lips: str = Field(..., description="Lip color and finish")
@@ -183,6 +189,7 @@ class MakeupSpec(BaseModel):
 class ExpressionSpec(BaseModel):
     """Facial expression analysis"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for this expression (2-4 words, e.g., 'Soft Gentle Smile', 'Confident Direct Gaze')")
     primary_emotion: str = Field(..., description="Main emotional expression")
     intensity: str = Field(..., description="Subtle/moderate/strong")
     mouth: str = Field(..., description="Mouth position and shape")
@@ -195,6 +202,7 @@ class ExpressionSpec(BaseModel):
 class AccessoriesSpec(BaseModel):
     """Accessories analysis"""
     _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name for these accessories (2-4 words, e.g., 'Gold Layered Jewelry', 'Minimalist Silver Pieces')")
     jewelry: List[str] = Field(default_factory=list, description="Earrings, necklaces, bracelets, rings")
     bags: Optional[str] = Field(None, description="Bags or purses")
     belts: Optional[str] = Field(None, description="Belt description")

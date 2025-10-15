@@ -8,6 +8,8 @@ Analyze all **accessories** in this image with the precision of a professional f
 
 ```json
 {
+  "suggested_name": "Short descriptive name (2-4 words)",
+
   "jewelry": ["Detailed list of each jewelry piece with material, style, and finish. Example: 'delicate gold chain necklace with small pendant', 'silver hoop earrings (medium, 2-inch diameter)', 'stacked thin gold rings on index and middle fingers'"],
 
   "bags": "Detailed bag description with type, material, hardware, and size, or null if not visible. Example: 'Black leather structured crossbody bag with gold chain strap and quilted pattern, approximately 8x6 inches'",
@@ -25,6 +27,14 @@ Analyze all **accessories** in this image with the precision of a professional f
   "overall_style": "DETAILED professional assessment of accessory styling approach, coordination, and fashion sense. Example: 'Layered, eclectic accessory approach mixing metals (gold and silver) with bohemian sensibility. The styling shows confidence in breaking traditional jewelry rules while maintaining visual balance. Multiple delicate pieces create interest without overwhelming. The overall effect is curated but effortless, suggesting someone who understands proportion and knows how to make statement pieces work together.'"
 }
 ```
+
+## Suggested Name
+
+Generate a short, descriptive name (2-4 words) that describes the accessories:
+- Focus on materials and style (e.g., "Gold Layered Jewelry", "Minimalist Silver Pieces")
+- Can reference key items (e.g., "Statement Necklace Set", "Leather Crossbody Bag")
+- Keep it accessory-focused
+- Examples: "Gold Hoop Earrings", "Delicate Chain Necklace", "Chunky Statement Ring", "Classic Watch Set"
 
 ## Professional Guidelines - Fashion Stylist Perspective
 

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import OutfitAnalyzer from './OutfitAnalyzer'
 import GenericAnalyzer from './GenericAnalyzer'
+import ModularGenerator from './ModularGenerator'
+import ComprehensiveAnalyzer from './ComprehensiveAnalyzer'
 
 function App() {
   const [tools, setTools] = useState([])
@@ -9,6 +11,8 @@ function App() {
   const [error, setError] = useState(null)
   const [showOutfitAnalyzer, setShowOutfitAnalyzer] = useState(false)
   const [activeAnalyzer, setActiveAnalyzer] = useState(null)
+  const [showModularGenerator, setShowModularGenerator] = useState(false)
+  const [showComprehensiveAnalyzer, setShowComprehensiveAnalyzer] = useState(false)
 
   useEffect(() => {
     fetch('/api/tools')
@@ -67,7 +71,7 @@ function App() {
                   if (tool.name === 'outfit') {
                     setShowOutfitAnalyzer(true)
                   } else if (tool.name === 'comprehensive') {
-                    // Skip comprehensive for now - too complex
+                    setShowComprehensiveAnalyzer(true)
                   } else {
                     setActiveAnalyzer(tool.name)
                   }
@@ -81,8 +85,16 @@ function App() {
         </section>
 
         <section>
-          <h2>🎨 Generators ({generators.length})</h2>
+          <h2>🎨 Generators ({generators.length + 1})</h2>
           <div className="tools-list">
+            {/* Modular Generator - Frontend Workflow */}
+            <div
+              className="tool-card clickable"
+              onClick={() => setShowModularGenerator(true)}
+            >
+              <h3>Modular</h3>
+              <p className="description">Mix and match presets from different categories to generate custom images</p>
+            </div>
             {generators.map(tool => (
               <div key={tool.name} className="tool-card">
                 <h3>{tool.name}</h3>
@@ -99,6 +111,8 @@ function App() {
           onClose={() => setActiveAnalyzer(null)}
         />
       )}
+      {showModularGenerator && <ModularGenerator onClose={() => setShowModularGenerator(false)} />}
+      {showComprehensiveAnalyzer && <ComprehensiveAnalyzer onClose={() => setShowComprehensiveAnalyzer(false)} />}
     </>
   )
 }
