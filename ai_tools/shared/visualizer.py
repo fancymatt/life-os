@@ -103,21 +103,47 @@ Style: Soft, painterly storyboard illustration with gentle linework and subtle w
         """Build prompt for art style preview"""
         colors = ", ".join(spec.color_palette[:5]) if spec.color_palette else "varied colors"
 
-        return f"""Create an artistic style reference showing:
+        return f"""Create a STANDARDIZED art style reference following EXACT specifications to ensure consistency across ALL art style previews.
 
-Medium: {spec.medium}
-Technique: {spec.technique}
-Artistic Movement: {spec.artistic_movement}
+**CRITICAL: LOCKED-DOWN VISUALIZATION STYLE - SAME SUBJECT, DIFFERENT ARTISTIC TREATMENT**
 
-Visual Characteristics:
-- Color Palette: {colors}
+Art Style to Apply:
+- Medium: {spec.medium}
+- Technique: {spec.technique}
+- Movement: {spec.artistic_movement}
+- Colors: {colors}
 - Texture: {spec.texture}
-- Composition Style: {spec.composition_style}
-- Level of Detail: {spec.level_of_detail}
+- Composition: {spec.composition_style}
+- Detail Level: {spec.level_of_detail}
 - Mood: {spec.mood}
 {f"- Brush Style: {spec.brush_style}" if spec.brush_style else ""}
 
-Create a portrait or figure study that exemplifies this artistic style on a white background."""
+**SUBJECT SPECIFICATIONS (MUST BE IDENTICAL ACROSS ALL PREVIEWS):**
+- Same neutral female portrait subject in all previews
+- Three-quarter view facing slightly left
+- Shoulders and upper torso visible
+- Serene, neutral expression
+- Medium-length hair
+- Simple, classic composition
+
+**POSE & COMPOSITION (MUST BE IDENTICAL):**
+- Subject positioned identically in every preview
+- Head at same angle and position
+- Same cropping (shoulders to top of head)
+- Centered in frame with consistent margins
+
+**BACKGROUND:**
+- Simple, neutral background that works with the art style
+- Not distracting from the artistic treatment
+- Complementary to the medium and movement specified
+
+**FRAMING:**
+- Square format (1024x1024 pixels)
+- Subject fills 75% of frame height
+- Consistent positioning across all previews
+
+**PURPOSE:**
+This is a STANDARDIZED ART STYLE COMPARISON REFERENCE. Every art style preview must use the EXACT SAME subject, pose, and composition. ONLY the artistic medium, technique, and stylistic treatment should vary. A viewer should be able to compare different art styles side-by-side and see clearly how each movement/medium interprets the same subject. Think of this like those "art history evolution" charts showing the same subject painted in different artistic periods."""
 
     def _build_hair_style_prompt(self, spec: HairStyleSpec) -> str:
         """Build prompt for hair style preview"""
@@ -163,42 +189,120 @@ Style: Professional hair color swatch photograph. Show only the flowing, wavy ha
         """Build prompt for makeup preview"""
         colors = ", ".join(spec.color_palette[:5]) if spec.color_palette else "varied colors"
 
-        return f"""Create a makeup reference showing:
+        return f"""Create a STANDARDIZED makeup reference following EXACT specifications to ensure consistency across ALL makeup previews.
 
-Makeup Style: {spec.overall_style}
-Intensity: {spec.intensity}
-Color Palette: {colors}
+**CRITICAL: LOCKED-DOWN VISUALIZATION STYLE - NO CREATIVE INTERPRETATION**
 
-Application Details:
+Makeup Details to Apply:
+- Style: {spec.overall_style}
+- Intensity: {spec.intensity}
+- Colors: {colors}
 - Complexion: {spec.complexion}
 - Eyes: {spec.eyes}
 - Lips: {spec.lips}
 
-Show a beauty portrait focusing on the makeup. White background, even lighting to show makeup details clearly."""
+**FACE MODEL SPECIFICATIONS (MUST BE IDENTICAL ACROSS ALL PREVIEWS):**
+- Smooth, neutral-toned face mannequin or model (medium skin tone, Fitz III)
+- Completely neutral expression - no smile, no emotion
+- Eyes looking directly forward at camera, no gaze deviation
+- Face perfectly centered and symmetrical
+- Head perfectly straight, no tilt
+- Minimal facial features/structure variation - aim for an "averaged" neutral face
+
+**POSE & ANGLE (MUST BE IDENTICAL):**
+- Direct frontal view, straight-on
+- Face fills 65% of frame height
+- Eyes positioned at 45% from top of frame
+- Shoulders barely visible at bottom, straight and level
+- Neck centered and straight
+
+**LIGHTING (MUST BE IDENTICAL):**
+- Soft, even beauty lighting from directly front
+- No dramatic shadows on face
+- Gentle shadow only on neck and below jawline
+- Lighting designed to show makeup clearly without creating mood
+- No side lighting, no rim lighting, no creative lighting
+
+**BACKGROUND:**
+- Pure white (#FFFFFF)
+- No gradient, no texture
+- Perfectly even and clean
+
+**HAIR:**
+- Hair pulled completely back away from face
+- Neutral brown or black hair
+- No visible hairstyle - hair should not be a focal point
+- Clean hairline, no flyaways
+
+**FRAMING:**
+- Square format (1024x1024 pixels)
+- Face and upper shoulders only
+- Equal margins around face
+- Makeup must be clearly visible and in sharp focus
+
+**PURPOSE:**
+This is NOT a beauty shot - it is a STANDARDIZED MAKEUP REFERENCE. Every makeup preview must look nearly identical except for the makeup application itself. The face, expression, angle, lighting, and background must be perfectly consistent. A viewer should be able to overlay two different makeup previews and see only the makeup differences."""
 
     def _build_expression_prompt(self, spec: ExpressionSpec) -> str:
         """Build prompt for expression preview"""
-        return f"""Create a facial expression reference showing:
+        return f"""Create a STANDARDIZED expression reference following EXACT specifications to ensure consistency across ALL expression previews.
 
-Primary Emotion: {spec.primary_emotion}
-Intensity: {spec.intensity}
-Overall Mood: {spec.overall_mood}
+**CRITICAL: LOCKED-DOWN VISUALIZATION STYLE - NO CREATIVE INTERPRETATION**
 
-Facial Details:
+Expression Details to Show:
+- Emotion: {spec.primary_emotion}
+- Intensity: {spec.intensity}
+- Mood: {spec.overall_mood}
 - Mouth: {spec.mouth}
 - Eyes: {spec.eyes}
 - Eyebrows: {spec.eyebrows}
-- Gaze Direction: {spec.gaze_direction}
+- Gaze: {spec.gaze_direction}
 
-Show a clean portrait capturing this specific expression. White background, neutral lighting, focus on facial expression."""
+**FACE MODEL SPECIFICATIONS (MUST BE IDENTICAL ACROSS ALL PREVIEWS):**
+- Neutral, averaged human face (medium skin tone, androgynous features)
+- Same base face structure across all previews - only the EXPRESSION changes
+- Clean, minimal features
+- No distinctive features like moles, freckles, or unique characteristics
+- Hair pulled completely back, not visible
+
+**NEUTRAL BASE (BEFORE EXPRESSION APPLIED):**
+- Start with completely neutral face as template
+- Same bone structure, same proportions every time
+- Apply ONLY the specified expression to this neutral base
+
+**POSE & ANGLE (MUST BE IDENTICAL):**
+- Direct frontal view, perfectly centered
+- Face fills 70% of frame height
+- Eyes positioned at 40% from top of frame
+- Head perfectly straight, no tilt, no rotation
+- Shoulders barely visible, straight and level
+
+**LIGHTING (MUST BE IDENTICAL):**
+- Soft, even frontal lighting
+- No dramatic shadows
+- Gentle shadow only on neck
+- Lighting shows expression clearly without adding mood
+- No creative lighting that might enhance or alter emotional read
+
+**BACKGROUND:**
+- Pure white (#FFFFFF)
+- No gradient, no texture
+- Perfectly even
+
+**FRAMING:**
+- Square format (1024x1024 pixels)
+- Face and minimal shoulders only
+- Expression must be clearly visible
+
+**PURPOSE:**
+This is NOT a portrait - it is a STANDARDIZED EXPRESSION REFERENCE for actors and animators. Every expression preview must use the IDENTICAL neutral base face. The ONLY difference between previews should be the facial expression itself - the face structure, angle, lighting, and background must be perfectly consistent. A viewer should be able to overlay two different expression previews and see only the muscle movements and expression differences."""
 
     def _build_accessories_prompt(self, spec: AccessoriesSpec) -> str:
         """Build prompt for accessories preview"""
         jewelry_list = ", ".join(spec.jewelry) if spec.jewelry else "none"
         other_list = ", ".join(spec.other) if spec.other else "none"
 
-        parts = [f"Accessory Style: {spec.overall_style}"]
-
+        parts = [f"Style: {spec.overall_style}"]
         if spec.jewelry:
             parts.append(f"Jewelry: {jewelry_list}")
         if spec.bags:
@@ -216,11 +320,47 @@ Show a clean portrait capturing this specific expression. White background, neut
 
         description = "\n".join(parts)
 
-        return f"""Create an accessories reference showing:
+        return f"""Create a STANDARDIZED accessories reference following EXACT specifications to ensure consistency across ALL accessory previews.
 
+**CRITICAL: LOCKED-DOWN VISUALIZATION STYLE - NO CREATIVE INTERPRETATION**
+
+Accessories to Display:
 {description}
 
-Show these accessories on a model or as a styled flat lay. White background, good lighting to show details clearly."""
+**LAYOUT SPECIFICATIONS (MUST BE IDENTICAL):**
+- Clean, professional product photography flat lay
+- Accessories arranged on pure white surface (#FFFFFF)
+- Symmetrical, organized layout - not scattered or random
+- Items positioned to show full detail and scale
+- Consistent spacing between items
+
+**STYLING (MUST BE IDENTICAL):**
+- No model, no mannequin - flat lay only
+- Items arranged as if for professional catalog photography
+- Each accessory fully visible, not overlapping
+- Jewelry laid flat showing full design
+- Bags, hats shown from optimal angle to see shape and details
+
+**LIGHTING (MUST BE IDENTICAL):**
+- Soft, even overhead lighting
+- No dramatic shadows
+- Gentle shadow directly beneath items for depth only
+- Professional product photography lighting
+- No creative or mood lighting
+
+**BACKGROUND:**
+- Pure white (#FFFFFF)
+- No texture, no surface details
+- Perfectly even and clean
+
+**FRAMING:**
+- Square format (1024x1024 pixels)
+- Accessories fill 60-70% of frame
+- Equal margins on all sides
+- All items clearly visible and in focus
+
+**PURPOSE:**
+This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE. Every accessories preview must use identical layout style, lighting, and background. Only the actual accessories themselves should vary. Layout should be clean and organized enough that individual pieces can be easily identified."""
 
     def visualize(
         self,

@@ -1,6 +1,8 @@
-# Facial Expression Analysis
+# Professional Facial Expression Analysis
 
-Analyze the **facial expression** in this image including emotion, intensity, and specific facial features.
+Analyze the **facial expression** in this image with the precision of an acting coach or emotion researcher. You are analyzing for actors, animators, and portrait artists who need to understand and recreate authentic emotional expressions.
+
+**CRITICAL: Think like an acting coach breaking down a performance. Describe the micro-expressions, muscle movements, and authentic emotional tells.**
 
 ## Output Format
 
@@ -8,35 +10,44 @@ Return a JSON object with these fields:
 
 ```json
 {
-  "primary_emotion": "Main emotional expression (happy, sad, neutral, contemplative, confident, serious, playful, etc.)",
+  "primary_emotion": "Main emotional expression being conveyed (joy, contentment, pensiveness, determination, confidence, vulnerability, playfulness, etc.)",
 
-  "intensity": "How strong is the expression? (subtle/minimal, moderate, strong/intense)",
+  "intensity": "Expression strength: subtle/minimal, moderate, strong/intense",
 
-  "mouth": "Mouth position and shape (closed smile, open smile, neutral, slight upturn, pursed, relaxed, etc.)",
+  "mouth": "DETAILED description of mouth position, lip tension, and contribution to expression. Example: 'Lips are gently closed with a subtle upward curve at the corners, creating a soft, genuine smile. The upper lip is relaxed, not tense. There's a natural fullness to the mouth with no pursing or compression. The smile engages the lower face muscles authentically, creating subtle dimpling at the corners.'",
 
-  "eyes": "Eye expression and appearance (smiling eyes/crinkled, soft, intense gaze, relaxed, wide, etc.)",
+  "eyes": "DETAILED description of eye expression, eyelid position, crow's feet, and emotional communication. Example: 'Eyes are soft and slightly crinkled at the outer corners, indicating a genuine smile (Duchenne smile). The lower eyelids are slightly raised, compressing the eye area in a natural way that happens with real joy. Pupils are relaxed and focused. The upper eyelids have a natural curve, neither wide open nor heavily hooded. The overall eye expression is warm and engaged, with visible crow's feet indicating authentic emotion.'",
 
-  "eyebrows": "Eyebrow position and shape (relaxed, slightly raised, furrowed, arched, neutral, etc.)",
+  "eyebrows": "DETAILED description of eyebrow position, tension, and shape. Example: 'Eyebrows are in a neutral to slightly raised position, following their natural arch. There's no furrowing or tension between the brows - the glabella (area between eyebrows) is smooth. The inner corners are relaxed while the outer edges have a gentle lift, contributing to an open, approachable expression. Brow muscles show no signs of strain or forced positioning.'",
 
-  "gaze_direction": "Where is the subject looking? (directly at camera, off-camera left/right/up/down, downward, away, etc.)",
+  "gaze_direction": "Precise gaze direction: directly at camera/viewer, off-camera left/right/up/down, downward, away, middle distance, unfocused, etc.",
 
-  "overall_mood": "Overall emotional impression and atmosphere (warm and approachable, mysterious and aloof, confident and assured, pensive, etc.)"
+  "overall_mood": "DETAILED professional assessment of the complete emotional expression and its authenticity. Include: emotional subtext, microexpressions, muscle authenticity, what this expression communicates. Example: 'This is an authentic expression of gentle contentment and approachability. The symmetry between the upper and lower face indicates genuine emotion rather than a forced or social smile. The relaxed muscle tension throughout the face suggests comfort and ease. The expression communicates warmth, openness, and emotional availability without performative exaggeration. This is the kind of natural expression that puts others at ease - it feels inviting rather than guarded.'"
 }
 ```
 
-## Guidelines
+## Professional Guidelines - Acting Coach Perspective
 
-- **Primary Emotion**: What is the main emotion being expressed?
-- **Intensity**: How strongly is it expressed?
-- **Mouth**: Describe the mouth's contribution to the expression
-- **Eyes**: Eyes are crucial - describe their appearance and what they convey
-- **Eyebrows**: Note eyebrow position (raised, neutral, furrowed, etc.)
-- **Gaze Direction**: Where are they looking?
-- **Overall Mood**: Sum up the complete emotional impression
+**Think like an acting coach teaching emotion recognition:**
+
+- **Muscle Groups**: Note which facial muscles are engaged (zygomatic major, orbicularis oculi, frontalis, corrugator supercilii)
+- **Authenticity**: Differentiate between genuine and social/posed expressions
+- **Symmetry**: Note if expression is symmetrical (usually genuine) or asymmetrical
+- **Upper/Lower Face Coherence**: Do the eyes match the mouth? Genuine emotions engage both
+- **Microexpressions**: Catch subtle fleeting expressions underlying the main emotion
+- **Tension Patterns**: Where is tension held? Where is relaxation visible?
+- **Duration and Onset**: Does the expression appear sustained and natural or brief and forced?
+- **Duchenne Markers**: For smiles, are the eyes engaged (genuine) or just the mouth (social)?
+
+**Use Precise Emotional Vocabulary:**
+- Not just "happy" - specify: joyful, content, pleased, elated, delighted, satisfied, amused
+- Not just "sad" - specify: melancholic, sorrowful, disappointed, resigned, mournful
+- Not just "angry" - specify: frustrated, indignant, furious, annoyed, exasperated
 
 ## Important
 
 - Return ONLY valid JSON, no markdown formatting
-- All string fields must contain meaningful descriptions (no empty strings)
-- Be specific but concise
-- Focus on expression, not physical features or attractiveness
+- All detailed fields (mouth, eyes, eyebrows, overall_mood) must be multi-sentence professional descriptions
+- Focus on the EXPRESSION and emotional communication, not physical attractiveness
+- Describe what the expression communicates about internal emotional state
+- Note authenticity markers - signs this is genuine vs. performed emotion
