@@ -1,8 +1,11 @@
 """
 Generic Preset Visualizer
 
-Generates preview images for any preset type using Gemini 2.5 Flash.
+Generates preview images for any preset type using DALL-E 3.
 Automatically creates appropriate prompts based on the spec type.
+
+Note: For full subject-based generation (like modular_image_generator),
+Gemini 2.5 Flash is used as it has a subject image to work with.
 """
 
 from pathlib import Path
@@ -30,7 +33,7 @@ class PresetVisualizer:
     Generic visualizer for all preset types
 
     Generates square preview images (1024x1024) on white background
-    using Gemini 2.5 Flash based on preset specifications.
+    using DALL-E 3 based on preset specifications.
     """
 
     def __init__(self, model: Optional[str] = None):
@@ -38,9 +41,9 @@ class PresetVisualizer:
         Initialize the visualizer
 
         Args:
-            model: Model to use (default: gemini-2.5-flash-image)
+            model: Model to use (default: dall-e-3)
         """
-        self.model = model or "gemini-2.5-flash-image"
+        self.model = model or "dall-e-3"
         self.router = LLMRouter(model=self.model)
         self.preset_manager = PresetManager()
 
@@ -397,13 +400,17 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
         # Build prompt
         prompt = self._build_prompt(spec_type, spec)
 
+        # Truncate if too long for DALL-E (4000 char limit)
+        if len(prompt) > 3900:
+            prompt = prompt[:3900] + "..."
+
         print(f"🎨 Generating {spec_type} visualization...")
 
-        # Generate image using Gemini 2.5 Flash
+        # Generate image using DALL-E
         image_bytes = self.router.generate_image(
             prompt=prompt,
             model=self.model,
-            provider="gemini",
+            provider="dalle",
             size="1024x1024",  # Square format
             quality=quality
         )

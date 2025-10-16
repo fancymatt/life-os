@@ -39,10 +39,10 @@ class OutfitVisualizer:
         Initialize the outfit visualizer
 
         Args:
-            model: Model to use for generation (default: gemini-2.5-flash-image)
+            model: Model to use for generation (default: dall-e-3)
         """
-        # Use Gemini 2.5 Flash for image generation
-        self.model = model or "gemini-2.5-flash-image"
+        # Use DALL-E for pure text-to-image (previews don't have a source subject)
+        self.model = model or "dall-e-3"
         self.router = LLMRouter(model=self.model)
         self.preset_manager = PresetManager()
 
@@ -145,11 +145,15 @@ Style the presentation to match the {outfit.aesthetic} aesthetic while maintaini
         print(f"   Items: {len(outfit.clothing_items)}")
 
         try:
-            # Generate image using Gemini 2.5 Flash
+            # Truncate prompt if too long for DALL-E (4000 char limit)
+            if len(prompt) > 3900:
+                prompt = prompt[:3900] + "..."
+
+            # Generate image using DALL-E
             image_bytes = self.router.generate_image(
                 prompt=prompt,
                 model=self.model,
-                provider="gemini",
+                provider="dalle",
                 size="1024x1024",  # Square format
                 quality=quality
             )
