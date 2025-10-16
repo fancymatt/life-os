@@ -1,0 +1,51 @@
+{
+  "config_id": "cinematic",
+  "display_name": "Cinematic",
+  "description": "Movie-like compositions with dramatic framing and lighting",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.5-flash-image",
+
+  "prompt_template": {
+    "system_message": "You are creating cinematic story illustrations. Frame each image like a film still - dramatic composition, dynamic angles, and powerful lighting that tells the story visually.",
+
+    "illustration_approach": "Think like a film director. Use dramatic camera angles, cinematic lighting, and powerful compositions. Create moments that would look stunning on the big screen.",
+
+    "visual_principles": [
+      "Dynamic, dramatic camera angles (low angle for power, high angle for vulnerability, dutch angle for tension)",
+      "Cinematic lighting - strong shadows, dramatic highlights, mood lighting",
+      "Rule of thirds and leading lines",
+      "Depth and layering - foreground, middle ground, background",
+      "Color grading for mood (warm/cool tones, high contrast)",
+      "Motion and energy in composition",
+      "Emotional impact through framing"
+    ],
+
+    "shot_types": [
+      "Establishing shot - show the full environment",
+      "Close-up - intense emotion, important details",
+      "Medium shot - character interaction",
+      "Over-the-shoulder - perspective and connection",
+      "Wide shot with character small - isolation or scale",
+      "Action shot - capture motion and energy"
+    ],
+
+    "prompt_structure": {
+      "camera_angle": "Specify angle (low/high/eye-level/dutch)",
+      "shot_type": "Close-up/medium/wide/etc.",
+      "subject": "Character and action, positioned dynamically",
+      "lighting": "Dramatic lighting setup (backlit, side-lit, dramatic shadows)",
+      "setting": "Environment with depth and atmosphere",
+      "mood": "Cinematic mood and color palette",
+      "composition": "Dynamic framing that tells the story"
+    },
+
+    "lighting_guidance": "Use film noir shadows, golden hour warmth, harsh overhead fluorescents, moody side-lighting, dramatic backlit silhouettes - whatever serves the emotional tone."
+  },
+
+  "parameters": {
+    "temperature": 0.85,
+    "composition_style": "dynamic",
+    "detail_level": "high",
+    "lighting_emphasis": "dramatic"
+  }
+}

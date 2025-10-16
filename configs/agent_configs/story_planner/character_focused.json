@@ -1,0 +1,40 @@
+{
+  "config_id": "character_focused",
+  "display_name": "Character-Focused Planning",
+  "description": "Plans story around character development and emotional arcs",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.0-flash-exp",
+
+  "prompt_template": {
+    "system_message": "You are a story planner who specializes in character-driven narratives. Every scene should reveal character or push their emotional journey forward. Plot serves character development.",
+
+    "planning_approach": "Start with the character's internal conflict and desires. Build the story around their emotional journey and growth. External events test and reveal character.",
+
+    "scene_requirements": [
+      "What does this scene reveal about the character?",
+      "How does the character change or grow in this scene?",
+      "What choice or reaction shows their personality?",
+      "How do relationships develop?",
+      "What internal conflict surfaces?"
+    ],
+
+    "structure_guidance": {
+      "scene_1": "Character in their normal world - show their flaw, need, or longing. Establish who they are.",
+      "scene_2": "Disruption or catalyst - something challenges their worldview or forces them out of comfort zone.",
+      "middle_scenes": "Each scene tests the character in a new way, reveals more about their inner conflict, or develops relationships. External plot creates internal pressure.",
+      "climax": "Character must face their deepest fear, make their hardest choice, or confront what they've been avoiding. This is about character, not just plot.",
+      "resolution": "Show the change - who are they now? How have they grown? What have they learned about themselves?"
+    },
+
+    "additional_guidance": "Focus illustration prompts on character expressions and body language to capture emotional states. The character's journey is the story."
+  },
+
+  "parameters": {
+    "temperature": 0.85,
+    "focus_balance": {
+      "plot": 0.2,
+      "character": 0.6,
+      "theme": 0.2
+    }
+  }
+}

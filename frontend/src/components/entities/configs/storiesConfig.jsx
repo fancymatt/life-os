@@ -14,6 +14,7 @@ export const storiesConfig = {
   enableSort: true,
   defaultSort: 'newest',
   searchFields: ['title', 'story'],
+  fullWidthDetail: true,  // Show stories in full-width layout, not sidebar
 
   actions: [
     {
@@ -69,35 +70,105 @@ export const storiesConfig = {
     </div>
   ),
 
-  renderDetail: (story) => (
-    <div style={{ padding: '3rem' }}>
-      <h1 style={{ fontSize: '2.5rem', margin: '0 0 2rem 0', color: 'white', textAlign: 'center' }}>
-        {story.title}
-      </h1>
+  renderDetail: (story) => {
+    // Parse story text and replace image markers with actual images
+    const renderStoryWithImages = () => {
+      // Create a map of scene_number to illustration
+      const illustrationMap = {}
+      story.illustrations.forEach(ill => {
+        illustrationMap[ill.scene_number] = ill
+      })
 
-      {story.illustrations.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-          {story.illustrations.map((ill, idx) => (
-            <div key={idx} style={{ borderRadius: '8px', overflow: 'hidden', background: 'rgba(255, 255, 255, 0.05)' }}>
-              <img src={ill.image_url} alt={`Scene ${ill.scene_number}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
+      // Split story by paragraphs
+      const paragraphs = story.story.split('\n\n')
+      const elements = []
+
+      paragraphs.forEach((paragraph, idx) => {
+        // Check if paragraph is an image marker like {image_01}
+        const imageMatch = paragraph.match(/^\{image_(\d+)\}$/)
+
+        // Check if paragraph contains markdown image syntax like ![alt text](url)
+        const markdownImageMatch = paragraph.match(/^!\[([^\]]*)\]\(([^\)]+)\)$/)
+
+        if (imageMatch) {
+          // This is an image marker
+          const imageNumber = parseInt(imageMatch[1], 10)
+          const illustration = illustrationMap[imageNumber]
+
+          if (illustration) {
+            // Render the image
+            elements.push(
+              <div
+                key={`img-${idx}`}
+                style={{
+                  margin: '2rem 0',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                  background: 'rgba(255, 255, 255, 0.05)'
+                }}
+              >
+                <img
+                  src={illustration.image_url}
+                  alt={`Scene ${illustration.scene_number}`}
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                />
+              </div>
+            )
+          }
+        } else if (markdownImageMatch) {
+          // This is a markdown image ![alt](url)
+          const [, altText, imageUrl] = markdownImageMatch
+          elements.push(
+            <div
+              key={`md-img-${idx}`}
+              style={{
+                margin: '2rem 0',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                background: 'rgba(255, 255, 255, 0.05)'
+              }}
+            >
+              <img
+                src={imageUrl}
+                alt={altText}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+                onError={(e) => e.target.style.display = 'none'}
+              />
             </div>
-          ))}
-        </div>
-      )}
+          )
+        } else if (paragraph.trim()) {
+          // Regular text paragraph
+          elements.push(
+            <p key={`p-${idx}`} style={{ margin: '0 0 1.5rem 0' }}>
+              {paragraph}
+            </p>
+          )
+        }
+      })
 
-      <div style={{ lineHeight: '1.8', fontSize: '1.1rem', color: 'rgba(255, 255, 255, 0.9)' }}>
-        {story.story.split('\n\n').map((paragraph, idx) => (
-          <p key={idx} style={{ margin: '0 0 1.5rem 0' }}>{paragraph}</p>
-        ))}
-      </div>
+      return elements
+    }
 
-      <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-          <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Word Count:</strong> {getWordCount(story.story)}</p>
-          <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Illustrations:</strong> {story.illustrations.length}</p>
-          <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Generated:</strong> {formatDate(story.completedAt)}</p>
+    return (
+      <div style={{ padding: '0', maxWidth: '1000px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2.5rem', margin: '0 0 3rem 0', color: 'white', textAlign: 'center' }}>
+          {story.title}
+        </h1>
+
+        <div style={{ lineHeight: '1.8', fontSize: '1.1rem', color: 'rgba(255, 255, 255, 0.9)' }}>
+          {renderStoryWithImages()}
+        </div>
+
+        <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+            <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Word Count:</strong> {getWordCount(story.story)}</p>
+            <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Illustrations:</strong> {story.illustrations.length}</p>
+            <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Generated:</strong> {formatDate(story.completedAt)}</p>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 }

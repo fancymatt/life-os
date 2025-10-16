@@ -417,7 +417,7 @@ class LLMRouter:
         Args:
             prompt: Text prompt for image generation
             image_path: Source image path (for subject preservation)
-            model: Gemini model to use
+            model: Gemini model to use (e.g., "gemini-2.5-flash-image" or "gemini/gemini-2.5-flash-image")
             temperature: Generation temperature (0.0-1.0)
             max_retries: Maximum retry attempts for transient failures (default: 3)
             **kwargs: Additional arguments
@@ -427,6 +427,10 @@ class LLMRouter:
         """
         import requests
         import time
+
+        # Strip "gemini/" prefix if present (for LiteLLM compatibility)
+        if model.startswith("gemini/"):
+            model = model[7:]  # Remove "gemini/" prefix
 
         # Encode the image (do this once, outside retry loop)
         base64_image = self.encode_image(image_path)
@@ -447,11 +451,13 @@ class LLMRouter:
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
 
-        # Use Gemini's REST API for generation
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        # Use Gemini's REST API for image generation
+        # Per docs: https://ai.google.dev/gemini-api/docs/image-generation
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
         }
 
         payload = {
@@ -471,7 +477,8 @@ class LLMRouter:
             "generationConfig": {
                 "temperature": temperature,
                 "topK": 40,
-                "topP": 0.95
+                "topP": 0.95,
+                "responseModalities": ["image"]
             }
         }
 
@@ -593,7 +600,7 @@ class LLMRouter:
         Args:
             prompt: Text prompt for image generation
             image_path: Source image path (for subject preservation)
-            model: Gemini model to use
+            model: Gemini model to use (e.g., "gemini-2.5-flash-image" or "gemini/gemini-2.5-flash-image")
             temperature: Generation temperature (0.0-1.0)
             max_retries: Maximum retry attempts for transient failures (default: 3)
             **kwargs: Additional arguments
@@ -602,6 +609,10 @@ class LLMRouter:
             Image bytes (PNG/JPEG format)
         """
         import httpx
+
+        # Strip "gemini/" prefix if present (for LiteLLM compatibility)
+        if model.startswith("gemini/"):
+            model = model[7:]  # Remove "gemini/" prefix
 
         # Encode the image (do this once, outside retry loop)
         base64_image = self.encode_image(image_path)
@@ -622,11 +633,13 @@ class LLMRouter:
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
 
-        # Use Gemini's REST API for generation
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        # Use Gemini's REST API for image generation
+        # Per docs: https://ai.google.dev/gemini-api/docs/image-generation
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
         }
 
         payload = {
@@ -646,7 +659,8 @@ class LLMRouter:
             "generationConfig": {
                 "temperature": temperature,
                 "topK": 40,
-                "topP": 0.95
+                "topP": 0.95,
+                "responseModalities": ["image"]
             }
         }
 
@@ -657,6 +671,11 @@ class LLMRouter:
                 # Make async request
                 async with httpx.AsyncClient(timeout=180.0) as client:
                     response = await client.post(url, headers=headers, json=payload)
+
+                # Debug logging
+                print(f"🔍 Gemini API Response Status: {response.status_code}")
+                print(f"🔍 Response Headers: {dict(response.headers)}")
+                print(f"🔍 Response Body (first 500 chars): {response.text[:500]}")
 
                 # Parse response
                 result = response.json()

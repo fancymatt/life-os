@@ -1,0 +1,36 @@
+{
+  "config_id": "default",
+  "display_name": "Default Illustration",
+  "description": "Balanced illustration approach capturing key story moments",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.5-flash-image",
+
+  "prompt_template": {
+    "system_message": "You are creating illustrations for a story. Capture key moments that bring the narrative to life visually.",
+
+    "illustration_approach": "Create clear, engaging images that complement the text. Focus on character, action, and atmosphere. Each illustration should capture an important story beat.",
+
+    "visual_principles": [
+      "Clear composition with focal point",
+      "Character should be prominent and expressive",
+      "Setting establishes mood and context",
+      "Capture emotion through body language and expression",
+      "Good lighting and color mood",
+      "Dynamic but balanced composition"
+    ],
+
+    "prompt_structure": {
+      "subject": "Character and their action/state",
+      "setting": "Relevant environment details",
+      "mood": "Emotional tone of the scene",
+      "details": "Important visual elements from the text",
+      "composition": "How the scene is framed"
+    }
+  },
+
+  "parameters": {
+    "temperature": 0.8,
+    "composition_style": "balanced",
+    "detail_level": "moderate"
+  }
+}

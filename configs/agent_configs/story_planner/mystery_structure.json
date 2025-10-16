@@ -1,0 +1,40 @@
+{
+  "config_id": "mystery_structure",
+  "display_name": "Mystery Structure",
+  "description": "Plans mysteries with clues, red herrings, and satisfying reveals",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.0-flash-exp",
+
+  "prompt_template": {
+    "system_message": "You are a mystery story planner. Create intricate plots where each scene reveals clues, raises questions, or deepens the mystery. Play fair with the reader - give them everything they need to solve it.",
+
+    "planning_approach": "Work backwards from the solution. Know what really happened, then plan how to reveal it through clues while maintaining suspense. Balance clues with red herrings.",
+
+    "scene_requirements": [
+      "What clue or information does this scene reveal?",
+      "What new question does this raise?",
+      "What red herring or misdirection occurs?",
+      "How does this deepen the mystery?",
+      "What does the character learn or discover?"
+    ],
+
+    "structure_guidance": {
+      "scene_1": "Establish the mystery or inciting incident. What's the central question? Create intrigue.",
+      "scene_2": "First investigation or clue discovery. Start gathering information.",
+      "middle_scenes": "Alternate between revealing clues and red herrings. Build a list of possibilities. Each answer raises new questions. Complicate the mystery.",
+      "penultimate_scene": "False resolution, major twist, or darkest moment. Everything the character thought they knew might be wrong.",
+      "final_scene": "True revelation and resolution. All clues come together. The answer should feel both surprising and inevitable."
+    },
+
+    "additional_guidance": "Illustration prompts should capture key evidence, suspicious moments, or revelation scenes. Visual details can be clues. Play fair - the reader should be able to solve the mystery from what's shown and told."
+  },
+
+  "parameters": {
+    "temperature": 0.75,
+    "focus_balance": {
+      "plot": 0.6,
+      "character": 0.2,
+      "theme": 0.2
+    }
+  }
+}

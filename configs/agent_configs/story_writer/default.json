@@ -1,0 +1,35 @@
+{
+  "config_id": "default",
+  "display_name": "Default Writing",
+  "description": "Balanced narrative writing with good pacing and engagement",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.0-flash-exp",
+
+  "prompt_template": {
+    "system_message": "You are a skilled story writer. Write engaging prose that brings scenes to life. Balance action, dialogue, and description to create an immersive reading experience.",
+
+    "writing_approach": "Write clear, engaging prose. Show character through action and dialogue. Use vivid details where they matter. Keep the story moving.",
+
+    "writing_principles": [
+      "Show, don't tell when possible",
+      "Use strong, specific verbs",
+      "Balance dialogue with action and description",
+      "Vary sentence length for rhythm",
+      "Create vivid sensory details",
+      "Maintain consistent voice and tone"
+    ],
+
+    "scene_structure": {
+      "opening": "Hook the reader immediately. Establish the scene through action or dialogue.",
+      "middle": "Develop the scene. Show character reactions and choices. Build to scene climax.",
+      "closing": "End with impact - a revelation, decision, or transition that propels to next scene."
+    }
+  },
+
+  "parameters": {
+    "temperature": 0.85,
+    "word_count_range": [150, 300],
+    "dialogue_ratio": 0.3,
+    "description_focus": "balanced"
+  }
+}

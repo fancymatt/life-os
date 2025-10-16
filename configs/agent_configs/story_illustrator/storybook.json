@@ -1,0 +1,53 @@
+{
+  "config_id": "storybook",
+  "display_name": "Storybook",
+  "description": "Classic children's book illustration style",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.5-flash-image",
+
+  "prompt_template": {
+    "system_message": "You are creating storybook illustrations. Create warm, inviting images with clear characters and charming details. Think classic children's book illustration.",
+
+    "illustration_approach": "Create illustrations that feel timeless and heartwarming. Clear, expressive characters in well-defined settings. Inviting and accessible to all ages.",
+
+    "visual_principles": [
+      "Warm, inviting color palettes",
+      "Clear, expressive character faces and body language",
+      "Detailed but not cluttered settings",
+      "Soft, gentle lighting",
+      "Charming, whimsical details",
+      "Centered or balanced compositions",
+      "Emphasis on character emotion and personality",
+      "Sense of wonder and magic in everyday moments"
+    ],
+
+    "style_notes": [
+      "Think classic illustrated books - timeless quality",
+      "Friendly, accessible style",
+      "Rich detail that rewards looking closely",
+      "Cozy, safe feeling even in adventure",
+      "Characters should feel like friends",
+      "Settings have personality and charm",
+      "Colors are rich but not overwhelming"
+    ],
+
+    "prompt_structure": {
+      "subject": "Character with clear expression and personality",
+      "pose": "Open, readable body language",
+      "setting": "Detailed, charming environment with personality",
+      "lighting": "Soft, warm, inviting light",
+      "mood": "Emotional tone - usually warm, curious, gentle",
+      "details": "Delightful small details that add character",
+      "composition": "Balanced, character-focused, accessible"
+    },
+
+    "tone_guidance": "Even in adventure or challenge, maintain warmth and accessibility. Create images you'd want to return to."
+  },
+
+  "parameters": {
+    "temperature": 0.8,
+    "composition_style": "centered",
+    "detail_level": "high",
+    "lighting_emphasis": "soft_warm"
+  }
+}

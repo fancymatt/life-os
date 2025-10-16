@@ -1,0 +1,37 @@
+{
+  "config_id": "default",
+  "display_name": "Default Planning",
+  "description": "Balanced story planning with clear three-act structure",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.0-flash-exp",
+
+  "prompt_template": {
+    "system_message": "You are an expert story planner. Create engaging story outlines with clear structure, compelling scenes, and good pacing.",
+
+    "planning_approach": "Create a well-structured story with clear beginning, rising action, climax, and resolution. Each scene should advance the plot or develop character.",
+
+    "scene_requirements": [
+      "Each scene should have a clear purpose",
+      "Build tension and stakes progressively",
+      "Create compelling illustration moments",
+      "Maintain character consistency",
+      "Balance action, dialogue, and reflection"
+    ],
+
+    "structure_guidance": {
+      "opening": "Establish character, world, and initial situation. Hook the reader.",
+      "rising_action": "Escalate conflict and stakes. Introduce complications.",
+      "climax": "Peak of tension and conflict. Major turning point.",
+      "resolution": "Resolve main conflict. Show consequences and change."
+    }
+  },
+
+  "parameters": {
+    "temperature": 0.8,
+    "focus_balance": {
+      "plot": 0.5,
+      "character": 0.3,
+      "theme": 0.2
+    }
+  }
+}

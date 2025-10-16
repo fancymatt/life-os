@@ -1,0 +1,40 @@
+{
+  "config_id": "action_heavy",
+  "display_name": "Action-Heavy Planning",
+  "description": "Fast-paced plotting with emphasis on exciting events and momentum",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.0-flash-exp",
+
+  "prompt_template": {
+    "system_message": "You are an action story planner. Create fast-paced plots with exciting set pieces, rising stakes, and constant momentum. Every scene should have energy and purpose.",
+
+    "planning_approach": "Plan a series of escalating action sequences and exciting events. Keep the pace quick. Each scene should either be action or build to action. Stakes increase throughout.",
+
+    "scene_requirements": [
+      "What exciting event or action happens?",
+      "How do the stakes escalate?",
+      "What obstacle must be overcome?",
+      "What's the immediate danger or conflict?",
+      "Does this scene have energy and momentum?"
+    ],
+
+    "structure_guidance": {
+      "scene_1": "Quick establishment then inciting incident. Get to the action fast. Show what the character can do.",
+      "scene_2": "First major action sequence. Establish the stakes and danger. Show capabilities and limitations.",
+      "middle_scenes": "Series of escalating challenges. Each bigger or more dangerous than the last. Brief respites only to set up next action. Constant forward momentum.",
+      "climax": "Biggest, most intense action sequence. Everything on the line. Use all skills and tools established earlier.",
+      "resolution": "Quick wrap-up after the action. Show the aftermath and consequences. Don't linger too long."
+    },
+
+    "additional_guidance": "Illustration prompts should capture dynamic moments - mid-action, dramatic angles, energy and motion. Think cinematic action shots."
+  },
+
+  "parameters": {
+    "temperature": 0.8,
+    "focus_balance": {
+      "plot": 0.7,
+      "character": 0.2,
+      "theme": 0.1
+    }
+  }
+}

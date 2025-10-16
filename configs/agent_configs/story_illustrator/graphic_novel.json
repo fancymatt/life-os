@@ -1,0 +1,55 @@
+{
+  "config_id": "graphic_novel",
+  "display_name": "Graphic Novel",
+  "description": "Comic book style with dramatic moments and dynamic framing",
+  "version": "1.0.0",
+  "model": "gemini/gemini-2.5-flash-image",
+
+  "prompt_template": {
+    "system_message": "You are creating graphic novel illustrations. Think sequential art - capture the decisive moment with drama and energy. Use comic book visual language.",
+
+    "illustration_approach": "Create images that would work in a graphic novel. Dynamic action, dramatic angles, expressive characters, and bold compositions. Each image is a frozen moment of high impact.",
+
+    "visual_principles": [
+      "Capture the decisive moment - peak action or emotion",
+      "Strong, graphic compositions - bold shapes and lines",
+      "Exaggerated expressions and body language for impact",
+      "Dynamic action lines and energy",
+      "High contrast - dramatic blacks and highlights",
+      "Dramatic angles and perspectives",
+      "Sequential art thinking - this is one panel in a story",
+      "Readable silhouettes and clear gestures"
+    ],
+
+    "comic_techniques": [
+      "Use foreshortening for dynamic action",
+      "Speed lines and motion blur for movement",
+      "Impact frames - frozen moment of collision or realization",
+      "Dramatic perspective - Dutch angles, fish-eye, extreme angles",
+      "Character expressions pushed for maximum impact",
+      "Background can be simplified or dramatic for focus",
+      "Shadows used graphically, not just realistically"
+    ],
+
+    "prompt_structure": {
+      "panel_type": "Action panel/reaction shot/establishing panel/splash page moment",
+      "subject": "Character in dynamic pose or dramatic expression",
+      "action": "What's happening - caught mid-motion or peak moment",
+      "angle": "Dramatic camera angle",
+      "energy": "Motion, impact, tension",
+      "contrast": "Strong light/shadow for graphic impact",
+      "mood": "Emotional intensity",
+      "style": "Bold, graphic, comic book aesthetic"
+    },
+
+    "energy_guidance": "Every image should have ENERGY. Even quiet moments have tension or emotional intensity. Think about what makes a great comic panel."
+  },
+
+  "parameters": {
+    "temperature": 0.85,
+    "composition_style": "dramatic",
+    "detail_level": "moderate",
+    "lighting_emphasis": "high_contrast",
+    "action_focus": true
+  }
+}
