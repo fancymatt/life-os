@@ -72,10 +72,13 @@ function TaskManager() {
   // Fetch initial jobs
   const fetchJobs = async () => {
     try {
+      console.log('🔍 Fetching jobs...')
       const response = await api.get('/jobs?limit=20')
+      console.log('✅ Fetched', response.data.length, 'jobs:', response.data)
       setJobs(response.data)
     } catch (err) {
-      console.error('Failed to fetch jobs:', err)
+      console.error('❌ Failed to fetch jobs:', err)
+      console.error('Error details:', err.response?.data || err.message)
     }
   }
 
@@ -124,6 +127,9 @@ function TaskManager() {
     if (hasRunning) return 'running'
     return 'idle'
   }
+
+  // Debug logging
+  console.log('📊 TaskManager render - jobs.length:', jobs.length, 'filteredJobs.length:', filteredJobs.length, 'filter:', filter)
 
   return (
     <>
