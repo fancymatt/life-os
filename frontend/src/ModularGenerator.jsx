@@ -25,6 +25,7 @@ function ModularGenerator({ onClose }) {
   const [iterations, setIterations] = useState(1)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [favorites, setFavorites] = useState([])
 
   // Initialize category states
   useEffect(() => {
@@ -39,7 +40,42 @@ function ModularGenerator({ onClose }) {
       }
     })
     setCategoryStates(initialState)
+
+    // Fetch user favorites
+    fetchFavorites()
   }, [])
+
+  const fetchFavorites = async () => {
+    try {
+      const response = await api.get('/favorites')
+      setFavorites(response.data)
+    } catch (err) {
+      console.error('Failed to fetch favorites:', err)
+    }
+  }
+
+  const toggleFavorite = async (preset, category) => {
+    try {
+      const favoriteKey = `${category}:${preset.preset_id}`
+      const isFavorite = favorites.includes(favoriteKey)
+
+      if (isFavorite) {
+        await api.post('/favorites/remove', {
+          preset_id: preset.preset_id,
+          category
+        })
+        setFavorites(prev => prev.filter(f => f !== favoriteKey))
+      } else {
+        await api.post('/favorites/add', {
+          preset_id: preset.preset_id,
+          category
+        })
+        setFavorites(prev => [...prev, favoriteKey])
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err)
+    }
+  }
 
   // Fetch presets when a category is enabled
   const handleToggleCategory = async (categoryKey, apiCategory) => {
@@ -234,13 +270,21 @@ function ModularGenerator({ onClose }) {
                               ? (state.selectedPreset || []).includes(preset.preset_id)
                               : state.selectedPreset === preset.preset_id
 
+                            const favoriteKey = `${cat.apiCategory}:${preset.preset_id}`
+                            const isFavorite = favorites.includes(favoriteKey)
+
                             return (
                               <PresetCard
                                 key={preset.preset_id}
                                 preset={preset}
                                 category={cat.apiCategory}
                                 selected={isSelected}
+                                isFavorite={isFavorite}
                                 onClick={() => handleSelectPreset(cat.key, preset.preset_id)}
+                                onToggleFavorite={(e) => {
+                                  e.stopPropagation()
+                                  toggleFavorite(preset, cat.apiCategory)
+                                }}
                               />
                             )
                           })}
@@ -285,7 +329,7 @@ function ModularGenerator({ onClose }) {
   )
 }
 
-function PresetCard({ preset, category, selected, onClick }) {
+function PresetCard({ preset, category, selected, isFavorite, onClick, onToggleFavorite }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
 
@@ -315,6 +359,13 @@ function PresetCard({ preset, category, selected, onClick }) {
           <div className="no-image">🖼️</div>
         )}
         {selected && <div className="checkmark">✓</div>}
+        <button
+          className={`favorite-btn ${isFavorite ? 'favorited' : ''}`}
+          onClick={onToggleFavorite}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          {isFavorite ? '★' : '☆'}
+        </button>
       </div>
       <div className="preset-name">
         {preset.display_name || preset.preset_id}
