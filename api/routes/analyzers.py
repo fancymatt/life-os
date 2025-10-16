@@ -213,6 +213,42 @@ async def analyze_image(
             image_path.unlink()
 
 
+@router.get("/subjects", response_model=List[dict])
+async def list_subjects():
+    """
+    List all available subject images
+
+    Returns subject images from both the root directory and uploads folder.
+    """
+    subjects = []
+
+    # Check root directory for default subjects
+    root_path = Path("/app")
+    for image_file in root_path.glob("*.png"):
+        if image_file.is_file():
+            subjects.append({
+                "filename": image_file.name,
+                "path": str(image_file),
+                "url": f"/{image_file.name}",
+                "source": "default"
+            })
+
+    # Check uploads directory
+    if settings.upload_dir.exists():
+        for image_file in settings.upload_dir.glob("*"):
+            if image_file.is_file() and not image_file.name.startswith('tmp'):
+                # Skip temporary files
+                if any(image_file.name.lower().endswith(ext) for ext in settings.allowed_extensions):
+                    subjects.append({
+                        "filename": image_file.name,
+                        "path": str(image_file),
+                        "url": f"/uploads/{image_file.name}",
+                        "source": "uploaded"
+                    })
+
+    return subjects
+
+
 @router.post("/upload", response_model=dict)
 async def upload_image(file: UploadFile = File(...)):
     """

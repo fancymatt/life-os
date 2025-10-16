@@ -4,6 +4,7 @@ import api from './api/client'
 
 function Composer() {
   const [subject, setSubject] = useState('jenny.png')
+  const [subjects, setSubjects] = useState([])
   const [categories, setCategories] = useState([])
   const [presets, setPresets] = useState({})
   const [loading, setLoading] = useState(true)
@@ -29,6 +30,7 @@ function Composer() {
   useEffect(() => {
     loadPresets()
     fetchFavorites()
+    fetchSubjects()
   }, [])
 
   const loadPresets = async () => {
@@ -57,6 +59,24 @@ function Composer() {
     } catch (err) {
       console.error('Failed to fetch favorites:', err)
     }
+  }
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await api.get('/subjects')
+      setSubjects(response.data)
+    } catch (err) {
+      console.error('Failed to fetch subjects:', err)
+    }
+  }
+
+  const handleSubjectChange = (newSubject) => {
+    setSubject(newSubject)
+    // Clear generation history since it's subject-specific
+    setGenerationHistory([])
+    setGeneratedImage(null)
+    // Optionally clear applied presets
+    // setAppliedPresets([])
   }
 
   const handleDrop = (e) => {
@@ -332,8 +352,26 @@ function Composer() {
       {/* Center Panel - Canvas */}
       <div className="composer-canvas">
         <div className="canvas-header">
-          <h2>Composition Canvas</h2>
-          <p className="canvas-hint">Drag presets here to build your image</p>
+          <div className="canvas-header-top">
+            <div>
+              <h2>Composition Canvas</h2>
+              <p className="canvas-hint">Drag presets here to build your image</p>
+            </div>
+            <div className="subject-selector">
+              <label htmlFor="subject-select">Subject:</label>
+              <select
+                id="subject-select"
+                value={subject}
+                onChange={(e) => handleSubjectChange(e.target.value)}
+              >
+                {subjects.map(subj => (
+                  <option key={subj.filename} value={subj.filename}>
+                    {subj.filename} {subj.source === 'uploaded' ? '(uploaded)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div
