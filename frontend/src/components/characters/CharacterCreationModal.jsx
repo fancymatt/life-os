@@ -59,7 +59,7 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
         submitData.append('reference_image', referenceImage)
       }
 
-      const response = await api.post('/characters', submitData, {
+      const response = await api.post('/characters/', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

@@ -20,7 +20,7 @@ export const charactersConfig = {
   actions: [],
 
   fetchEntities: async () => {
-    const response = await api.get('/characters')
+    const response = await api.get('/characters/')
     return (response.data.characters || []).map(char => ({
       id: char.character_id,
       characterId: char.character_id,
