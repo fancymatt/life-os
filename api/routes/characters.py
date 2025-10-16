@@ -241,8 +241,7 @@ async def create_character_from_subject(
 
 @router.get("/{character_id}/image")
 async def get_character_image(
-    character_id: str,
-    current_user: Optional[User] = Depends(get_current_active_user)
+    character_id: str
 ):
     """
     Get character reference image
