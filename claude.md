@@ -239,6 +239,65 @@ function ComponentName() {
 
 ---
 
+## API Conventions & Critical Patterns
+
+### FastAPI Trailing Slash Requirements ⚠️
+
+**CRITICAL**: FastAPI is strict about trailing slashes. This has caused multiple bugs. Follow these rules:
+
+#### Backend Route Definitions
+```python
+# ✅ CORRECT - Always include trailing slash in route decorator
+@router.get("/characters/", response_model=CharacterListResponse)
+@router.post("/characters/", response_model=CharacterInfo)
+@router.get("/presets/{category}/", response_model=PresetList)
+
+# ❌ WRONG - Missing trailing slash causes 307 redirects
+@router.get("/characters", response_model=CharacterListResponse)
+```
+
+#### Frontend API Calls
+```javascript
+// ✅ CORRECT - Always include trailing slash in API calls
+await api.get('/characters/')
+await api.post('/characters/', formData)
+await api.get('/presets/outfit/')
+
+// ❌ WRONG - Missing trailing slash causes 307 redirects
+await api.get('/characters')
+```
+
+#### Route Ordering (CRITICAL)
+```python
+# ✅ CORRECT - Specific routes BEFORE parameterized routes
+@router.post("/characters/from-subject/", ...)  # Line 133
+@router.get("/{character_id}", ...)             # Line 242
+
+# ❌ WRONG - Parameterized route matches everything
+@router.get("/{character_id}", ...)             # Will match "from-subject"
+@router.post("/characters/from-subject/", ...)  # Never reached!
+```
+
+#### Why This Matters
+- **307 Redirect**: Missing trailing slash → FastAPI redirects → Extra network round-trip
+- **405 Method Not Allowed**: Route ordering issue → Wrong handler called
+- **Inconsistent Behavior**: Some endpoints work, others fail mysteriously
+
+#### Common Symptoms
+- "Network Error" in frontend
+- 307 redirects in API logs
+- 405 Method Not Allowed errors
+- "Failed to import any characters"
+
+#### Debugging Steps
+1. Check API logs: `docker logs ai-studio-api --tail 50`
+2. Look for 307 Temporary Redirect or 405 Method Not Allowed
+3. Add trailing slash to both backend route AND frontend call
+4. If still failing, check route ordering (specific before parameterized)
+5. Restart containers: `docker-compose restart api frontend`
+
+---
+
 ## Common Tasks
 
 ### Running the Application
