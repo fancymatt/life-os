@@ -8,6 +8,8 @@ with retry logic, rate limiting, and structured output parsing.
 import os
 import json
 import base64
+import asyncio
+import random
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 from pydantic import BaseModel
@@ -339,124 +341,175 @@ class LLMRouter:
         image_path: Union[str, Path],
         model: str = "gemini-2.5-flash-image",
         temperature: float = 0.8,
+        max_retries: int = 3,
         **kwargs
     ) -> bytes:
         """
         Generate an image using Gemini's native image generation
+
+        Includes retry logic with exponential backoff for transient failures.
 
         Args:
             prompt: Text prompt for image generation
             image_path: Source image path (for subject preservation)
             model: Gemini model to use
             temperature: Generation temperature (0.0-1.0)
+            max_retries: Maximum retry attempts for transient failures (default: 3)
             **kwargs: Additional arguments
 
         Returns:
             Image bytes (PNG/JPEG format)
         """
-        try:
-            import requests
+        import requests
+        import time
 
-            # Encode the image
-            base64_image = self.encode_image(image_path)
+        # Encode the image (do this once, outside retry loop)
+        base64_image = self.encode_image(image_path)
 
-            # Determine mime type
-            image_path = Path(image_path)
-            ext = image_path.suffix.lower()
-            mime_type = {
-                '.jpg': 'image/jpeg',
-                '.jpeg': 'image/jpeg',
-                '.png': 'image/png',
-                '.webp': 'image/webp',
-                '.gif': 'image/gif'
-            }.get(ext, 'image/jpeg')
+        # Determine mime type
+        image_path = Path(image_path)
+        ext = image_path.suffix.lower()
+        mime_type = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp',
+            '.gif': 'image/gif'
+        }.get(ext, 'image/jpeg')
 
-            # Build the request for Gemini API
-            api_key = os.getenv("GEMINI_API_KEY")
-            if not api_key:
-                raise ValueError("GEMINI_API_KEY not found in environment")
+        # Build the request for Gemini API
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment")
 
-            # Use Gemini's REST API for generation
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        # Use Gemini's REST API for generation
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
-            headers = {
-                "Content-Type": "application/json"
-            }
+        headers = {
+            "Content-Type": "application/json"
+        }
 
-            payload = {
-                "contents": [{
-                    "parts": [
-                        {
-                            "inlineData": {
-                                "mimeType": mime_type,
-                                "data": base64_image
-                            }
-                        },
-                        {
-                            "text": prompt
+        payload = {
+            "contents": [{
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": mime_type,
+                            "data": base64_image
                         }
-                    ]
-                }],
-                "generationConfig": {
-                    "temperature": temperature,
-                    "topK": 40,
-                    "topP": 0.95
-                }
+                    },
+                    {
+                        "text": prompt
+                    }
+                ]
+            }],
+            "generationConfig": {
+                "temperature": temperature,
+                "topK": 40,
+                "topP": 0.95
             }
+        }
 
-            # Make the request
-            response = requests.post(url, headers=headers, json=payload, timeout=180)
+        # Retry loop with exponential backoff
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Make the request
+                response = requests.post(url, headers=headers, json=payload, timeout=180)
 
-            # Parse response before checking status
-            result = response.json()
+                # Parse response before checking status
+                result = response.json()
 
-            # Check for Gemini API errors (content filtering, etc.)
-            if response.status_code != 200:
-                error_message = "Unknown error"
+                # Check for Gemini API errors (content filtering, etc.)
+                if response.status_code >= 400:
+                    error_message = "Unknown error"
 
-                # Extract error details from Gemini response
-                if "error" in result:
-                    error_info = result["error"]
-                    if isinstance(error_info, dict):
-                        error_message = error_info.get("message", str(error_info))
+                    # Extract error details from Gemini response
+                    if "error" in result:
+                        error_info = result["error"]
+                        if isinstance(error_info, dict):
+                            error_message = error_info.get("message", str(error_info))
+                        else:
+                            error_message = str(error_info)
+
+                    # Check if this is a permanent error (4xx) or transient (5xx)
+                    if 400 <= response.status_code < 500:
+                        # Client error - permanent, don't retry
+                        raise Exception(f"Gemini API error (permanent): {error_message}")
                     else:
-                        error_message = str(error_info)
+                        # Server error (5xx) - transient, can retry
+                        raise Exception(f"Gemini API error (transient): {error_message}")
 
-                raise Exception(f"Gemini API error: {error_message}")
+                # Check for content filtering / safety blocks (PERMANENT - don't retry)
+                if "candidates" in result and len(result["candidates"]) > 0:
+                    candidate = result["candidates"][0]
 
-            # Check for content filtering / safety blocks
-            if "candidates" in result and len(result["candidates"]) > 0:
-                candidate = result["candidates"][0]
+                    # Check finish reason for blocks
+                    finish_reason = candidate.get("finishReason", "")
+                    if finish_reason in ["SAFETY", "BLOCKED_REASON", "CONTENT_FILTER"]:
+                        # Get safety ratings for more context
+                        safety_ratings = candidate.get("safetyRatings", [])
+                        blocked_categories = [
+                            rating["category"] for rating in safety_ratings
+                            if rating.get("blocked", False)
+                        ]
 
-                # Check finish reason for blocks
-                finish_reason = candidate.get("finishReason", "")
-                if finish_reason in ["SAFETY", "BLOCKED_REASON", "CONTENT_FILTER"]:
-                    # Get safety ratings for more context
-                    safety_ratings = candidate.get("safetyRatings", [])
-                    blocked_categories = [
-                        rating["category"] for rating in safety_ratings
-                        if rating.get("blocked", False)
-                    ]
+                        # Content filtering is PERMANENT - don't retry
+                        if blocked_categories:
+                            categories_str = ", ".join(blocked_categories)
+                            raise ValueError(f"Content filtered by Gemini safety systems. Blocked categories: {categories_str}")
+                        else:
+                            raise ValueError(f"Content filtered by Gemini safety systems (reason: {finish_reason})")
 
-                    if blocked_categories:
-                        categories_str = ", ".join(blocked_categories)
-                        raise Exception(f"Content filtered by Gemini safety systems. Blocked categories: {categories_str}")
-                    else:
-                        raise Exception(f"Content filtered by Gemini safety systems (reason: {finish_reason})")
+                    # Extract image data
+                    if "content" in candidate and "parts" in candidate["content"]:
+                        for part in candidate["content"]["parts"]:
+                            if "inlineData" in part:
+                                # Decode base64 image
+                                image_data = part["inlineData"]["data"]
+                                return base64.b64decode(image_data)
 
-                # Extract image data
-                if "content" in candidate and "parts" in candidate["content"]:
-                    for part in candidate["content"]["parts"]:
-                        if "inlineData" in part:
-                            # Decode base64 image
-                            image_data = part["inlineData"]["data"]
-                            return base64.b64decode(image_data)
+                # If we get here, no image was found but no clear error either
+                raise Exception(f"No image in Gemini response. API returned: {result.get('candidates', [{}])[0].get('finishReason', 'unknown reason')}")
 
-            # If we get here, no image was found but no clear error either
-            raise Exception(f"No image in Gemini response. API returned: {result.get('candidates', [{}])[0].get('finishReason', 'unknown reason')}")
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
+                # Transient network errors - retry
+                last_error = e
+                error_type = type(e).__name__
 
-        except Exception as e:
-            raise Exception(f"Gemini image generation failed: {e}")
+                if attempt < max_retries - 1:
+                    # Calculate exponential backoff with jitter
+                    backoff = (2 ** attempt) + (random.random() * 0.5)
+                    print(f"⚠️ {error_type} on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    time.sleep(backoff)
+                    continue
+                else:
+                    # Max retries reached
+                    raise Exception(f"Gemini image generation failed after {max_retries} attempts: {e}")
+
+            except ValueError as e:
+                # Permanent errors (content filtering, missing API key, etc.) - don't retry
+                raise Exception(f"Gemini image generation failed (permanent error): {e}")
+
+            except Exception as e:
+                # Check if this is a transient error worth retrying
+                error_msg = str(e).lower()
+                is_transient = any(keyword in error_msg for keyword in [
+                    'transient', 'timeout', 'network', 'connection', 'temporary', '5xx', '500', '502', '503', '504'
+                ])
+
+                if is_transient and attempt < max_retries - 1:
+                    last_error = e
+                    backoff = (2 ** attempt) + (random.random() * 0.5)
+                    print(f"⚠️ Transient error on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    time.sleep(backoff)
+                    continue
+                else:
+                    # Permanent error or max retries reached
+                    raise Exception(f"Gemini image generation failed: {e}")
+
+        # Should never reach here, but just in case
+        raise Exception(f"Gemini image generation failed after {max_retries} attempts: {last_error}")
 
     async def agenerate_image_with_gemini(
         self,
@@ -464,125 +517,175 @@ class LLMRouter:
         image_path: Union[str, Path],
         model: str = "gemini-2.5-flash-image",
         temperature: float = 0.8,
+        max_retries: int = 3,
         **kwargs
     ) -> bytes:
         """
         Async version: Generate an image using Gemini's native image generation
+
+        Includes retry logic with exponential backoff for transient failures.
 
         Args:
             prompt: Text prompt for image generation
             image_path: Source image path (for subject preservation)
             model: Gemini model to use
             temperature: Generation temperature (0.0-1.0)
+            max_retries: Maximum retry attempts for transient failures (default: 3)
             **kwargs: Additional arguments
 
         Returns:
             Image bytes (PNG/JPEG format)
         """
-        try:
-            import httpx
+        import httpx
 
-            # Encode the image
-            base64_image = self.encode_image(image_path)
+        # Encode the image (do this once, outside retry loop)
+        base64_image = self.encode_image(image_path)
 
-            # Determine mime type
-            image_path = Path(image_path)
-            ext = image_path.suffix.lower()
-            mime_type = {
-                '.jpg': 'image/jpeg',
-                '.jpeg': 'image/jpeg',
-                '.png': 'image/png',
-                '.webp': 'image/webp',
-                '.gif': 'image/gif'
-            }.get(ext, 'image/jpeg')
+        # Determine mime type
+        image_path = Path(image_path)
+        ext = image_path.suffix.lower()
+        mime_type = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp',
+            '.gif': 'image/gif'
+        }.get(ext, 'image/jpeg')
 
-            # Build the request for Gemini API
-            api_key = os.getenv("GEMINI_API_KEY")
-            if not api_key:
-                raise ValueError("GEMINI_API_KEY not found in environment")
+        # Build the request for Gemini API
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment")
 
-            # Use Gemini's REST API for generation
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        # Use Gemini's REST API for generation
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
-            headers = {
-                "Content-Type": "application/json"
-            }
+        headers = {
+            "Content-Type": "application/json"
+        }
 
-            payload = {
-                "contents": [{
-                    "parts": [
-                        {
-                            "inlineData": {
-                                "mimeType": mime_type,
-                                "data": base64_image
-                            }
-                        },
-                        {
-                            "text": prompt
+        payload = {
+            "contents": [{
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": mime_type,
+                            "data": base64_image
                         }
-                    ]
-                }],
-                "generationConfig": {
-                    "temperature": temperature,
-                    "topK": 40,
-                    "topP": 0.95
-                }
+                    },
+                    {
+                        "text": prompt
+                    }
+                ]
+            }],
+            "generationConfig": {
+                "temperature": temperature,
+                "topK": 40,
+                "topP": 0.95
             }
+        }
 
-            # Make async request
-            async with httpx.AsyncClient(timeout=180.0) as client:
-                response = await client.post(url, headers=headers, json=payload)
+        # Retry loop with exponential backoff
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Make async request
+                async with httpx.AsyncClient(timeout=180.0) as client:
+                    response = await client.post(url, headers=headers, json=payload)
 
-            # Parse response
-            result = response.json()
+                # Parse response
+                result = response.json()
 
-            # Check for Gemini API errors (content filtering, etc.)
-            if response.status_code != 200:
-                error_message = "Unknown error"
+                # Check for Gemini API errors (content filtering, etc.)
+                if response.status_code >= 400:
+                    error_message = "Unknown error"
 
-                # Extract error details from Gemini response
-                if "error" in result:
-                    error_info = result["error"]
-                    if isinstance(error_info, dict):
-                        error_message = error_info.get("message", str(error_info))
+                    # Extract error details from Gemini response
+                    if "error" in result:
+                        error_info = result["error"]
+                        if isinstance(error_info, dict):
+                            error_message = error_info.get("message", str(error_info))
+                        else:
+                            error_message = str(error_info)
+
+                    # Check if this is a permanent error (4xx) or transient (5xx)
+                    if 400 <= response.status_code < 500:
+                        # Client error - permanent, don't retry
+                        raise Exception(f"Gemini API error (permanent): {error_message}")
                     else:
-                        error_message = str(error_info)
+                        # Server error (5xx) - transient, can retry
+                        raise Exception(f"Gemini API error (transient): {error_message}")
 
-                raise Exception(f"Gemini API error: {error_message}")
+                # Check for content filtering / safety blocks (PERMANENT - don't retry)
+                if "candidates" in result and len(result["candidates"]) > 0:
+                    candidate = result["candidates"][0]
 
-            # Check for content filtering / safety blocks
-            if "candidates" in result and len(result["candidates"]) > 0:
-                candidate = result["candidates"][0]
+                    # Check finish reason for blocks
+                    finish_reason = candidate.get("finishReason", "")
+                    if finish_reason in ["SAFETY", "BLOCKED_REASON", "CONTENT_FILTER"]:
+                        # Get safety ratings for more context
+                        safety_ratings = candidate.get("safetyRatings", [])
+                        blocked_categories = [
+                            rating["category"] for rating in safety_ratings
+                            if rating.get("blocked", False)
+                        ]
 
-                # Check finish reason for blocks
-                finish_reason = candidate.get("finishReason", "")
-                if finish_reason in ["SAFETY", "BLOCKED_REASON", "CONTENT_FILTER"]:
-                    # Get safety ratings for more context
-                    safety_ratings = candidate.get("safetyRatings", [])
-                    blocked_categories = [
-                        rating["category"] for rating in safety_ratings
-                        if rating.get("blocked", False)
-                    ]
+                        # Content filtering is PERMANENT - don't retry
+                        if blocked_categories:
+                            categories_str = ", ".join(blocked_categories)
+                            raise ValueError(f"Content filtered by Gemini safety systems. Blocked categories: {categories_str}")
+                        else:
+                            raise ValueError(f"Content filtered by Gemini safety systems (reason: {finish_reason})")
 
-                    if blocked_categories:
-                        categories_str = ", ".join(blocked_categories)
-                        raise Exception(f"Content filtered by Gemini safety systems. Blocked categories: {categories_str}")
-                    else:
-                        raise Exception(f"Content filtered by Gemini safety systems (reason: {finish_reason})")
+                    # Extract image data
+                    if "content" in candidate and "parts" in candidate["content"]:
+                        for part in candidate["content"]["parts"]:
+                            if "inlineData" in part:
+                                # Decode base64 image
+                                image_data = part["inlineData"]["data"]
+                                return base64.b64decode(image_data)
 
-                # Extract image data
-                if "content" in candidate and "parts" in candidate["content"]:
-                    for part in candidate["content"]["parts"]:
-                        if "inlineData" in part:
-                            # Decode base64 image
-                            image_data = part["inlineData"]["data"]
-                            return base64.b64decode(image_data)
+                # If we get here, no image was found but no clear error either
+                raise Exception(f"No image in Gemini response. API returned: {result.get('candidates', [{}])[0].get('finishReason', 'unknown reason')}")
 
-            # If we get here, no image was found but no clear error either
-            raise Exception(f"No image in Gemini response. API returned: {result.get('candidates', [{}])[0].get('finishReason', 'unknown reason')}")
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.NetworkError) as e:
+                # Transient network errors - retry
+                last_error = e
+                error_type = type(e).__name__
 
-        except Exception as e:
-            raise Exception(f"Gemini image generation failed: {e}")
+                if attempt < max_retries - 1:
+                    # Calculate exponential backoff with jitter
+                    backoff = (2 ** attempt) + (random.random() * 0.5)
+                    print(f"⚠️ {error_type} on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    await asyncio.sleep(backoff)
+                    continue
+                else:
+                    # Max retries reached
+                    raise Exception(f"Gemini image generation failed after {max_retries} attempts: {e}")
+
+            except ValueError as e:
+                # Permanent errors (content filtering, missing API key, etc.) - don't retry
+                raise Exception(f"Gemini image generation failed (permanent error): {e}")
+
+            except Exception as e:
+                # Check if this is a transient error worth retrying
+                error_msg = str(e).lower()
+                is_transient = any(keyword in error_msg for keyword in [
+                    'transient', 'timeout', 'network', 'connection', 'temporary', '5xx', '500', '502', '503', '504'
+                ])
+
+                if is_transient and attempt < max_retries - 1:
+                    last_error = e
+                    backoff = (2 ** attempt) + (random.random() * 0.5)
+                    print(f"⚠️ Transient error on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    await asyncio.sleep(backoff)
+                    continue
+                else:
+                    # Permanent error or max retries reached
+                    raise Exception(f"Gemini image generation failed: {e}")
+
+        # Should never reach here, but just in case
+        raise Exception(f"Gemini image generation failed after {max_retries} attempts: {last_error}")
 
     def generate_image(
         self,
