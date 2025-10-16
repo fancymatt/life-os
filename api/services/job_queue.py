@@ -319,9 +319,17 @@ class JobQueueManager:
             # We're in an async context, create task
             loop.create_task(self._notify_subscribers(job))
         except RuntimeError:
-            # No running loop - we're in sync context
-            # Subscribers will get updates when they poll or via next async operation
-            pass
+            # No running loop - we're in sync context (e.g., background task)
+            # Put notification in all subscriber queues synchronously
+            for queue in self._subscribers:
+                try:
+                    queue.put_nowait(job)
+                except asyncio.QueueFull:
+                    # Queue is full, skip this update
+                    pass
+                except:
+                    # Ignore other errors (e.g., closed queue)
+                    pass
 
     async def _notify_subscribers(self, job: Job):
         """Notify all SSE subscribers of job update"""
