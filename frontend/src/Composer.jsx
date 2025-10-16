@@ -14,6 +14,7 @@ function Composer() {
   const [favorites, setFavorites] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
   const [generationHistory, setGenerationHistory] = useState([])
+  const [selectedPreset, setSelectedPreset] = useState(null)
 
   // Category configurations
   const categoryConfig = [
@@ -118,8 +119,29 @@ function Composer() {
 
     setAppliedPresets(newAppliedPresets)
 
+    // Clear selected preset after applying
+    setSelectedPreset(null)
+
     // Auto-generate with new preset combination
     await generateImage(newAppliedPresets)
+  }
+
+  const handlePresetClick = (preset, category) => {
+    const presetWithCategory = { ...preset, category }
+
+    // If clicking the same preset, apply it
+    if (selectedPreset?.preset_id === preset.preset_id) {
+      addPreset(presetWithCategory)
+    } else {
+      // Otherwise, select it
+      setSelectedPreset(presetWithCategory)
+    }
+  }
+
+  const applySelectedPreset = () => {
+    if (selectedPreset) {
+      addPreset(selectedPreset)
+    }
   }
 
   const removePreset = async (index) => {
@@ -327,6 +349,7 @@ function Composer() {
                     const cat = categories.find(c => c.key === activeCategory)
                     const favoriteKey = `${cat.apiCategory}:${preset.preset_id}`
                     const isFavorite = favorites.includes(favoriteKey)
+                    const isSelected = selectedPreset?.preset_id === preset.preset_id
 
                     return (
                       <PresetThumbnail
@@ -334,7 +357,9 @@ function Composer() {
                         preset={preset}
                         category={cat.apiCategory}
                         isFavorite={isFavorite}
+                        isSelected={isSelected}
                         onDragStart={(e) => handleDragStart(e, preset, cat.apiCategory)}
+                        onClick={() => handlePresetClick(preset, cat.apiCategory)}
                         onToggleFavorite={() => toggleFavorite(preset, cat.apiCategory)}
                       />
                     )
@@ -347,6 +372,18 @@ function Composer() {
             </div>
           )}
         </div>
+
+        {selectedPreset && (
+          <div className="apply-preset-bar">
+            <div className="apply-preset-info">
+              <span className="apply-preset-name">{selectedPreset.display_name || selectedPreset.preset_id}</span>
+              <span className="apply-preset-hint">Click again or use button to apply</span>
+            </div>
+            <button className="apply-preset-btn" onClick={applySelectedPreset}>
+              Apply Preset
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Center Panel - Canvas */}
@@ -472,7 +509,7 @@ function Composer() {
   )
 }
 
-function PresetThumbnail({ preset, category, isFavorite, onDragStart, onToggleFavorite }) {
+function PresetThumbnail({ preset, category, isFavorite, isSelected, onDragStart, onClick, onToggleFavorite }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
 
@@ -480,9 +517,10 @@ function PresetThumbnail({ preset, category, isFavorite, onDragStart, onToggleFa
 
   return (
     <div
-      className="preset-thumbnail"
+      className={`preset-thumbnail ${isSelected ? 'selected' : ''}`}
       draggable
       onDragStart={onDragStart}
+      onClick={onClick}
     >
       <div className="preset-thumbnail-preview">
         {!imageLoaded && !imageError && (

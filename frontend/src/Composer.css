@@ -121,7 +121,7 @@
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
-  cursor: grab;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
@@ -133,6 +133,13 @@
   border-color: #3b82f6;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.preset-thumbnail.selected {
+  border-color: #3b82f6;
+  border-width: 3px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  transform: scale(1.02);
 }
 
 .preset-thumbnail-preview {
@@ -196,6 +203,70 @@
 .favorite-btn-small.favorited {
   color: #fbbf24;
   background: white;
+}
+
+/* Apply Preset Bar */
+.apply-preset-bar {
+  padding: 1rem 1.5rem;
+  background: #eff6ff;
+  border-top: 2px solid #3b82f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.apply-preset-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.apply-preset-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.apply-preset-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.apply-preset-btn {
+  padding: 0.625rem 1.25rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.apply-preset-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.apply-preset-btn:active {
+  transform: translateY(0);
 }
 
 /* Center Canvas */
