@@ -69,6 +69,28 @@ header {
   transform: translateY(0);
 }
 
+.gallery-button {
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gallery-button:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.gallery-button:active {
+  transform: translateY(0);
+}
+
 h1 {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;

@@ -7,6 +7,7 @@ import GenericAnalyzer from './GenericAnalyzer'
 import ModularGenerator from './ModularGenerator'
 import ComprehensiveAnalyzer from './ComprehensiveAnalyzer'
 import TaskManager from './TaskManager'
+import Gallery from './Gallery'
 import api from './api/client'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
   const [activeAnalyzer, setActiveAnalyzer] = useState(null)
   const [showModularGenerator, setShowModularGenerator] = useState(false)
   const [showComprehensiveAnalyzer, setShowComprehensiveAnalyzer] = useState(false)
+  const [showGallery, setShowGallery] = useState(false)
 
   useEffect(() => {
     // Only fetch tools if authenticated
@@ -85,6 +87,9 @@ function App() {
               <p className="subtitle">Available Tools</p>
             </div>
             <div className="header-actions">
+              <button className="gallery-button" onClick={() => setShowGallery(true)}>
+                🖼️ Gallery
+              </button>
               <span className="user-info">👤 {user?.username}</span>
               <button className="logout-button" onClick={logout}>
                 Logout
@@ -146,6 +151,7 @@ function App() {
       )}
       {showModularGenerator && <ModularGenerator onClose={() => setShowModularGenerator(false)} />}
       {showComprehensiveAnalyzer && <ComprehensiveAnalyzer onClose={() => setShowComprehensiveAnalyzer(false)} />}
+      {showGallery && <Gallery onClose={() => setShowGallery(false)} />}
 
       {/* Task Manager - Always visible */}
       <TaskManager />
