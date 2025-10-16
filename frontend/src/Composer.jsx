@@ -283,22 +283,35 @@ function Composer() {
             <div className="preset-category-section">
               <h3>{categories.find(c => c.key === activeCategory)?.label}</h3>
               <div className="preset-library-grid">
-                {(presets[activeCategory] || []).map(preset => {
-                  const cat = categories.find(c => c.key === activeCategory)
-                  const favoriteKey = `${cat.apiCategory}:${preset.preset_id}`
-                  const isFavorite = favorites.includes(favoriteKey)
+                {(presets[activeCategory] || [])
+                  .sort((a, b) => {
+                    const cat = categories.find(c => c.key === activeCategory)
+                    const aKey = `${cat.apiCategory}:${a.preset_id}`
+                    const bKey = `${cat.apiCategory}:${b.preset_id}`
+                    const aFav = favorites.includes(aKey)
+                    const bFav = favorites.includes(bKey)
 
-                  return (
-                    <PresetThumbnail
-                      key={preset.preset_id}
-                      preset={preset}
-                      category={cat.apiCategory}
-                      isFavorite={isFavorite}
-                      onDragStart={(e) => handleDragStart(e, preset, cat.apiCategory)}
-                      onToggleFavorite={() => toggleFavorite(preset, cat.apiCategory)}
-                    />
-                  )
-                })}
+                    // Favorites first
+                    if (aFav && !bFav) return -1
+                    if (!aFav && bFav) return 1
+                    return 0
+                  })
+                  .map(preset => {
+                    const cat = categories.find(c => c.key === activeCategory)
+                    const favoriteKey = `${cat.apiCategory}:${preset.preset_id}`
+                    const isFavorite = favorites.includes(favoriteKey)
+
+                    return (
+                      <PresetThumbnail
+                        key={preset.preset_id}
+                        preset={preset}
+                        category={cat.apiCategory}
+                        isFavorite={isFavorite}
+                        onDragStart={(e) => handleDragStart(e, preset, cat.apiCategory)}
+                        onToggleFavorite={() => toggleFavorite(preset, cat.apiCategory)}
+                      />
+                    )
+                  })}
               </div>
             </div>
           ) : (
