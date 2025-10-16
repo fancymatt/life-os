@@ -89,7 +89,7 @@ class StoryPlannerAgent(Agent):
 
         # Call LLM with structured output
         try:
-            outline = await self.llm_router.call_structured(
+            outline = await self.llm_router.acall_structured(
                 prompt=prompt,
                 response_model=StoryOutline,
                 model="gemini/gemini-2.0-flash-exp"

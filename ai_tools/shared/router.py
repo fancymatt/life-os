@@ -335,6 +335,71 @@ class LLMRouter:
 
         return response.choices[0].message.content
 
+    async def acall_structured(
+        self,
+        prompt: str,
+        response_model: type[BaseModel],
+        model: Optional[str] = None,
+        images: Optional[List[Union[str, Path]]] = None,
+        system: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4000,
+        **kwargs
+    ) -> BaseModel:
+        """
+        Async version: Call an LLM and parse response into a Pydantic model
+
+        Args:
+            prompt: User prompt text
+            response_model: Pydantic model class for response
+            model: Model to use (overrides default)
+            images: List of image paths to include
+            system: System prompt
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens in response
+            **kwargs: Additional arguments for LiteLLM
+
+        Returns:
+            Parsed Pydantic model instance
+        """
+        # Instruct model to return JSON
+        json_instruction = f"\n\nRespond with valid JSON matching this schema:\n{response_model.model_json_schema()}"
+        full_prompt = prompt + json_instruction
+
+        # Request JSON format
+        response_format = {"type": "json_object"}
+
+        # Call the model asynchronously
+        response_text = await self.acall(
+            prompt=full_prompt,
+            model=model,
+            images=images,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format=response_format,
+            **kwargs
+        )
+
+        # Parse JSON response
+        try:
+            # Try to parse directly
+            response_data = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Try to extract JSON from markdown code blocks
+            response_text = response_text.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+
+            response_data = json.loads(response_text.strip())
+
+        # Parse into Pydantic model
+        return response_model.model_validate(response_data)
+
     def generate_image_with_gemini(
         self,
         prompt: str,
