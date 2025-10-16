@@ -117,86 +117,66 @@ function Composer() {
     // setAppliedPresets([])
   }
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault()
-    const presetData = e.dataTransfer.getData('preset')
-
-    if (presetData) {
-      const preset = JSON.parse(presetData)
-      addPreset(preset)
-    }
-  }, [addPreset])
-
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
   }, [])
 
-  const addPreset = useCallback(async (preset) => {
-    let newAppliedPresets
+  const handleDragStart = useCallback((e, preset, category) => {
+    e.dataTransfer.setData('preset', JSON.stringify({
+      ...preset,
+      category
+    }))
+  }, [])
 
-    // Outfits can be layered, other categories replace
-    if (preset.category === 'outfits') {
-      // Always add outfits (they stack)
-      newAppliedPresets = [...appliedPresets, preset]
-    } else {
-      // For other categories, check if preset of same category already exists
-      const existingIndex = appliedPresets.findIndex(
-        p => p.category === preset.category
-      )
+  const getCacheKey = useCallback((presetsToApply) => {
+    // Create deterministic cache key from subject + sorted presets
+    const presetIds = presetsToApply
+      .map(p => `${p.category}:${p.preset_id}`)
+      .sort()
+      .join('|')
 
-      if (existingIndex >= 0) {
-        // Replace preset in same category
-        newAppliedPresets = [...appliedPresets]
-        newAppliedPresets[existingIndex] = preset
-      } else {
-        // Add new preset
-        newAppliedPresets = [...appliedPresets, preset]
+    return `${subject}|${presetIds}`
+  }, [subject])
+
+  const pollForCompletion = async (jobId) => {
+    const maxAttempts = 60
+    const pollInterval = 2000
+
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(resolve => setTimeout(resolve, pollInterval))
+
+      try {
+        const jobResponse = await api.get(`/jobs/${jobId}`)
+        const job = jobResponse.data
+
+        if (job.status === 'completed') {
+          if (job.result?.file_paths && job.result.file_paths.length > 0) {
+            // Convert file path to URL
+            const filePath = job.result.file_paths[0]
+            // Ensure URL starts with /
+            let imageUrl = filePath.replace('/app', '')
+            if (!imageUrl.startsWith('/')) {
+              imageUrl = '/' + imageUrl
+            }
+            console.log('📸 Job completed, file path:', filePath)
+            console.log('📸 Converted to URL:', imageUrl)
+            return imageUrl
+          } else {
+            console.log('⚠️ Job completed but no file_paths in result:', job.result)
+          }
+        } else if (job.status === 'failed') {
+          throw new Error(job.error || 'Generation failed')
+        }
+
+        console.log(`⏳ Job status: ${job.status}, progress: ${job.progress}`)
+
+      } catch (err) {
+        console.error('Polling error:', err)
       }
     }
 
-    setAppliedPresets(newAppliedPresets)
-
-    // Clear selected preset after applying
-    setSelectedPreset(null)
-
-    // On mobile, switch to canvas tab when generating
-    if (window.innerWidth < 768) {
-      setMobileTab('canvas')
-    }
-
-    // Auto-generate with new preset combination
-    await generateImage(newAppliedPresets)
-  }, [appliedPresets, generateImage])
-
-  const handlePresetClick = useCallback((preset, category) => {
-    const presetWithCategory = { ...preset, category }
-
-    // If clicking the same preset, apply it
-    if (selectedPreset?.preset_id === preset.preset_id) {
-      addPreset(presetWithCategory)
-    } else {
-      // Otherwise, select it
-      setSelectedPreset(presetWithCategory)
-    }
-  }, [selectedPreset, addPreset])
-
-  const applySelectedPreset = useCallback(() => {
-    if (selectedPreset) {
-      addPreset(selectedPreset)
-    }
-  }, [selectedPreset, addPreset])
-
-  const removePreset = useCallback(async (index) => {
-    const newAppliedPresets = appliedPresets.filter((_, i) => i !== index)
-    setAppliedPresets(newAppliedPresets)
-
-    // Regenerate without removed preset
-    if (newAppliedPresets.length > 0) {
-      await generateImage(newAppliedPresets)
-    } else {
-      setGeneratedImage(null)
-    }
-  }, [appliedPresets, generateImage])
+    throw new Error('Generation timed out')
+  }
 
   const generateImage = useCallback(async (presetsToApply) => {
     if (presetsToApply.length === 0) return
@@ -260,62 +240,82 @@ function Composer() {
     }
   }, [subject, getCacheKey, generationCache])
 
-  const pollForCompletion = async (jobId) => {
-    const maxAttempts = 60
-    const pollInterval = 2000
+  const addPreset = useCallback(async (preset) => {
+    let newAppliedPresets
 
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(resolve => setTimeout(resolve, pollInterval))
+    // Outfits can be layered, other categories replace
+    if (preset.category === 'outfits') {
+      // Always add outfits (they stack)
+      newAppliedPresets = [...appliedPresets, preset]
+    } else {
+      // For other categories, check if preset of same category already exists
+      const existingIndex = appliedPresets.findIndex(
+        p => p.category === preset.category
+      )
 
-      try {
-        const jobResponse = await api.get(`/jobs/${jobId}`)
-        const job = jobResponse.data
-
-        if (job.status === 'completed') {
-          if (job.result?.file_paths && job.result.file_paths.length > 0) {
-            // Convert file path to URL
-            const filePath = job.result.file_paths[0]
-            // Ensure URL starts with /
-            let imageUrl = filePath.replace('/app', '')
-            if (!imageUrl.startsWith('/')) {
-              imageUrl = '/' + imageUrl
-            }
-            console.log('📸 Job completed, file path:', filePath)
-            console.log('📸 Converted to URL:', imageUrl)
-            return imageUrl
-          } else {
-            console.log('⚠️ Job completed but no file_paths in result:', job.result)
-          }
-        } else if (job.status === 'failed') {
-          throw new Error(job.error || 'Generation failed')
-        }
-
-        console.log(`⏳ Job status: ${job.status}, progress: ${job.progress}`)
-
-      } catch (err) {
-        console.error('Polling error:', err)
+      if (existingIndex >= 0) {
+        // Replace preset in same category
+        newAppliedPresets = [...appliedPresets]
+        newAppliedPresets[existingIndex] = preset
+      } else {
+        // Add new preset
+        newAppliedPresets = [...appliedPresets, preset]
       }
     }
 
-    throw new Error('Generation timed out')
-  }
+    setAppliedPresets(newAppliedPresets)
 
-  const getCacheKey = useCallback((presetsToApply) => {
-    // Create deterministic cache key from subject + sorted presets
-    const presetIds = presetsToApply
-      .map(p => `${p.category}:${p.preset_id}`)
-      .sort()
-      .join('|')
+    // Clear selected preset after applying
+    setSelectedPreset(null)
 
-    return `${subject}|${presetIds}`
-  }, [subject])
+    // On mobile, switch to canvas tab when generating
+    if (window.innerWidth < 768) {
+      setMobileTab('canvas')
+    }
 
-  const handleDragStart = useCallback((e, preset, category) => {
-    e.dataTransfer.setData('preset', JSON.stringify({
-      ...preset,
-      category
-    }))
-  }, [])
+    // Auto-generate with new preset combination
+    await generateImage(newAppliedPresets)
+  }, [appliedPresets, generateImage])
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault()
+    const presetData = e.dataTransfer.getData('preset')
+
+    if (presetData) {
+      const preset = JSON.parse(presetData)
+      addPreset(preset)
+    }
+  }, [addPreset])
+
+  const handlePresetClick = useCallback((preset, category) => {
+    const presetWithCategory = { ...preset, category }
+
+    // If clicking the same preset, apply it
+    if (selectedPreset?.preset_id === preset.preset_id) {
+      addPreset(presetWithCategory)
+    } else {
+      // Otherwise, select it
+      setSelectedPreset(presetWithCategory)
+    }
+  }, [selectedPreset, addPreset])
+
+  const applySelectedPreset = useCallback(() => {
+    if (selectedPreset) {
+      addPreset(selectedPreset)
+    }
+  }, [selectedPreset, addPreset])
+
+  const removePreset = useCallback(async (index) => {
+    const newAppliedPresets = appliedPresets.filter((_, i) => i !== index)
+    setAppliedPresets(newAppliedPresets)
+
+    // Regenerate without removed preset
+    if (newAppliedPresets.length > 0) {
+      await generateImage(newAppliedPresets)
+    } else {
+      setGeneratedImage(null)
+    }
+  }, [appliedPresets, generateImage])
 
   const toggleFavorite = useCallback(async (preset, category) => {
     try {
@@ -455,6 +455,37 @@ function Composer() {
     }
   }, [generatedImage, appliedPresets, subject])
 
+  // Memoized filtered and sorted presets for the active category
+  const filteredPresets = useMemo(() => {
+    if (!activeCategory) return []
+
+    return (presets[activeCategory] || [])
+      .filter(preset => {
+        // Filter by debounced search query (waits 300ms after typing stops)
+        if (!debouncedSearchQuery) return true
+
+        const searchLower = debouncedSearchQuery.toLowerCase()
+        const displayName = (preset.display_name || preset.preset_id).toLowerCase()
+        const presetId = preset.preset_id.toLowerCase()
+
+        return displayName.includes(searchLower) || presetId.includes(searchLower)
+      })
+      .sort((a, b) => {
+        const cat = categories.find(c => c.key === activeCategory)
+        if (!cat) return 0
+
+        const aKey = `${cat.apiCategory}:${a.preset_id}`
+        const bKey = `${cat.apiCategory}:${b.preset_id}`
+        const aFav = favorites.includes(aKey)
+        const bFav = favorites.includes(bKey)
+
+        // Favorites first
+        if (aFav && !bFav) return -1
+        if (!aFav && bFav) return 1
+        return 0
+      })
+  }, [presets, activeCategory, debouncedSearchQuery, categories, favorites])
+
   if (loading) {
     return (
       <div className="composer-loading">
@@ -536,49 +567,25 @@ function Composer() {
               </div>
 
               <div className="preset-library-grid">
-                {useMemo(() => {
-                  return (presets[activeCategory] || [])
-                    .filter(preset => {
-                      // Filter by debounced search query (waits 300ms after typing stops)
-                      if (!debouncedSearchQuery) return true
+                {filteredPresets.map(preset => {
+                  const cat = categories.find(c => c.key === activeCategory)
+                  const favoriteKey = `${cat.apiCategory}:${preset.preset_id}`
+                  const isFavorite = favorites.includes(favoriteKey)
+                  const isSelected = selectedPreset?.preset_id === preset.preset_id
 
-                      const searchLower = debouncedSearchQuery.toLowerCase()
-                      const displayName = (preset.display_name || preset.preset_id).toLowerCase()
-                      const presetId = preset.preset_id.toLowerCase()
-
-                      return displayName.includes(searchLower) || presetId.includes(searchLower)
-                    })
-                    .sort((a, b) => {
-                      const cat = categories.find(c => c.key === activeCategory)
-                      const aKey = `${cat.apiCategory}:${a.preset_id}`
-                      const bKey = `${cat.apiCategory}:${b.preset_id}`
-                      const aFav = favorites.includes(aKey)
-                      const bFav = favorites.includes(bKey)
-
-                      // Favorites first
-                      if (aFav && !bFav) return -1
-                      if (!aFav && bFav) return 1
-                      return 0
-                    })
-                }, [presets, activeCategory, debouncedSearchQuery, categories, favorites]).map(preset => {
-                    const cat = categories.find(c => c.key === activeCategory)
-                    const favoriteKey = `${cat.apiCategory}:${preset.preset_id}`
-                    const isFavorite = favorites.includes(favoriteKey)
-                    const isSelected = selectedPreset?.preset_id === preset.preset_id
-
-                    return (
-                      <PresetThumbnail
-                        key={preset.preset_id}
-                        preset={preset}
-                        category={cat.apiCategory}
-                        isFavorite={isFavorite}
-                        isSelected={isSelected}
-                        onDragStart={(e) => handleDragStart(e, preset, cat.apiCategory)}
-                        onClick={() => handlePresetClick(preset, cat.apiCategory)}
-                        onToggleFavorite={() => toggleFavorite(preset, cat.apiCategory)}
-                      />
-                    )
-                  })}
+                  return (
+                    <PresetThumbnail
+                      key={preset.preset_id}
+                      preset={preset}
+                      category={cat.apiCategory}
+                      isFavorite={isFavorite}
+                      isSelected={isSelected}
+                      onDragStart={(e) => handleDragStart(e, preset, cat.apiCategory)}
+                      onClick={() => handlePresetClick(preset, cat.apiCategory)}
+                      onToggleFavorite={() => toggleFavorite(preset, cat.apiCategory)}
+                    />
+                  )
+                })}
               </div>
             </div>
           ) : (
