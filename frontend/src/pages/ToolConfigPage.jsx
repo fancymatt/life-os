@@ -13,8 +13,11 @@ import './ToolConfigPage.css'
  * - Test with uploaded images
  */
 function ToolConfigPage() {
-  const { toolName } = useParams()
+  const { type } = useParams() // For tools like "character-appearance"
   const navigate = useNavigate()
+
+  // Convert URL param to tool name (e.g., "character-appearance" -> "character_appearance_analyzer")
+  const toolName = type ? `${type.replace(/-/g, '_')}_analyzer` : null
 
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)

@@ -122,6 +122,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="outfit" element={<OutfitAnalyzer />} />
             <Route path="comprehensive" element={<ComprehensiveAnalyzer />} />
+            <Route path="character-appearance" element={<ToolConfigPage />} />
             <Route path=":type" element={<GenericAnalyzer />} />
           </Route>
 
@@ -138,9 +139,6 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="modular" element={<ModularGenerator />} />
           </Route>
-
-          {/* Tool Configuration */}
-          <Route path=":category/:toolName/config" element={<ToolConfigPage />} />
         </Route>
 
         {/* Workflows */}
