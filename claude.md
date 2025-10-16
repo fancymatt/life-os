@@ -247,24 +247,33 @@ function ComponentName() {
 
 #### Backend Route Definitions
 ```python
-# ✅ CORRECT - Always include trailing slash in route decorator
+# ✅ CORRECT - Be consistent with trailing slashes
 @router.get("/characters/", response_model=CharacterListResponse)
 @router.post("/characters/", response_model=CharacterInfo)
 @router.get("/presets/{category}/", response_model=PresetList)
 
-# ❌ WRONG - Missing trailing slash causes 307 redirects
-@router.get("/characters", response_model=CharacterListResponse)
+# Also valid - just be consistent
+@router.post("/from-subject", response_model=Response)  # No slash
 ```
 
 #### Frontend API Calls
 ```javascript
-// ✅ CORRECT - Always include trailing slash in API calls
-await api.get('/characters/')
-await api.post('/characters/', formData)
-await api.get('/presets/outfit/')
+// ✅ CRITICAL - Frontend calls MUST exactly match backend route definitions
 
-// ❌ WRONG - Missing trailing slash causes 307 redirects
-await api.get('/characters')
+// If backend has trailing slash:
+@router.get("/characters/", ...)
+await api.get('/characters/')  // ✅ Must include slash
+
+// If backend has NO trailing slash:
+@router.post("/from-subject", ...)
+await api.post('/characters/from-subject')  // ✅ Must NOT include slash
+
+// ❌ WRONG - Mismatched slashes cause 307 redirects
+@router.get("/characters/", ...)
+await api.get('/characters')  // ❌ Missing slash
+
+@router.post("/from-subject", ...)
+await api.post('/characters/from-subject/')  // ❌ Extra slash causes POST to fail
 ```
 
 #### Route Ordering (CRITICAL)
@@ -292,9 +301,9 @@ await api.get('/characters')
 #### Debugging Steps
 1. Check API logs: `docker logs ai-studio-api --tail 50`
 2. Look for 307 Temporary Redirect or 405 Method Not Allowed
-3. Add trailing slash to both backend route AND frontend call
-4. If still failing, check route ordering (specific before parameterized)
-5. Restart containers: `docker-compose restart api frontend`
+3. If 307 redirect: Check if frontend call matches backend route exactly (slash/no-slash)
+4. If 405 error: Check route ordering (specific before parameterized)
+5. Fix the mismatch and restart: `docker-compose restart api frontend`
 
 ---
 
