@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './OutfitAnalyzer.css' // Reuse the base modal styles
 import './ModularGenerator.css' // Modular generator specific styles
 import api from './api/client'
 
 function ModularGenerator({ onClose }) {
+  const navigate = useNavigate()
+  const handleClose = onClose || (() => navigate(-1))
   // Subject selection
   const [subject, setSubject] = useState('jenny.png')
 
@@ -202,11 +205,11 @@ function ModularGenerator({ onClose }) {
   const canGenerate = subject
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Modular Generator</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={handleClose}>×</button>
         </div>
 
         <div className="modal-body">

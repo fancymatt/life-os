@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './OutfitAnalyzer.css'
 import api from './api/client'
 
 function OutfitAnalyzer({ onClose }) {
+  const navigate = useNavigate()
+  const handleClose = onClose || (() => navigate(-1))
   // View state: 'list' | 'create' | 'edit'
   const [view, setView] = useState('list')
   const [presets, setPresets] = useState([])

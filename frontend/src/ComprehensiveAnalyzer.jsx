@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './OutfitAnalyzer.css' // Reuse the same styles
 import api from './api/client'
 
 function ComprehensiveAnalyzer({ onClose }) {
+  const navigate = useNavigate()
+  const handleClose = onClose || (() => navigate(-1))
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [analyzing, setAnalyzing] = useState(false)
@@ -114,7 +117,7 @@ function ComprehensiveAnalyzer({ onClose }) {
         // Async mode: close modal immediately, job appears in TaskManager
         if (data.job_id) {
           console.log('Analysis queued:', data.job_id)
-          onClose() // Close modal immediately
+          handleClose() // Close modal or navigate back
           return
         }
 
@@ -161,11 +164,11 @@ function ComprehensiveAnalyzer({ onClose }) {
     const createdPresets = analysisResult.created_presets || []
 
     return (
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay" onClick={handleClose}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h2>Comprehensive Analysis Complete</h2>
-            <button className="close-button" onClick={onClose}>×</button>
+            <button className="close-button" onClick={handleClose}>×</button>
           </div>
 
           <div className="modal-body">
@@ -187,7 +190,7 @@ function ComprehensiveAnalyzer({ onClose }) {
               <button className="analyze-button" onClick={handleReset} style={{ flex: 1 }}>
                 Analyze Another
               </button>
-              <button className="done-button" onClick={onClose} style={{ flex: 1 }}>
+              <button className="done-button" onClick={handleClose} style={{ flex: 1 }}>
                 Done
               </button>
             </div>
@@ -198,11 +201,11 @@ function ComprehensiveAnalyzer({ onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Comprehensive Analyzer</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={handleClose}>×</button>
         </div>
 
         <div className="modal-body">

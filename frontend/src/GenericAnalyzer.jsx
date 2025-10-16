@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './OutfitAnalyzer.css'
 import api from './api/client'
 
 function GenericAnalyzer({ analyzerType, displayName, onClose }) {
+  const navigate = useNavigate()
+  const handleClose = onClose || (() => navigate(-1))
   // Map analyzer types to API endpoints and categories
   const analyzerConfig = {
     'visual-style': { category: 'visual_styles', endpoint: '/analyze/visual-style', title: 'Photograph Composition' },
@@ -188,7 +191,7 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
         if (data.job_id) {
           console.log('Analysis queued:', data.job_id)
           handleBackToList()  // Go back to list view
-          onClose()  // Close modal
+          handleClose()  // Close modal or navigate back
           return
         }
 
@@ -560,11 +563,11 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title} Analyzer</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={handleClose}>×</button>
         </div>
 
         <div className="modal-body">

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './Gallery.css'
 import api from './api/client'
 
 function Gallery({ onClose }) {
+  const navigate = useNavigate()
+  const handleClose = onClose || (() => navigate(-1))
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -92,7 +95,7 @@ function Gallery({ onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="gallery-modal" onClick={(e) => e.stopPropagation()}>
         <div className="gallery-header">
           <div>
@@ -109,7 +112,7 @@ function Gallery({ onClose }) {
             <button className="refresh-button" onClick={fetchGeneratedImages}>
               🔄 Refresh
             </button>
-            <button className="close-button" onClick={onClose}>×</button>
+            <button className="close-button" onClick={handleClose}>×</button>
           </div>
         </div>
 
