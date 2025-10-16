@@ -4,15 +4,39 @@ import { useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
 import Layout from './components/layout/Layout'
 import Dashboard from './pages/Dashboard'
-import ComposerPage from './pages/ComposerPage'
-import GalleryPage from './pages/GalleryPage'
 import JobsPage from './pages/JobsPage'
-import StoryWorkflowPage from './pages/StoryWorkflowPage'
-import StoriesPage from './pages/StoriesPage'
+
+// Entity Pages
+import StoriesEntity from './pages/entities/StoriesEntity'
+import ImagesEntity from './pages/entities/ImagesEntity'
+import CharactersEntity from './pages/entities/CharactersEntity'
+import OutfitsEntity from './pages/entities/OutfitsEntity'
+import ExpressionsEntity from './pages/entities/ExpressionsEntity'
+import MakeupsEntity from './pages/entities/MakeupsEntity'
+import HairStylesEntity from './pages/entities/HairStylesEntity'
+import HairColorsEntity from './pages/entities/HairColorsEntity'
+import VisualStylesEntity from './pages/entities/VisualStylesEntity'
+import ArtStylesEntity from './pages/entities/ArtStylesEntity'
+import AccessoriesEntity from './pages/entities/AccessoriesEntity'
+
+// Tool Pages - Analyzers
 import OutfitAnalyzer from './OutfitAnalyzer'
-import GenericAnalyzer from './GenericAnalyzer'
-import ModularGenerator from './ModularGenerator'
 import ComprehensiveAnalyzer from './ComprehensiveAnalyzer'
+import GenericAnalyzer from './GenericAnalyzer'
+
+// Tool Pages - Story Tools
+import StoryPlannerPage from './pages/StoryPlannerPage'
+import StoryWriterPage from './pages/StoryWriterPage'
+import StoryIllustratorPage from './pages/StoryIllustratorPage'
+
+// Tool Pages - Generators
+import ModularGenerator from './ModularGenerator'
+
+// Workflow Pages
+import StoryWorkflowPage from './pages/StoryWorkflowPage'
+
+// Application Pages
+import ComposerPage from './pages/ComposerPage'
 
 function App() {
   const { loading: authLoading, isAuthenticated } = useAuth()
@@ -40,33 +64,85 @@ function App() {
         path="/"
         element={isAuthenticated ? <Layout /> : <Navigate to="/login" replace />}
       >
+        {/* Dashboard */}
         <Route index element={<Dashboard />} />
-        <Route path="composer" element={<ComposerPage />} />
-        <Route path="gallery" element={<GalleryPage />} />
-        <Route path="stories" element={<StoriesPage />} />
 
-        {/* Analyzer routes */}
-        <Route path="analyzers">
-          <Route index element={<Dashboard />} />
-          <Route path="outfit" element={<OutfitAnalyzer />} />
-          <Route path="comprehensive" element={<ComprehensiveAnalyzer />} />
-          <Route path=":type" element={<GenericAnalyzer />} />
+        {/* Entities */}
+        <Route path="entities">
+          <Route index element={<Navigate to="/entities/stories" replace />} />
+          <Route path="stories" element={<StoriesEntity />} />
+          <Route path="stories/:id" element={<StoriesEntity />} />
+          <Route path="images" element={<ImagesEntity />} />
+          <Route path="images/:id" element={<ImagesEntity />} />
+          <Route path="characters" element={<CharactersEntity />} />
+          <Route path="characters/:id" element={<CharactersEntity />} />
+          <Route path="outfits" element={<OutfitsEntity />} />
+          <Route path="outfits/:id" element={<OutfitsEntity />} />
+          <Route path="expressions" element={<ExpressionsEntity />} />
+          <Route path="expressions/:id" element={<ExpressionsEntity />} />
+          <Route path="makeup" element={<MakeupsEntity />} />
+          <Route path="makeup/:id" element={<MakeupsEntity />} />
+          <Route path="hair-styles" element={<HairStylesEntity />} />
+          <Route path="hair-styles/:id" element={<HairStylesEntity />} />
+          <Route path="hair-colors" element={<HairColorsEntity />} />
+          <Route path="hair-colors/:id" element={<HairColorsEntity />} />
+          <Route path="visual-styles" element={<VisualStylesEntity />} />
+          <Route path="visual-styles/:id" element={<VisualStylesEntity />} />
+          <Route path="art-styles" element={<ArtStylesEntity />} />
+          <Route path="art-styles/:id" element={<ArtStylesEntity />} />
+          <Route path="accessories" element={<AccessoriesEntity />} />
+          <Route path="accessories/:id" element={<AccessoriesEntity />} />
         </Route>
 
-        {/* Generator routes */}
-        <Route path="generators">
+        {/* Tools */}
+        <Route path="tools">
           <Route index element={<Dashboard />} />
-          <Route path="modular" element={<ModularGenerator />} />
+
+          {/* Analyzers */}
+          <Route path="analyzers">
+            <Route index element={<Dashboard />} />
+            <Route path="outfit" element={<OutfitAnalyzer />} />
+            <Route path="comprehensive" element={<ComprehensiveAnalyzer />} />
+            <Route path=":type" element={<GenericAnalyzer />} />
+          </Route>
+
+          {/* Story Tools */}
+          <Route path="story">
+            <Route index element={<Dashboard />} />
+            <Route path="planner" element={<StoryPlannerPage />} />
+            <Route path="writer" element={<StoryWriterPage />} />
+            <Route path="illustrator" element={<StoryIllustratorPage />} />
+          </Route>
+
+          {/* Generators */}
+          <Route path="generators">
+            <Route index element={<Dashboard />} />
+            <Route path="modular" element={<ModularGenerator />} />
+          </Route>
         </Route>
 
-        {/* Workflow routes */}
+        {/* Workflows */}
         <Route path="workflows">
           <Route index element={<Dashboard />} />
           <Route path="story" element={<StoryWorkflowPage />} />
         </Route>
 
-        {/* Job history */}
+        {/* Applications */}
+        <Route path="apps">
+          <Route index element={<Dashboard />} />
+          <Route path="composer" element={<ComposerPage />} />
+        </Route>
+
+        {/* System */}
         <Route path="jobs" element={<JobsPage />} />
+
+        {/* Legacy routes for backwards compatibility */}
+        <Route path="composer" element={<Navigate to="/apps/composer" replace />} />
+        <Route path="gallery" element={<Navigate to="/entities/images" replace />} />
+        <Route path="stories" element={<Navigate to="/entities/stories" replace />} />
+        <Route path="analyzers/*" element={<Navigate to="/tools/analyzers" replace />} />
+        <Route path="generators/*" element={<Navigate to="/tools/generators" replace />} />
+        <Route path="story-tools/*" element={<Navigate to="/tools/story" replace />} />
       </Route>
 
       {/* Catch all - redirect to home */}
