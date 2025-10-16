@@ -89,6 +89,24 @@
 2. **Nginx not proxying static files** - Added `/output/` and `/uploads/` locations
 3. **Import errors in favorites** - Use `api.dependencies.auth` not `api.services.auth_service`
 
+## Image Generation Strategy
+
+We use a hybrid approach optimized for each use case:
+
+### Preview Thumbnails (Pure Text-to-Image)
+- **Model**: DALL-E 3
+- **Use case**: Generating standalone preset preview images
+- **Why**: Pure text-to-image with no source subject
+- **Limitation**: 4000 character prompt limit (we truncate if needed)
+
+### Modular Generator (Subject Transformation)
+- **Model**: Gemini 2.5 Flash
+- **Use case**: Applying presets to subject photos (main generation)
+- **Why**: Requires source image, excels at image transformation
+- **Advantage**: No prompt length limits, better subject preservation
+
+This approach uses each model's strengths - DALL-E for creation, Gemini for transformation.
+
 ## Next Sprint Ideas (Sprint 4)
 
 - Real-time collaboration (multiple users composing together)
