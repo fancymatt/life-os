@@ -239,6 +239,68 @@ async def create_character_from_subject(
     )
 
 
+@router.get("/{character_id}/image")
+async def get_character_image(
+    character_id: str,
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Get character reference image
+
+    Returns the reference image file for the character.
+    """
+    service = CharacterService()
+    image_path = service.get_reference_image_path(character_id)
+
+    if not image_path:
+        raise HTTPException(status_code=404, detail=f"No reference image for character {character_id}")
+
+    return FileResponse(image_path, media_type="image/png")
+
+
+@router.post("/{character_id}/image", response_model=CharacterInfo)
+async def upload_character_image(
+    character_id: str,
+    file: UploadFile = File(...),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Upload reference image for a character
+
+    Accepts an image file upload and sets it as the character's reference image.
+    """
+    service = CharacterService()
+
+    # Verify character exists
+    character_data = service.get_character(character_id)
+    if not character_data:
+        raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
+
+    # Read and save image
+    image_data = await file.read()
+    reference_image_path = service.save_reference_image(character_id, image_data)
+
+    # Update character with image path
+    character_data = service.update_character(
+        character_id,
+        reference_image_path=reference_image_path
+    )
+
+    # Build reference image URL
+    ref_image_url = f"/api/characters/{character_id}/image"
+
+    return CharacterInfo(
+        character_id=character_data['character_id'],
+        name=character_data['name'],
+        visual_description=character_data.get('visual_description'),
+        personality=character_data.get('personality'),
+        reference_image_url=ref_image_url,
+        tags=character_data.get('tags', []),
+        created_at=character_data.get('created_at'),
+        metadata=character_data.get('metadata', {})
+    )
+
+
 @router.get("/{character_id}", response_model=CharacterInfo)
 async def get_character(
     character_id: str,
@@ -342,67 +404,5 @@ async def delete_character(
         raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
 
     return {"message": f"Character {character_id} deleted successfully"}
-
-
-@router.get("/{character_id}/image")
-async def get_character_image(
-    character_id: str,
-    current_user: Optional[User] = Depends(get_current_active_user)
-):
-    """
-    Get character reference image
-
-    Returns the reference image file for the character.
-    """
-    service = CharacterService()
-    image_path = service.get_reference_image_path(character_id)
-
-    if not image_path:
-        raise HTTPException(status_code=404, detail=f"No reference image for character {character_id}")
-
-    return FileResponse(image_path, media_type="image/png")
-
-
-@router.post("/{character_id}/image", response_model=CharacterInfo)
-async def upload_character_image(
-    character_id: str,
-    file: UploadFile = File(...),
-    current_user: Optional[User] = Depends(get_current_active_user)
-):
-    """
-    Upload reference image for a character
-
-    Accepts an image file upload and sets it as the character's reference image.
-    """
-    service = CharacterService()
-
-    # Verify character exists
-    character_data = service.get_character(character_id)
-    if not character_data:
-        raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
-
-    # Read and save image
-    image_data = await file.read()
-    reference_image_path = service.save_reference_image(character_id, image_data)
-
-    # Update character with image path
-    character_data = service.update_character(
-        character_id,
-        reference_image_path=reference_image_path
-    )
-
-    # Build reference image URL
-    ref_image_url = f"/api/characters/{character_id}/image"
-
-    return CharacterInfo(
-        character_id=character_data['character_id'],
-        name=character_data['name'],
-        visual_description=character_data.get('visual_description'),
-        personality=character_data.get('personality'),
-        reference_image_url=ref_image_url,
-        tags=character_data.get('tags', []),
-        created_at=character_data.get('created_at'),
-        metadata=character_data.get('metadata', {})
-    )
 
 

@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     cache_dir: Path = base_dir / "cache"
     upload_dir: Path = base_dir / "uploads"
     subjects_dir: Path = base_dir / "subjects"
-    characters_dir: Path = base_dir / "characters"
+    characters_dir: Path = base_dir / "data" / "characters"
 
     # API Keys (from environment)
     gemini_api_key: Optional[str] = os.getenv("GEMINI_API_KEY")
