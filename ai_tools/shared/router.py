@@ -3,6 +3,32 @@ AI Model Router using LiteLLM
 
 Provides a unified interface for calling multiple LLM providers (Gemini, OpenAI, Claude, etc.)
 with retry logic, rate limiting, and structured output parsing.
+
+CRITICAL - Gemini Model Naming Convention:
+==========================================
+✅ CORRECT model names (use these):
+    - "gemini/gemini-2.5-flash-image"  # Image generation (NEW dedicated model)
+    - "gemini/gemini-2.0-flash-exp"    # Text/analysis (multimodal)
+
+❌ WRONG (these don't exist or won't work):
+    - "gemini/gemini-2.5-flash-latest" # No image generation support
+    - "gemini-2.5-flash-image"         # Missing "gemini/" prefix for LiteLLM routing
+
+How Routing Works:
+-----------------
+1. LiteLLM expects: "gemini/model-name" (prefix for routing)
+2. This router strips the "gemini/" prefix at lines 433, 615 before calling Gemini API
+3. Gemini API receives: "model-name" (no prefix)
+
+DO NOT change model names without verifying they exist in Gemini docs.
+DO NOT remove the prefix stripping logic - it's required for proper routing.
+
+Gemini Image Generation Requirements (see lines 403-772):
+---------------------------------------------------------
+- Model: gemini/gemini-2.5-flash-image (with prefix)
+- Auth: Header-based (x-goog-api-key), NOT query parameter
+- responseModalities: ["image"] REQUIRED in generationConfig
+- API: POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
 """
 
 import os
