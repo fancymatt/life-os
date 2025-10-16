@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 
 /**
  * Custom hook that implements an LRU (Least Recently Used) cache
@@ -17,81 +17,71 @@ import { useState, useCallback } from 'react'
  * const exists = cache.has('key1')  // Returns true
  */
 export function useLRUCache(maxSize = 50) {
-  // Store cache as array of { key, value, timestamp } objects
-  const [cache, setCache] = useState([])
+  // Use ref to avoid re-renders and circular dependencies
+  const cacheRef = useRef([])
+  // Use state only for size to trigger re-renders when needed
+  const [size, setSize] = useState(0)
 
   /**
    * Get a value from the cache by key
    * Updates the item's timestamp to mark it as recently used
    */
   const get = useCallback((key) => {
-    const index = cache.findIndex(item => item.key === key)
+    const index = cacheRef.current.findIndex(item => item.key === key)
 
     if (index === -1) {
       return null
     }
 
     // Update timestamp to mark as recently used
-    const item = cache[index]
-    const updatedItem = { ...item, timestamp: Date.now() }
-
-    setCache(prev => {
-      const newCache = [...prev]
-      newCache[index] = updatedItem
-      return newCache
-    })
+    const item = cacheRef.current[index]
+    cacheRef.current[index] = { ...item, timestamp: Date.now() }
 
     return item.value
-  }, [cache])
+  }, [])
 
   /**
    * Set a value in the cache
    * Evicts the least recently used item if cache is full
    */
   const set = useCallback((key, value) => {
-    setCache(prev => {
-      // Check if key already exists
-      const existingIndex = prev.findIndex(item => item.key === key)
+    // Check if key already exists
+    const existingIndex = cacheRef.current.findIndex(item => item.key === key)
 
-      if (existingIndex !== -1) {
-        // Update existing item
-        const newCache = [...prev]
-        newCache[existingIndex] = { key, value, timestamp: Date.now() }
-        return newCache
-      }
+    if (existingIndex !== -1) {
+      // Update existing item
+      cacheRef.current[existingIndex] = { key, value, timestamp: Date.now() }
+      return
+    }
 
-      // Add new item
-      let newCache = [...prev, { key, value, timestamp: Date.now() }]
+    // Add new item
+    cacheRef.current.push({ key, value, timestamp: Date.now() })
 
-      // Evict least recently used item if cache is full
-      if (newCache.length > maxSize) {
-        // Sort by timestamp (oldest first) and remove the oldest
-        newCache.sort((a, b) => a.timestamp - b.timestamp)
-        newCache.shift()  // Remove oldest item
-      }
+    // Evict least recently used item if cache is full
+    if (cacheRef.current.length > maxSize) {
+      // Sort by timestamp (oldest first) and remove the oldest
+      cacheRef.current.sort((a, b) => a.timestamp - b.timestamp)
+      cacheRef.current.shift()  // Remove oldest item
+    }
 
-      return newCache
-    })
+    // Update size state to trigger re-render
+    setSize(cacheRef.current.length)
   }, [maxSize])
 
   /**
    * Check if a key exists in the cache
    */
   const has = useCallback((key) => {
-    return cache.some(item => item.key === key)
-  }, [cache])
+    return cacheRef.current.some(item => item.key === key)
+  }, [])
 
   /**
    * Clear all items from the cache
    */
   const clear = useCallback(() => {
-    setCache([])
+    cacheRef.current = []
+    setSize(0)
   }, [])
-
-  /**
-   * Get current cache size
-   */
-  const size = cache.length
 
   return {
     get,
