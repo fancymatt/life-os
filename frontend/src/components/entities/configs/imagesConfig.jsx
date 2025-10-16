@@ -1,5 +1,6 @@
 import api from '../../../api/client'
 import { formatDate } from './helpers'
+import LazyImage from '../LazyImage'
 
 /**
  * Images Entity Configuration
@@ -61,10 +62,9 @@ export const imagesConfig = {
   renderCard: (image) => (
     <div className="entity-card">
       <div className="entity-card-image" style={{ height: '280px' }}>
-        <img
+        <LazyImage
           src={image.imageUrl}
           alt={image.title}
-          loading="lazy"
           onError={(e) => e.target.style.display = 'none'}
         />
       </div>

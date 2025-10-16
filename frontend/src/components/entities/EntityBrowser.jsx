@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import './EntityBrowser.css'
+import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 
 /**
  * Generic Entity Browser Component
@@ -35,6 +36,13 @@ function EntityBrowser({ config }) {
   const [editedTitle, setEditedTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [urlEntityLoaded, setUrlEntityLoaded] = useState(false)
+
+  // Pagination state
+  const [displayedCount, setDisplayedCount] = useState(50)
+  const ITEMS_PER_PAGE = 50
+
+  // Keyboard shortcuts help modal
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -92,12 +100,35 @@ function EntityBrowser({ config }) {
     })
   }, [filteredEntities, sortBy, config.customSort])
 
+  // Paginated entities for display
+  const displayedEntities = useMemo(() => {
+    return sortedEntities.slice(0, displayedCount)
+  }, [sortedEntities, displayedCount])
+
+  // Reset pagination when search or sort changes
+  useEffect(() => {
+    setDisplayedCount(ITEMS_PER_PAGE)
+  }, [searchTerm, sortBy])
+
+  const loadMore = () => {
+    setDisplayedCount(prev => prev + ITEMS_PER_PAGE)
+  }
+
+  const hasMore = displayedCount < sortedEntities.length
+
   // Keyboard shortcuts for list and detail views
   useEffect(() => {
     const handleKeyPress = (e) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
       const modKey = isMac ? e.metaKey : e.ctrlKey
       const isInputFocused = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA'
+
+      // ? key - Show keyboard shortcuts help (when not typing in input)
+      if (e.key === '?' && !isInputFocused && !e.shiftKey) {
+        e.preventDefault()
+        setShowShortcutsModal(prev => !prev)
+        return
+      }
 
       // Global shortcuts (work in both list and detail view)
       // Ctrl/Cmd + K - Focus search (only in list view)
@@ -385,8 +416,17 @@ function EntityBrowser({ config }) {
                 {config.icon} {config.title}
               </h2>
               <p className="entity-count">
-                {filteredEntities.length} {filteredEntities.length === 1 ? config.entityType : `${config.entityType}s`}
-                {searchTerm && ` (filtered from ${entities.length})`}
+                {sortedEntities.length > 0 && displayedCount < sortedEntities.length ? (
+                  <>
+                    Showing {displayedCount} of {sortedEntities.length} {sortedEntities.length === 1 ? config.entityType : `${config.entityType}s`}
+                    {searchTerm && ` (filtered from ${entities.length})`}
+                  </>
+                ) : (
+                  <>
+                    {filteredEntities.length} {filteredEntities.length === 1 ? config.entityType : `${config.entityType}s`}
+                    {searchTerm && ` (filtered from ${entities.length})`}
+                  </>
+                )}
               </p>
             </div>
             <div className="entity-header-right">
@@ -454,19 +494,57 @@ function EntityBrowser({ config }) {
           )}
         </div>
       ) : (
-        <div
-          className="entity-grid"
-          style={{
-            gridTemplateColumns: config.gridConfig?.columns || 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: config.gridConfig?.gap || '1.5rem'
-          }}
-        >
-          {sortedEntities.map((entity, idx) => (
-            <div key={entity.id || idx} onClick={() => handleEntityClick(entity)}>
-              {config.renderCard(entity)}
+        <>
+          <div
+            className="entity-grid"
+            style={{
+              gridTemplateColumns: config.gridConfig?.columns || 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: config.gridConfig?.gap || '1.5rem'
+            }}
+          >
+            {displayedEntities.map((entity, idx) => (
+              <div key={entity.id || idx} onClick={() => handleEntityClick(entity)}>
+                {config.renderCard(entity)}
+              </div>
+            ))}
+          </div>
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginTop: '2rem',
+              paddingBottom: '2rem'
+            }}>
+              <button
+                onClick={loadMore}
+                style={{
+                  padding: '0.75rem 2rem',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)'
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)'
+                }}
+              >
+                Load More ({sortedEntities.length - displayedCount} remaining)
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
         </>
       ) : (
@@ -551,6 +629,12 @@ function EntityBrowser({ config }) {
           </div>
         </>
       )}
+
+      {/* Keyboard Shortcuts Help Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
     </div>
   )
 }

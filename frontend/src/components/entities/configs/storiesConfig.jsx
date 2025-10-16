@@ -1,5 +1,6 @@
 import api from '../../../api/client'
 import { formatDate, getWordCount, getPreview } from './helpers'
+import LazyImage from '../LazyImage'
 
 /**
  * Stories Entity Configuration
@@ -43,7 +44,7 @@ export const storiesConfig = {
     <div className="entity-card">
       {story.illustrations.length > 0 && (
         <div className="entity-card-image">
-          <img
+          <LazyImage
             src={story.illustrations[0].image_url}
             alt={story.title}
             onError={(e) => e.target.style.display = 'none'}

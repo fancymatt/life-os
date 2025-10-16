@@ -1,5 +1,6 @@
 import api from '../../../api/client'
 import { formatDate, getPreview } from './helpers'
+import LazyImage from '../LazyImage'
 
 /**
  * Characters Entity Configuration
@@ -52,7 +53,7 @@ export const charactersConfig = {
     <div className="entity-card">
       <div className="entity-card-image" style={{ height: '280px' }}>
         {character.referenceImageUrl ? (
-          <img
+          <LazyImage
             src={character.referenceImageUrl}
             alt={character.name}
             onError={(e) => {

@@ -1,6 +1,7 @@
 import api from '../../../api/client'
 import { formatDate } from './helpers'
 import OutfitEditor from './OutfitEditor'
+import LazyImage from '../LazyImage'
 
 /**
  * Preset Entity Configurations
@@ -61,7 +62,7 @@ const createPresetConfig = (options) => ({
   renderCard: (entity) => (
     <div className="entity-card">
       <div className="entity-card-image" style={{ height: '280px' }}>
-        <img
+        <LazyImage
           src={`/api/presets/${options.category}/${entity.presetId}/preview?t=${Date.now()}`}
           alt={entity.title}
           onError={(e) => {
