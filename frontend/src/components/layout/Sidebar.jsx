@@ -23,11 +23,14 @@ function Sidebar({ isOpen, onClose }) {
             <NavLink to="/composer" className="nav-link" onClick={onClose}>
               <span className="nav-icon">🎭</span>
               <span className="nav-label">Composer</span>
-              <span className="nav-badge">Featured</span>
             </NavLink>
             <NavLink to="/gallery" className="nav-link" onClick={onClose}>
               <span className="nav-icon">🖼️</span>
               <span className="nav-label">Gallery</span>
+            </NavLink>
+            <NavLink to="/jobs" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">📋</span>
+              <span className="nav-label">Job History</span>
             </NavLink>
           </section>
 
@@ -41,9 +44,33 @@ function Sidebar({ isOpen, onClose }) {
               <span className="nav-icon">📊</span>
               <span className="nav-label">Comprehensive</span>
             </NavLink>
-            <NavLink to="/analyzers" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">🔍</span>
-              <span className="nav-label">All Analyzers</span>
+            <NavLink to="/analyzers/visual-style" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">📸</span>
+              <span className="nav-label">Photograph Style</span>
+            </NavLink>
+            <NavLink to="/analyzers/art-style" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">🎨</span>
+              <span className="nav-label">Art Style</span>
+            </NavLink>
+            <NavLink to="/analyzers/hair-style" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">💇</span>
+              <span className="nav-label">Hair Style</span>
+            </NavLink>
+            <NavLink to="/analyzers/hair-color" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">🎨</span>
+              <span className="nav-label">Hair Color</span>
+            </NavLink>
+            <NavLink to="/analyzers/makeup" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">💄</span>
+              <span className="nav-label">Makeup</span>
+            </NavLink>
+            <NavLink to="/analyzers/expression" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">😊</span>
+              <span className="nav-label">Expression</span>
+            </NavLink>
+            <NavLink to="/analyzers/accessories" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">👓</span>
+              <span className="nav-label">Accessories</span>
             </NavLink>
           </section>
 
@@ -51,32 +78,15 @@ function Sidebar({ isOpen, onClose }) {
             <h3>Generators</h3>
             <NavLink to="/generators/modular" className="nav-link" onClick={onClose}>
               <span className="nav-icon">🎨</span>
-              <span className="nav-label">Modular</span>
-            </NavLink>
-            <NavLink to="/generators" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">✨</span>
-              <span className="nav-label">All Generators</span>
+              <span className="nav-label">Modular Generator</span>
             </NavLink>
           </section>
 
           <section className="nav-section">
             <h3>Workflows</h3>
-            <NavLink to="/workflows" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">⚙️</span>
-              <span className="nav-label">All Workflows</span>
-            </NavLink>
             <NavLink to="/workflows/story" className="nav-link" onClick={onClose}>
               <span className="nav-icon">📖</span>
               <span className="nav-label">Story Generator</span>
-              <span className="nav-badge new">New</span>
-            </NavLink>
-          </section>
-
-          <section className="nav-section">
-            <h3>System</h3>
-            <NavLink to="/jobs" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">📋</span>
-              <span className="nav-label">Job History</span>
             </NavLink>
           </section>
         </nav>
