@@ -575,7 +575,7 @@ function StoryWorkflowPage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="artStyle">Visual Style (Rendering) *</label>
+              <label htmlFor="artStyle">Art Style *</label>
               <select
                 id="artStyle"
                 value={selectedArtStyleId}
@@ -583,7 +583,7 @@ function StoryWorkflowPage() {
                 disabled={submitting}
                 required
               >
-                <option value="">-- Select a visual style --</option>
+                <option value="">-- Select an art style --</option>
                 <option value="realistic">Realistic (Photographic)</option>
                 {artStyles.map(style => (
                   <option key={style.preset_id} value={style.preset_id}>
