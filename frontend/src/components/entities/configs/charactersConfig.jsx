@@ -35,8 +35,9 @@ export const charactersConfig = {
       createdAt: char.created_at,
       metadata: char.metadata || {},
       // Wrap editable fields in data property for EntityBrowser
+      // Merge visual_description and physical_description into one field
       data: {
-        visual_description: char.visual_description,
+        visual_description: char.visual_description || char.physical_description || '',
         personality: char.personality
       }
     }))
@@ -106,24 +107,13 @@ export const charactersConfig = {
     <div style={{ padding: '2rem' }}>
       <h2 style={{ color: 'white', margin: '0 0 1.5rem 0' }}>{character.name}</h2>
 
-      {character.visualDescription && (
+      {(character.visualDescription || character.physicalDescription) && (
         <div style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
             Visual Description
           </h3>
           <p style={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6', margin: 0 }}>
-            {character.visualDescription}
-          </p>
-        </div>
-      )}
-
-      {character.physicalDescription && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
-            Physical Description (AI-Analyzed)
-          </h3>
-          <p style={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6', margin: 0 }}>
-            {character.physicalDescription}
+            {character.visualDescription || character.physicalDescription}
           </p>
         </div>
       )}
