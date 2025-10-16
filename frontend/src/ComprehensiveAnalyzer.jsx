@@ -164,14 +164,12 @@ function ComprehensiveAnalyzer({ onClose }) {
     const createdPresets = analysisResult.created_presets || []
 
     return (
-      <div className="modal-overlay" onClick={handleClose}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>Comprehensive Analysis Complete</h2>
-            <button className="close-button" onClick={handleClose}>×</button>
-          </div>
+      <div className="analyzer-page">
+        <div className="modal-header">
+          <h2>Comprehensive Analysis Complete</h2>
+        </div>
 
-          <div className="modal-body">
+        <div className="modal-body">
             <div className="success-message">
               <h3>{createdPresets.length} Preset{createdPresets.length !== 1 ? 's' : ''} Created Successfully!</h3>
               <p>All analyses have been saved with AI-generated names</p>
@@ -196,17 +194,14 @@ function ComprehensiveAnalyzer({ onClose }) {
             </div>
           </div>
         </div>
-      </div>
     )
   }
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Comprehensive Analyzer</h2>
-          <button className="close-button" onClick={handleClose}>×</button>
-        </div>
+    <div className="analyzer-page">
+      <div className="modal-header">
+        <h2>Comprehensive Analyzer</h2>
+      </div>
 
         <div className="modal-body">
           <p style={{ marginBottom: '1.5rem', color: '#6b7280' }}>
@@ -282,7 +277,6 @@ function ComprehensiveAnalyzer({ onClose }) {
           </button>
         </div>
       </div>
-    </div>
   )
 }
 

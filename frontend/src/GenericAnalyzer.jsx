@@ -563,18 +563,15 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{title} Analyzer</h2>
-          <button className="close-button" onClick={handleClose}>×</button>
-        </div>
+    <div className="analyzer-page">
+      <div className="modal-header">
+        <h2>{title} Analyzer</h2>
+      </div>
 
-        <div className="modal-body">
-          {view === 'list' && renderListView()}
-          {view === 'create' && renderCreateView()}
-          {view === 'edit' && renderEditView()}
-        </div>
+      <div className="modal-body">
+        {view === 'list' && renderListView()}
+        {view === 'create' && renderCreateView()}
+        {view === 'edit' && renderEditView()}
       </div>
     </div>
   )

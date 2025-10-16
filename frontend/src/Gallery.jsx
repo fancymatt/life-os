@@ -95,26 +95,24 @@ function Gallery({ onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="gallery-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="gallery-header">
-          <div>
-            <h2>🖼️ Image Gallery</h2>
-            <p className="gallery-subtitle">{images.length} generated images</p>
-          </div>
-          <div className="gallery-actions">
-            <button
-              className={`comparison-toggle ${comparisonMode ? 'active' : ''}`}
-              onClick={toggleComparisonMode}
-            >
-              {comparisonMode ? '📊 Exit Compare' : '📊 Compare'}
-            </button>
-            <button className="refresh-button" onClick={fetchGeneratedImages}>
-              🔄 Refresh
-            </button>
-            <button className="close-button" onClick={handleClose}>×</button>
-          </div>
+    <div className="gallery-modal">
+      <div className="gallery-header">
+        <div>
+          <h2>🖼️ Image Gallery</h2>
+          <p className="gallery-subtitle">{images.length} generated images</p>
         </div>
+        <div className="gallery-actions">
+          <button
+            className={`comparison-toggle ${comparisonMode ? 'active' : ''}`}
+            onClick={toggleComparisonMode}
+          >
+            {comparisonMode ? '📊 Exit Compare' : '📊 Compare'}
+          </button>
+          <button className="refresh-button" onClick={fetchGeneratedImages}>
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
 
         {loading ? (
           <div className="gallery-loading">Loading images...</div>
@@ -190,7 +188,6 @@ function Gallery({ onClose }) {
             </div>
           </div>
         )}
-      </div>
     </div>
   )
 }

@@ -205,14 +205,12 @@ function ModularGenerator({ onClose }) {
   const canGenerate = subject
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Modular Generator</h2>
-          <button className="close-button" onClick={handleClose}>×</button>
-        </div>
+    <div className="analyzer-page">
+      <div className="modal-header">
+        <h2>Modular Generator</h2>
+      </div>
 
-        <div className="modal-body">
+      <div className="modal-body">
           {/* Subject Selection */}
           <div className="form-group">
             <label htmlFor="subject">Subject Image</label>
@@ -328,7 +326,6 @@ function ModularGenerator({ onClose }) {
           </button>
         </div>
       </div>
-    </div>
   )
 }
 
