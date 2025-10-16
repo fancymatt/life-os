@@ -71,7 +71,6 @@ class Settings(BaseSettings):
     output_dir: Path = base_dir / "output"
     cache_dir: Path = base_dir / "cache"
     upload_dir: Path = base_dir / "uploads"
-    subjects_dir: Path = base_dir / "subjects"
     characters_dir: Path = base_dir / "data" / "characters"
 
     # API Keys (from environment)
@@ -109,7 +108,7 @@ class Settings(BaseSettings):
 
     def ensure_directories(self):
         """Ensure all required directories exist"""
-        for dir_path in [self.presets_dir, self.output_dir, self.cache_dir, self.upload_dir, self.subjects_dir, self.characters_dir]:
+        for dir_path in [self.presets_dir, self.output_dir, self.cache_dir, self.upload_dir, self.characters_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
 
     def get_preset_categories(self) -> list:

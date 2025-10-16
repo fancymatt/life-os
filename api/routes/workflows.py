@@ -18,15 +18,34 @@ from api.models.jobs import JobType
 router = APIRouter()
 
 
+class TransformationParams(BaseModel):
+    """Transformation story parameters"""
+    type: str  # 'creature' or 'alteration'
+    target: str  # Creature name or alteration description
+
+
 class StoryGenerationRequest(BaseModel):
     """Request to generate a story"""
     character: Dict[str, Any]
-    theme: str = "adventure"
+    character_id: Optional[str] = None  # Character ID for fetching reference image
+    story_type: str = "normal"  # 'normal' or 'transformation'
+    # Story parameter preset IDs
+    theme_id: str = "adventure"  # Preset ID from story_themes
+    audience_id: str = "adult"  # Preset ID from story_audiences
+    prose_style_id: str = "humorous"  # Preset ID from story_prose_styles
+    # Agent configuration IDs
+    planner_config_id: str = "default"
+    writer_config_id: str = "default"
+    illustrator_config_id: str = "default"
+    # Story settings
     target_scenes: int = 5
-    age_group: str = "children"
-    prose_style: str = "descriptive"
-    art_style: str = "digital_art"
+    art_style: str = "realistic"
     max_illustrations: int = 5
+    transformation: Optional[TransformationParams] = None  # Only for transformation stories
+    # Appearance overrides
+    outfit_id: Optional[str] = None  # Override outfit with preset
+    hair_style_id: Optional[str] = None  # Override hair style with preset
+    hair_color_id: Optional[str] = None  # Override hair color with preset
 
 
 @router.post("/story-generation/execute")
@@ -47,7 +66,7 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
     job_id = job_manager.create_job(
         job_type=JobType.WORKFLOW,
         title=f"Generate Story: {character_name}",
-        description=f"{request.theme.capitalize()} story with {request.max_illustrations} illustrations",
+        description=f"{request.theme_id.capitalize()} story with {request.max_illustrations} illustrations",
         total_steps=3,  # Planning, Writing, Illustrating
         cancelable=False
     )
@@ -72,21 +91,21 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
                         step_id="plan_story",
                         agent_id="story_planner",
                         description="Generate story outline",
-                        inputs=["character", "theme", "target_scenes", "age_group"],
+                        inputs=["character", "story_type", "theme_id", "audience_id", "target_scenes", "transformation", "planner_config_id"],
                         outputs=["outline"]
                     ),
                     WorkflowStep(
                         step_id="write_story",
                         agent_id="story_writer",
                         description="Write full story from outline",
-                        inputs=["outline", "prose_style"],
+                        inputs=["outline", "prose_style_id", "writer_config_id"],
                         outputs=["written_story"]
                     ),
                     WorkflowStep(
                         step_id="illustrate_story",
                         agent_id="story_illustrator",
                         description="Generate illustrations for scenes",
-                        inputs=["written_story", "art_style", "max_illustrations"],
+                        inputs=["written_story", "character_id", "character_appearance", "art_style", "max_illustrations", "outfit_id", "hair_style_id", "hair_color_id", "illustrator_config_id"],
                         outputs=["illustrated_story"]
                     )
                 ]
@@ -114,13 +133,26 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
             # Prepare input parameters
             input_params = {
                 "character": request.character,
-                "theme": request.theme,
+                "character_id": request.character_id,
+                "story_type": request.story_type,
+                # Story parameter preset IDs
+                "theme_id": request.theme_id,
+                "audience_id": request.audience_id,
+                "prose_style_id": request.prose_style_id,
+                # Agent configuration IDs
+                "planner_config_id": request.planner_config_id,
+                "writer_config_id": request.writer_config_id,
+                "illustrator_config_id": request.illustrator_config_id,
+                # Story settings
                 "target_scenes": request.target_scenes,
-                "age_group": request.age_group,
-                "prose_style": request.prose_style,
                 "art_style": request.art_style,
                 "max_illustrations": request.max_illustrations,
-                "character_appearance": request.character.get('appearance', '')
+                "character_appearance": request.character.get('appearance', ''),
+                "transformation": request.transformation.dict() if request.transformation else None,
+                # Appearance overrides
+                "outfit_id": request.outfit_id,
+                "hair_style_id": request.hair_style_id,
+                "hair_color_id": request.hair_color_id
             }
 
             # Execute workflow
@@ -146,7 +178,7 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
         "status": "queued",
         "job_id": job_id,
         "character": character_name,
-        "theme": request.theme
+        "theme_id": request.theme_id
     }
 
 

@@ -109,6 +109,7 @@ async def analyze_image(
     - makeup: Analyze makeup
     - expression: Analyze facial expression
     - accessories: Analyze accessories
+    - character-appearance: Analyze character physical appearance
     - comprehensive: Run all analyzers
 
     Query Parameters:

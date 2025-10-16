@@ -116,6 +116,30 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">👓</span>
                   <span className="nav-label">Accessories</span>
                 </NavLink>
+                <NavLink to="/entities/story-themes" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📚</span>
+                  <span className="nav-label">Story Themes</span>
+                </NavLink>
+                <NavLink to="/entities/story-audiences" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">👥</span>
+                  <span className="nav-label">Story Audiences</span>
+                </NavLink>
+                <NavLink to="/entities/story-prose-styles" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">✍️</span>
+                  <span className="nav-label">Prose Styles</span>
+                </NavLink>
+                <NavLink to="/entities/story-planner-configs" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📋</span>
+                  <span className="nav-label">Planner Configs</span>
+                </NavLink>
+                <NavLink to="/entities/story-writer-configs" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📝</span>
+                  <span className="nav-label">Writer Configs</span>
+                </NavLink>
+                <NavLink to="/entities/story-illustrator-configs" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎨</span>
+                  <span className="nav-label">Illustrator Configs</span>
+                </NavLink>
               </div>
             )}
           </section>
@@ -184,6 +208,10 @@ function Sidebar({ isOpen, onClose }) {
                       <NavLink to="/tools/analyzers/accessories" className="nav-link nav-link-sub" onClick={onClose}>
                         <span className="nav-icon">👓</span>
                         <span className="nav-label">Accessories</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/character-appearance" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">👤</span>
+                        <span className="nav-label">Character Appearance</span>
                       </NavLink>
                     </>
                   )}

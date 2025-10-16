@@ -24,7 +24,8 @@ from ai_capabilities.specs import (
     HairColorSpec,
     MakeupSpec,
     ExpressionSpec,
-    AccessoriesSpec
+    AccessoriesSpec,
+    CharacterAppearanceSpec
 )
 from api.config import settings
 from api.logging_config import (
@@ -45,7 +46,11 @@ class PresetService:
         "hair_colors",
         "makeup",
         "expressions",
-        "accessories"
+        "accessories",
+        "character_appearance",
+        "story_themes",
+        "story_audiences",
+        "story_prose_styles"
     ]
 
     def __init__(self):
@@ -82,7 +87,8 @@ class PresetService:
                     "hair_colors": HairColorSpec,
                     "makeup": MakeupSpec,
                     "expressions": ExpressionSpec,
-                    "accessories": AccessoriesSpec
+                    "accessories": AccessoriesSpec,
+                    "character_appearance": CharacterAppearanceSpec
                 }
 
                 if category not in spec_class_map:
@@ -225,7 +231,8 @@ class PresetService:
             "hair_colors": HairColorSpec,
             "makeup": MakeupSpec,
             "expressions": ExpressionSpec,
-            "accessories": AccessoriesSpec
+            "accessories": AccessoriesSpec,
+            "character_appearance": CharacterAppearanceSpec
         }
 
         if category not in spec_class_map:

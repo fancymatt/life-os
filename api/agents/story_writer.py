@@ -4,7 +4,10 @@ Story Writer Agent
 Expands story outline into full narrative text.
 """
 
-from typing import Dict, Any, List
+import json
+import aiofiles
+from pathlib import Path
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 
 from api.core.simple_agent import Agent, AgentConfig
@@ -55,7 +58,8 @@ class StoryWriterAgent(Agent):
         Args:
             input_data: Must contain:
                 - outline: StoryOutline dict from planner
-                - prose_style: str (default: 'descriptive')
+                - prose_style_id: str (preset ID, e.g., 'humorous')
+                - writer_config_id: str (optional, default: 'default')
                 - perspective: str (default: 'third_person')
                 - tense: str (default: 'past')
 
@@ -63,26 +67,35 @@ class StoryWriterAgent(Agent):
             Dict with 'written_story' key containing WrittenStory
         """
         # Validate input
-        self.validate_input(input_data, ['outline'])
+        self.validate_input(input_data, ['outline', 'prose_style_id'])
 
         outline = input_data['outline']
-        prose_style = input_data.get('prose_style', 'descriptive')
+        prose_style_id = input_data['prose_style_id']
+        writer_config_id = input_data.get('writer_config_id', 'default')
         perspective = input_data.get('perspective', 'third_person')
         tense = input_data.get('tense', 'past')
 
-        # Build prompt
-        prompt = self._build_writing_prompt(
+        # Load configuration and presets
+        config = await self._load_agent_config(writer_config_id)
+        prose_preset = await self._load_preset('story_prose_styles', prose_style_id)
+
+        # Build prompt using configuration
+        prompt = await self._build_writing_prompt_from_config(
+            config=config,
             outline=outline,
-            prose_style=prose_style,
+            prose_preset=prose_preset,
             perspective=perspective,
             tense=tense
         )
+
+        # Get model from config (with fallback)
+        model = config.get('model', 'gemini/gemini-2.0-flash-exp')
 
         # Call LLM
         try:
             response = await self.llm_router.acall(
                 prompt=prompt,
-                model="gemini/gemini-2.0-flash-exp",
+                model=model,
                 max_tokens=4000  # Longer for full story
             )
 
@@ -90,7 +103,7 @@ class StoryWriterAgent(Agent):
             written_story = self._parse_story_response(
                 response=response,
                 outline=outline,
-                prose_style=prose_style,
+                prose_style=prose_style_id,
                 perspective=perspective,
                 tense=tense
             )
@@ -232,8 +245,15 @@ Write the complete story now with all {len(outline['outline'])} scenes:"""
         # Calculate word count
         word_count = len(response.split())
 
-        # Build full story text
-        full_story = "\n\n".join(scene_texts)
+        # Build full story text with image placement markers
+        # Insert image markers after each scene
+        story_parts = []
+        for i, scene_text in enumerate(scene_texts, 1):
+            story_parts.append(scene_text)
+            # Add image marker at the end of each scene
+            story_parts.append(f"{{image_{i:02d}}}")
+
+        full_story = "\n\n".join(story_parts)
 
         return WrittenStory(
             title=outline['title'],
@@ -246,3 +266,163 @@ Write the complete story now with all {len(outline['outline'])} scenes:"""
                 "tense": tense
             }
         )
+
+    async def _load_agent_config(self, config_id: str) -> Dict[str, Any]:
+        """Load agent configuration from file"""
+        try:
+            config_path = Path(f"/app/configs/agent_configs/story_writer/{config_id}.json")
+            async with aiofiles.open(config_path, 'r') as f:
+                content = await f.read()
+                return json.loads(content)
+        except Exception as e:
+            print(f"⚠️  Could not load writer config '{config_id}', using default: {e}")
+            return {
+                "prompt_template": {
+                    "system_message": "You are a skilled story writer. Write engaging prose.",
+                    "writing_approach": "Create clear, engaging narrative."
+                }
+            }
+
+    async def _load_preset(self, category: str, preset_id: str) -> Dict[str, Any]:
+        """Load preset from file"""
+        try:
+            preset_path = Path(f"/app/presets/{category}/{preset_id}.json")
+            async with aiofiles.open(preset_path, 'r') as f:
+                content = await f.read()
+                return json.loads(content)
+        except Exception as e:
+            print(f"⚠️  Could not load preset '{category}/{preset_id}': {e}")
+            return {}
+
+    async def _build_writing_prompt_from_config(
+        self,
+        config: Dict[str, Any],
+        outline: Dict[str, Any],
+        prose_preset: Dict[str, Any],
+        perspective: str,
+        tense: str
+    ) -> str:
+        """Build prompt dynamically from configuration and presets"""
+
+        # Format outline
+        outline_text = f"**Title**: {outline['title']}\n\n**Scenes**:\n"
+        for scene in outline['outline']:
+            outline_text += f"\n**Scene {scene['scene_number']}: {scene['title']}**\n"
+            outline_text += f"- {scene['description']}\n"
+            outline_text += f"- Action: {scene['action']}\n"
+            outline_text += f"- Target length: ~{scene['estimated_words']} words\n"
+
+        # Get configuration components
+        prompt_template = config.get('prompt_template', {})
+        system_message = prompt_template.get('system_message', '')
+        writing_approach = prompt_template.get('writing_approach', '')
+        writing_principles = prompt_template.get('writing_principles', [])
+        writing_rules = prompt_template.get('writing_rules', [])
+        scene_structure = prompt_template.get('scene_structure', {})
+        techniques = prompt_template.get('techniques', {})
+        avoid_list = prompt_template.get('avoid', [])
+
+        # Get parameters from config
+        params = config.get('parameters', {})
+        word_count_range = params.get('word_count_range', [150, 300])
+
+        # Build prompt
+        prompt_parts = []
+
+        # System message from config
+        if system_message:
+            prompt_parts.append(system_message)
+
+        # Writing approach from config
+        if writing_approach:
+            prompt_parts.append(f"\n**Your Approach**: {writing_approach}")
+
+        # Prose style from preset
+        prose_name = prose_preset.get('suggested_name', 'Standard')
+        prose_desc = prose_preset.get('description', '')
+        prose_voice = prose_preset.get('voice', '')
+        prose_techniques = prose_preset.get('techniques', [])
+        prose_pacing = prose_preset.get('pacing', '')
+        prose_avoid = prose_preset.get('avoid', [])
+
+        prompt_parts.append(f"\n**Prose Style**: {prose_name}")
+        if prose_desc:
+            prompt_parts.append(f"- {prose_desc}")
+        if prose_voice:
+            prompt_parts.append(f"- Voice: {prose_voice}")
+        if prose_pacing:
+            prompt_parts.append(f"- Pacing: {prose_pacing}")
+
+        # Prose techniques from preset
+        if prose_techniques:
+            prompt_parts.append(f"\n**Style Techniques**:")
+            for tech in prose_techniques:
+                prompt_parts.append(f"- {tech}")
+
+        # Writing principles from config
+        if writing_principles:
+            prompt_parts.append(f"\n**Writing Principles**:")
+            for principle in writing_principles:
+                prompt_parts.append(f"- {principle}")
+
+        # Writing rules from config (for configs like show_dont_tell)
+        if writing_rules:
+            prompt_parts.append(f"\n**Writing Rules** (CRITICAL):")
+            for rule in writing_rules:
+                prompt_parts.append(f"- {rule}")
+
+        # Techniques from config
+        if techniques:
+            prompt_parts.append(f"\n**Techniques**:")
+            for key, value in techniques.items():
+                prompt_parts.append(f"- **{key.replace('_', ' ').title()}**: {value}")
+
+        # Things to avoid
+        all_avoid = []
+        if prose_avoid:
+            all_avoid.extend(prose_avoid)
+        if avoid_list:
+            all_avoid.extend(avoid_list)
+        if all_avoid:
+            prompt_parts.append(f"\n**Avoid**:")
+            for item in all_avoid:
+                prompt_parts.append(f"- {item}")
+
+        # Scene structure from config
+        if scene_structure:
+            prompt_parts.append(f"\n**Scene Structure Guidance**:")
+            for key, value in scene_structure.items():
+                prompt_parts.append(f"- **{key.replace('_', ' ').title()}**: {value}")
+
+        # Perspective and tense
+        perspective_guidance = {
+            'first_person': "Write from the protagonist's perspective using 'I'.",
+            'third_person': "Write from an outside perspective using 'he/she/they'.",
+            'second_person': "Write using 'you' to address the reader."
+        }.get(perspective, "Use third person.")
+
+        tense_guidance = {
+            'past': "Use past tense throughout (walked, said, felt).",
+            'present': "Use present tense for immediacy (walks, says, feels)."
+        }.get(tense, "Use past tense.")
+
+        prompt_parts.append(f"\n**Technical Requirements**:")
+        prompt_parts.append(f"- Perspective: {perspective} - {perspective_guidance}")
+        prompt_parts.append(f"- Tense: {tense} - {tense_guidance}")
+        prompt_parts.append(f"- Scene length: {word_count_range[0]}-{word_count_range[1]} words each")
+
+        # The outline
+        prompt_parts.append(f"\n**Story Outline**:")
+        prompt_parts.append(outline_text)
+
+        # Instructions
+        prompt_parts.append(f"\n**Instructions**:")
+        prompt_parts.append(f"1. Write each scene to approximately the target word count")
+        prompt_parts.append(f"2. Maintain consistent character voice throughout")
+        prompt_parts.append(f"3. Create smooth transitions between scenes")
+        prompt_parts.append(f"4. Stay true to the outline's plot points")
+        prompt_parts.append(f"5. Use scene markers: '--- Scene X: [Title] ---'")
+
+        prompt_parts.append(f"\nWrite the complete story now with all {len(outline['outline'])} scenes:")
+
+        return "\n".join(prompt_parts)

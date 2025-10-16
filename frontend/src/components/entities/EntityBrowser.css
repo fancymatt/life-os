@@ -313,6 +313,11 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.entity-detail-full-width {
+  /* Full width layout for entities like stories */
+  width: 100%;
+}
+
 .entity-detail-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;

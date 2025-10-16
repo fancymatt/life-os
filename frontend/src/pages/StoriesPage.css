@@ -228,6 +228,15 @@
   margin: 0 0 1.5rem 0;
 }
 
+.story-inline-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  display: block;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
 .story-reader-footer {
   margin-top: 3rem;
   padding-top: 2rem;

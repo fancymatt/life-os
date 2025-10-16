@@ -10,8 +10,7 @@ import api from '../../api/client'
 function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
   const [formData, setFormData] = useState({
     name: '',
-    personality: '',
-    tags: ''
+    personality: ''
   })
   const [referenceImage, setReferenceImage] = useState(null)
   const [creating, setCreating] = useState(false)
@@ -47,10 +46,7 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
       const submitData = new FormData()
       submitData.append('name', formData.name.trim())
       submitData.append('personality', formData.personality.trim())
-
-      // Parse tags from comma-separated string
-      const tags = formData.tags.split(',').map(t => t.trim()).filter(t => t)
-      submitData.append('tags', JSON.stringify(tags))
+      submitData.append('tags', JSON.stringify([]))
 
       // Add reference image if provided
       if (referenceImage) {
@@ -66,8 +62,7 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
       // Reset form
       setFormData({
         name: '',
-        personality: '',
-        tags: ''
+        personality: ''
       })
       setReferenceImage(null)
 
@@ -88,8 +83,7 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
     if (!creating) {
       setFormData({
         name: '',
-        personality: '',
-        tags: ''
+        personality: ''
       })
       setReferenceImage(null)
       setError(null)
@@ -208,35 +202,6 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
                 fontSize: '0.95rem',
                 resize: 'vertical',
                 fontFamily: 'inherit',
-                outline: 'none'
-              }}
-            />
-          </div>
-
-          {/* Tags */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{
-              display: 'block',
-              color: 'rgba(255, 255, 255, 0.9)',
-              marginBottom: '0.5rem',
-              fontWeight: 500
-            }}>
-              Tags (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={formData.tags}
-              onChange={(e) => handleChange('tags', e.target.value)}
-              placeholder="protagonist, hero, adventure..."
-              disabled={creating}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '0.95rem',
                 outline: 'none'
               }}
             />

@@ -13,8 +13,9 @@ export const charactersConfig = {
   enableSearch: true,
   enableSort: true,
   enableEdit: true,
+  showRefreshButton: false,  // Characters auto-refresh on creation
   defaultSort: 'newest',
-  searchFields: ['name', 'visual_description', 'personality'],
+  searchFields: ['name', 'visual_description', 'physical_description', 'personality'],
 
   // actions will be overridden by CharactersEntity page to provide modal handler
   actions: [],
@@ -27,6 +28,7 @@ export const charactersConfig = {
       title: char.name,
       name: char.name,
       visualDescription: char.visual_description,
+      physicalDescription: char.physical_description,
       personality: char.personality,
       referenceImageUrl: char.reference_image_url,
       tags: char.tags || [],
@@ -59,17 +61,8 @@ export const charactersConfig = {
       <div className="entity-card-content">
         <h3 className="entity-card-title">{character.name}</h3>
         <p className="entity-card-description">
-          {getPreview(character.visualDescription || character.personality || 'No description', 20)}
+          {getPreview(character.visualDescription || character.physicalDescription || character.personality || 'No description', 20)}
         </p>
-        {character.tags.length > 0 && (
-          <div className="entity-card-meta">
-            {character.tags.slice(0, 3).map((tag, idx) => (
-              <span key={idx} className="entity-card-meta-item">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
         {formatDate(character.createdAt) && (
           <p className="entity-card-date">{formatDate(character.createdAt)}</p>
         )}
@@ -119,6 +112,17 @@ export const charactersConfig = {
         </div>
       )}
 
+      {character.physicalDescription && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
+            Physical Description (AI-Analyzed)
+          </h3>
+          <p style={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6', margin: 0 }}>
+            {character.physicalDescription}
+          </p>
+        </div>
+      )}
+
       {character.personality && (
         <div style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
@@ -127,31 +131,6 @@ export const charactersConfig = {
           <p style={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6', margin: 0 }}>
             {character.personality}
           </p>
-        </div>
-      )}
-
-      {character.tags.length > 0 && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
-            Tags
-          </h3>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {character.tags.map((tag, idx) => (
-              <span
-                key={idx}
-                style={{
-                  padding: '0.25rem 0.75rem',
-                  background: 'rgba(102, 126, 234, 0.2)',
-                  border: '1px solid rgba(102, 126, 234, 0.3)',
-                  borderRadius: '12px',
-                  color: '#667eea',
-                  fontSize: '0.85rem'
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
         </div>
       )}
 
@@ -235,28 +214,6 @@ export const charactersConfig = {
           }}
         />
       </div>
-
-      {/* Tags */}
-      <div style={{ marginBottom: '2rem' }}>
-        <label style={{ display: 'block', color: 'rgba(255, 255, 255, 0.9)', marginBottom: '0.5rem', fontWeight: 500 }}>
-          Tags (comma-separated)
-        </label>
-        <input
-          type="text"
-          value={(editedData.tags || []).join(', ')}
-          onChange={(e) => handlers.updateField('tags', e.target.value.split(',').map(t => t.trim()).filter(t => t))}
-          placeholder="protagonist, hero, adventure..."
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '8px',
-            color: 'white',
-            fontSize: '0.95rem'
-          }}
-        />
-      </div>
     </div>
   ),
 
@@ -266,8 +223,7 @@ export const charactersConfig = {
       {
         name: updates.title,
         visual_description: updates.data.visual_description,
-        personality: updates.data.personality,
-        tags: updates.data.tags
+        personality: updates.data.personality
       }
     )
     return response.data

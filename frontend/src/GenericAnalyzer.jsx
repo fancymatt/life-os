@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import './OutfitAnalyzer.css'
 import api from './api/client'
 
-function GenericAnalyzer({ analyzerType, displayName, onClose }) {
+function GenericAnalyzer({ analyzerType: analyzerTypeProp, displayName, onClose }) {
   const navigate = useNavigate()
+  const { type: typeFromUrl } = useParams()
   const handleClose = onClose || (() => navigate(-1))
+
+  // Use prop if provided (modal mode), otherwise use URL param (route mode)
+  const analyzerType = analyzerTypeProp || typeFromUrl
+
   // Map analyzer types to API endpoints and categories
   const analyzerConfig = {
     'visual-style': { category: 'visual_styles', endpoint: '/analyze/visual-style', title: 'Photograph Composition' },
@@ -14,11 +19,12 @@ function GenericAnalyzer({ analyzerType, displayName, onClose }) {
     'hair-color': { category: 'hair_colors', endpoint: '/analyze/hair-color', title: 'Hair Color' },
     'makeup': { category: 'makeup', endpoint: '/analyze/makeup', title: 'Makeup' },
     'expression': { category: 'expressions', endpoint: '/analyze/expression', title: 'Expression' },
-    'accessories': { category: 'accessories', endpoint: '/analyze/accessories', title: 'Accessories' }
+    'accessories': { category: 'accessories', endpoint: '/analyze/accessories', title: 'Accessories' },
+    'character-appearance': { category: 'character_appearance', endpoint: '/analyze/character-appearance', title: 'Character Appearance' }
   }
 
   const config = analyzerConfig[analyzerType]
-  const title = displayName || config.title
+  const title = displayName || (config ? config.title : 'Analyzer')
 
   // View state
   const [view, setView] = useState('list')

@@ -18,6 +18,12 @@ import HairColorsEntity from './pages/entities/HairColorsEntity'
 import VisualStylesEntity from './pages/entities/VisualStylesEntity'
 import ArtStylesEntity from './pages/entities/ArtStylesEntity'
 import AccessoriesEntity from './pages/entities/AccessoriesEntity'
+import StoryThemesEntity from './pages/entities/StoryThemesEntity'
+import StoryAudiencesEntity from './pages/entities/StoryAudiencesEntity'
+import StoryProseStylesEntity from './pages/entities/StoryProseStylesEntity'
+import StoryPlannerConfigsEntity from './pages/entities/StoryPlannerConfigsEntity'
+import StoryWriterConfigsEntity from './pages/entities/StoryWriterConfigsEntity'
+import StoryIllustratorConfigsEntity from './pages/entities/StoryIllustratorConfigsEntity'
 
 // Tool Pages - Analyzers
 import OutfitAnalyzer from './OutfitAnalyzer'
@@ -92,6 +98,18 @@ function App() {
           <Route path="art-styles/:id" element={<ArtStylesEntity />} />
           <Route path="accessories" element={<AccessoriesEntity />} />
           <Route path="accessories/:id" element={<AccessoriesEntity />} />
+          <Route path="story-themes" element={<StoryThemesEntity />} />
+          <Route path="story-themes/:id" element={<StoryThemesEntity />} />
+          <Route path="story-audiences" element={<StoryAudiencesEntity />} />
+          <Route path="story-audiences/:id" element={<StoryAudiencesEntity />} />
+          <Route path="story-prose-styles" element={<StoryProseStylesEntity />} />
+          <Route path="story-prose-styles/:id" element={<StoryProseStylesEntity />} />
+          <Route path="story-planner-configs" element={<StoryPlannerConfigsEntity />} />
+          <Route path="story-planner-configs/:id" element={<StoryPlannerConfigsEntity />} />
+          <Route path="story-writer-configs" element={<StoryWriterConfigsEntity />} />
+          <Route path="story-writer-configs/:id" element={<StoryWriterConfigsEntity />} />
+          <Route path="story-illustrator-configs" element={<StoryIllustratorConfigsEntity />} />
+          <Route path="story-illustrator-configs/:id" element={<StoryIllustratorConfigsEntity />} />
         </Route>
 
         {/* Tools */}

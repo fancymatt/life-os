@@ -15,7 +15,7 @@ from api.config import settings
 from api.logging_config import setup_logging
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters
+from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters, configs
 
 # Initialize logging
 setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
@@ -71,14 +71,12 @@ class CachedStaticFiles(StaticFiles):
         return response
 
 
-# Serve static files (generated images, uploads, subjects) with caching
+# Serve static files (generated images, uploads) with caching
 try:
     # Generated images: 1 hour cache (they don't change once generated)
     app.mount("/output", CachedStaticFiles(directory=str(settings.output_dir), max_age=3600), name="output")
     # Uploads: 30 minute cache (temporary files)
     app.mount("/uploads", CachedStaticFiles(directory=str(settings.upload_dir), max_age=1800), name="uploads")
-    # Subjects: 1 hour cache (reference images)
-    app.mount("/subjects", CachedStaticFiles(directory=str(settings.subjects_dir), max_age=3600), name="subjects")
     print(f"✅ Static file caching enabled (Cache-Control headers)")
 except RuntimeError:
     # Directories might not exist yet
@@ -90,6 +88,7 @@ app.include_router(discovery.router, tags=["discovery"])
 app.include_router(analyzers.router, prefix="/analyze", tags=["analyzers"])
 app.include_router(generators.router, prefix="/generate", tags=["generators"])
 app.include_router(presets.router, prefix="/presets", tags=["presets"])
+app.include_router(configs.router, prefix="/configs", tags=["configurations"])
 app.include_router(characters.router, prefix="/characters", tags=["characters"])
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(favorites.router, prefix="/favorites", tags=["favorites"])

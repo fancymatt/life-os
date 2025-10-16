@@ -213,6 +213,23 @@ class AccessoriesSpec(BaseModel):
     overall_style: str = Field(..., description="Accessory styling approach")
 
 
+class CharacterAppearanceSpec(BaseModel):
+    """Character physical appearance analysis"""
+    _metadata: Optional[SpecMetadata] = None
+    suggested_name: str = Field(..., description="Short descriptive name (2-4 words, e.g., 'Young Adult Woman', 'Middle-Aged Man')")
+    age_appearance: str = Field(..., description="Apparent age or age group (e.g., 'young child', 'teenager', 'young adult', 'middle-aged', 'elderly')")
+    gender_presentation: str = Field(..., description="Gender presentation (e.g., 'masculine', 'feminine', 'androgynous')")
+    ethnicity: Optional[str] = Field(None, description="Apparent ethnicity or ethnic features if discernible")
+    skin_tone: str = Field(..., description="Skin tone description (e.g., 'fair', 'light', 'medium', 'olive', 'tan', 'brown', 'dark')")
+    face_shape: str = Field(..., description="Face shape (e.g., 'round', 'oval', 'heart-shaped', 'square', 'long')")
+    hair_description: str = Field(..., description="Complete hair description including color, style, length, and texture")
+    eye_description: str = Field(..., description="Eye description including color and notable features")
+    build: str = Field(..., description="Body build or physique (e.g., 'slender', 'athletic', 'average', 'stocky', 'petite', 'tall')")
+    height_appearance: str = Field(..., description="Apparent height (e.g., 'short', 'average height', 'tall')")
+    distinctive_features: Optional[str] = Field(None, description="Any distinctive features like freckles, dimples, scars, tattoos, etc.")
+    overall_description: str = Field(..., description="A complete, natural-language description combining all features")
+
+
 class ComprehensiveSpec(BaseModel):
     """Comprehensive analysis combining all aspects"""
     _metadata: Optional[SpecMetadata] = None

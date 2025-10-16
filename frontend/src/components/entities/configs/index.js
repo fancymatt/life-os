@@ -17,3 +17,11 @@ export {
   accessoriesConfig
 } from './presetsConfig'
 export { charactersConfig } from './charactersConfig'
+export {
+  storyThemesConfig,
+  storyAudiencesConfig,
+  storyProseStylesConfig,
+  storyPlannerConfigsConfig,
+  storyWriterConfigsConfig,
+  storyIllustratorConfigsConfig
+} from './storyToolsConfig'

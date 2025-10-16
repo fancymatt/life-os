@@ -18,6 +18,7 @@ from ai_tools.hair_color_analyzer.tool import HairColorAnalyzer
 from ai_tools.makeup_analyzer.tool import MakeupAnalyzer
 from ai_tools.expression_analyzer.tool import ExpressionAnalyzer
 from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
+from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
 from ai_tools.comprehensive_analyzer.tool import ComprehensiveAnalyzer
 
 
@@ -81,6 +82,13 @@ class AnalyzerService:
             "category": "analyzer",
             "cost": 0.001,
             "avg_time": 3.0
+        },
+        "character-appearance": {
+            "class": CharacterAppearanceAnalyzer,
+            "description": "Analyze character physical appearance (age, gender, ethnicity, features)",
+            "category": "analyzer",
+            "cost": 0.002,
+            "avg_time": 4.0
         },
         "comprehensive": {
             "class": ComprehensiveAnalyzer,
@@ -176,7 +184,8 @@ class AnalyzerService:
                         "hair-color": "hair_colors",
                         "makeup": "makeup",
                         "expression": "expressions",
-                        "accessories": "accessories"
+                        "accessories": "accessories",
+                        "character-appearance": "character_appearance"
                     }
 
                     # Save using PresetManager directly

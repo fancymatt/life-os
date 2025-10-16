@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './StoryToolsPage.css'
 import api from '../api/client'
 
 function StoryPlannerPage() {
   const navigate = useNavigate()
+  const [useExistingCharacter, setUseExistingCharacter] = useState(false)
+  const [characters, setCharacters] = useState([])
+  const [selectedCharacterId, setSelectedCharacterId] = useState('')
   const [characterName, setCharacterName] = useState('')
   const [characterTraits, setCharacterTraits] = useState('')
   const [theme, setTheme] = useState('adventure')
@@ -24,6 +27,45 @@ function StoryPlannerPage() {
     'courage',
     'discovery'
   ]
+
+  // Fetch characters on mount
+  useEffect(() => {
+    const fetchCharacters = async () => {
+      try {
+        const response = await api.get('/characters/')
+        setCharacters(response.data.characters || [])
+      } catch (err) {
+        console.error('Failed to fetch characters:', err)
+      }
+    }
+    fetchCharacters()
+  }, [])
+
+  // Handle character selection
+  const handleCharacterSelect = (characterId) => {
+    setSelectedCharacterId(characterId)
+
+    if (!characterId) {
+      setCharacterName('')
+      setCharacterTraits('')
+      return
+    }
+
+    const character = characters.find(c => c.character_id === characterId)
+    if (character) {
+      setCharacterName(character.name)
+
+      // Build traits from visual description and personality
+      const traits = []
+      if (character.personality) {
+        traits.push(character.personality)
+      }
+      if (character.visual_description) {
+        traits.push(character.visual_description)
+      }
+      setCharacterTraits(traits.join('. '))
+    }
+  }
 
   const handleExecute = async () => {
     if (!characterName.trim()) {
@@ -86,6 +128,49 @@ function StoryPlannerPage() {
           <h3>Character</h3>
 
           <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={useExistingCharacter}
+                onChange={(e) => {
+                  setUseExistingCharacter(e.target.checked)
+                  if (!e.target.checked) {
+                    setSelectedCharacterId('')
+                    setCharacterName('')
+                    setCharacterTraits('')
+                  }
+                }}
+                disabled={running}
+              />
+              <span>Use existing character</span>
+            </label>
+          </div>
+
+          {useExistingCharacter && (
+            <div className="form-group">
+              <label htmlFor="character-select">Select Character *</label>
+              <select
+                id="character-select"
+                value={selectedCharacterId}
+                onChange={(e) => handleCharacterSelect(e.target.value)}
+                disabled={running}
+              >
+                <option value="">-- Select a character --</option>
+                {characters.map(char => (
+                  <option key={char.character_id} value={char.character_id}>
+                    {char.name}
+                  </option>
+                ))}
+              </select>
+              {characters.length === 0 && (
+                <small style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                  No characters available. Create one in the Characters section first.
+                </small>
+              )}
+            </div>
+          )}
+
+          <div className="form-group">
             <label htmlFor="character-name">Character Name *</label>
             <input
               type="text"
@@ -93,7 +178,7 @@ function StoryPlannerPage() {
               value={characterName}
               onChange={(e) => setCharacterName(e.target.value)}
               placeholder="e.g., Luna, Max, Zara"
-              disabled={running}
+              disabled={running || useExistingCharacter}
             />
           </div>
 
@@ -105,7 +190,7 @@ function StoryPlannerPage() {
               onChange={(e) => setCharacterTraits(e.target.value)}
               placeholder="e.g., curious, brave, loves adventure"
               rows="3"
-              disabled={running}
+              disabled={running || useExistingCharacter}
             />
             <small>Optional - describes your character's personality</small>
           </div>

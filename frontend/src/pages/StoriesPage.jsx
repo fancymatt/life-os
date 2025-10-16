@@ -4,6 +4,7 @@ import './StoriesPage.css'
 import api from '../api/client'
 
 function StoriesPage() {
+  console.log('StoriesPage loaded with markdown rendering')
   const navigate = useNavigate()
   const [stories, setStories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -65,6 +66,15 @@ function StoriesPage() {
     const words = text.split(/\s+/)
     if (words.length <= maxWords) return text
     return words.slice(0, maxWords).join(' ') + '...'
+  }
+
+  // Convert markdown images to HTML
+  const convertMarkdownImages = (text) => {
+    // Replace ![alt](url) with <img src="url" alt="alt" class="story-inline-image" />
+    return text.replace(
+      /!\[([^\]]*)\]\(([^\)]+)\)/g,
+      '<img src="$2" alt="$1" class="story-inline-image" onError="this.style.display=\'none\'" />'
+    )
   }
 
   return (
@@ -158,7 +168,10 @@ function StoriesPage() {
 
               <div className="story-reader-text">
                 {selectedStory.story.split('\n\n').map((paragraph, idx) => (
-                  <p key={idx}>{paragraph}</p>
+                  <p
+                    key={idx}
+                    dangerouslySetInnerHTML={{ __html: convertMarkdownImages(paragraph) }}
+                  />
                 ))}
               </div>
 

@@ -61,6 +61,7 @@ class CharacterService:
             "name": name,
             "visual_description": visual_description,
             "personality": personality,
+            "physical_description": None,  # Analyzed physical appearance (auto-generated)
             "reference_image_path": reference_image_path,
             "tags": tags or [],
             "created_at": datetime.utcnow().isoformat(),
@@ -125,6 +126,7 @@ class CharacterService:
         name: Optional[str] = None,
         visual_description: Optional[str] = None,
         personality: Optional[str] = None,
+        physical_description: Optional[str] = None,
         reference_image_path: Optional[str] = None,
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Any]] = None
@@ -137,6 +139,7 @@ class CharacterService:
             name: New name (optional)
             visual_description: New visual description (optional)
             personality: New personality (optional)
+            physical_description: Analyzed physical appearance (optional)
             reference_image_path: New reference image path (optional)
             tags: New tags (optional)
             metadata: New metadata (optional)
@@ -156,6 +159,8 @@ class CharacterService:
             character_data['visual_description'] = visual_description
         if personality is not None:
             character_data['personality'] = personality
+        if physical_description is not None:
+            character_data['physical_description'] = physical_description
         if reference_image_path is not None:
             character_data['reference_image_path'] = reference_image_path
         if tags is not None:

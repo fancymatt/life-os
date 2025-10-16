@@ -114,6 +114,7 @@ class CharacterInfo(BaseModel):
     character_id: str
     name: str
     visual_description: Optional[str] = None
+    physical_description: Optional[str] = None
     personality: Optional[str] = None
     reference_image_url: Optional[str] = None
     tags: List[str] = []

@@ -242,10 +242,15 @@ function EntityBrowser({ config }) {
     const entityId = entity.presetId || entity.characterId || entity.id
     const pathSegments = location.pathname.split('/').filter(s => s)
 
-    // If the last segment looks like an ID (contains hyphens/long string), remove it
-    // Otherwise keep the full path
+    // If the last segment looks like an entity ID (UUID format or matches known ID patterns), remove it
+    // UUIDs have 4+ hyphens (e.g., "d7db2bd4-47bd-4125-a47c-749e172eaa17")
+    // Route names like "story-themes" only have 1-2 hyphens
     let basePath
-    if (pathSegments.length > 0 && (pathSegments[pathSegments.length - 1].includes('-') || pathSegments[pathSegments.length - 1].length > 20)) {
+    const lastSegment = pathSegments[pathSegments.length - 1] || ''
+    const isUUID = (lastSegment.match(/-/g) || []).length >= 4
+    const looksLikeId = isUUID || (lastSegment.length > 30 && !lastSegment.includes('-'))
+
+    if (pathSegments.length > 0 && looksLikeId) {
       basePath = '/' + pathSegments.slice(0, -1).join('/')
     } else {
       basePath = '/' + pathSegments.join('/')
@@ -430,9 +435,11 @@ function EntityBrowser({ config }) {
               </p>
             </div>
             <div className="entity-header-right">
-              <button className="refresh-button" onClick={handleRefresh} disabled={loading}>
-                🔄 Refresh
-              </button>
+              {(config.showRefreshButton !== false) && (
+                <button className="refresh-button" onClick={handleRefresh} disabled={loading}>
+                  🔄 Refresh
+                </button>
+              )}
               {config.actions?.map((action, idx) => (
                 <button
                   key={idx}
@@ -571,21 +578,9 @@ function EntityBrowser({ config }) {
               </div>
             )}
 
-            {/* Two Column Layout */}
-            <div className="entity-detail-columns">
-              {/* Left Column - Preview */}
-              <div className="entity-detail-preview">
-                {config.renderPreview ? (
-                  config.renderPreview(selectedEntity)
-                ) : (
-                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', borderRadius: '8px', padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-                    Preview not available
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column - Details/Edit */}
-              <div className="entity-detail-content">
+            {config.fullWidthDetail ? (
+              /* Full Width Layout - for entities like stories */
+              <div className="entity-detail-full-width">
                 {config.enableEdit && config.renderEdit ? (
                   // Always in edit mode for editable entities
                   <>
@@ -625,7 +620,63 @@ function EntityBrowser({ config }) {
                   config.renderDetail(selectedEntity, handleBackToList)
                 )}
               </div>
-            </div>
+            ) : (
+              /* Two Column Layout - for entities with preview */
+              <div className="entity-detail-columns">
+                {/* Left Column - Preview */}
+                <div className="entity-detail-preview">
+                  {config.renderPreview ? (
+                    config.renderPreview(selectedEntity)
+                  ) : (
+                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', borderRadius: '8px', padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      Preview not available
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column - Details/Edit */}
+                <div className="entity-detail-content">
+                  {config.enableEdit && config.renderEdit ? (
+                    // Always in edit mode for editable entities
+                    <>
+                      {config.renderEdit(selectedEntity, editedData, editedTitle, {
+                        updateField,
+                        setEditedTitle
+                      })}
+
+                      <div className="entity-detail-actions">
+                        <button
+                          onClick={handleDelete}
+                          disabled={saving}
+                          className="delete-button"
+                        >
+                          Delete
+                        </button>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
+                          <button
+                            onClick={handleResetChanges}
+                            disabled={saving}
+                            className="cancel-button"
+                          >
+                            Reset Changes
+                          </button>
+                          <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="save-button"
+                          >
+                            {saving ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // For entities without edit capability, just show renderDetail
+                    config.renderDetail(selectedEntity, handleBackToList)
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
