@@ -33,7 +33,12 @@ export const charactersConfig = {
       referenceImageUrl: char.reference_image_url,
       tags: char.tags || [],
       createdAt: char.created_at,
-      metadata: char.metadata || {}
+      metadata: char.metadata || {},
+      // Wrap editable fields in data property for EntityBrowser
+      data: {
+        visual_description: char.visual_description,
+        personality: char.personality
+      }
     }))
   },
 
