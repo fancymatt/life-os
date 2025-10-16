@@ -24,6 +24,7 @@ class JobType(str, Enum):
     GENERATE_THUMBNAIL = "generate_thumbnail"
     BATCH_ANALYZE = "batch_analyze"
     BATCH_GENERATE = "batch_generate"
+    WORKFLOW = "workflow"
 
 
 class Job(BaseModel):
