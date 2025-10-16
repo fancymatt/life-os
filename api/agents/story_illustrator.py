@@ -459,6 +459,10 @@ class StoryIllustratorAgent(Agent):
         # Build prompt parts
         prompt_parts = []
 
+        # For realistic mode, establish photorealistic intent at the beginning
+        if is_realistic:
+            prompt_parts.append("Create a photorealistic photograph.")
+
         # Core scene description
         prompt_parts.append(scene_prompt)
 
@@ -472,13 +476,16 @@ class StoryIllustratorAgent(Agent):
 
         # Apply cinematography/composition guidance from config (independent of art style)
         # This includes framing, lighting, camera angles - works with both realistic and styled rendering
+        # However, skip illustration-specific language in realistic mode
 
-        # System context from config (for complex configs like cinematic)
-        if system_message and system_message != "Create clear, engaging illustrations that capture key story moments.":
-            # Only include if it's not the generic default
-            prompt_parts.append(f"Composition Context: {system_message}")
+        # System context from config (skip in realistic mode - often says "creating illustrations")
+        if not is_realistic:
+            if system_message and system_message != "Create clear, engaging illustrations that capture key story moments.":
+                # Only include if it's not the generic default
+                prompt_parts.append(f"Composition Context: {system_message}")
 
         # Visual principles from config (composition, framing, mood)
+        # Keep these as they're mostly technical (camera angles, composition rules)
         if visual_principles and len(visual_principles) > 0:
             # Add first few principles as inline guidance
             key_principles = visual_principles[:3]  # Top 3 most important
@@ -489,13 +496,13 @@ class StoryIllustratorAgent(Agent):
         if lighting_guidance:
             prompt_parts.append(lighting_guidance)
 
-        # Style notes for specific configs (like storybook, graphic novel)
-        # Note: These are about composition/mood, not rendering style
-        if style_notes and len(style_notes) > 0:
-            # Add one or two key style notes
-            key_notes = style_notes[:2]
-            for note in key_notes:
-                prompt_parts.append(note)
+        # Style notes for specific configs (skip in realistic mode - usually illustration-specific)
+        if not is_realistic:
+            if style_notes and len(style_notes) > 0:
+                # Add one or two key style notes
+                key_notes = style_notes[:2]
+                for note in key_notes:
+                    prompt_parts.append(note)
 
         # Art style handling (realistic vs styled rendering)
         if not is_realistic:
@@ -511,7 +518,7 @@ class StoryIllustratorAgent(Agent):
             style_desc = style_descriptions.get(art_style, art_style)
             prompt_parts.append(f"{style_desc}. High quality, professional illustration.")
         else:
-            # Realistic mode - no stylization
-            prompt_parts.append("Photorealistic image, natural lighting, realistic photography style, high quality.")
+            # Realistic mode - strong emphasis on photography, not illustration
+            prompt_parts.append("Professional photography. Photorealistic. Real camera, real lighting. NOT illustrated, NOT drawn, NOT animated. High quality photograph.")
 
         return " ".join(prompt_parts)
