@@ -8,6 +8,7 @@ import ComposerPage from './pages/ComposerPage'
 import GalleryPage from './pages/GalleryPage'
 import JobsPage from './pages/JobsPage'
 import StoryWorkflowPage from './pages/StoryWorkflowPage'
+import StoriesPage from './pages/StoriesPage'
 import OutfitAnalyzer from './OutfitAnalyzer'
 import GenericAnalyzer from './GenericAnalyzer'
 import ModularGenerator from './ModularGenerator'
@@ -42,6 +43,7 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="composer" element={<ComposerPage />} />
         <Route path="gallery" element={<GalleryPage />} />
+        <Route path="stories" element={<StoriesPage />} />
 
         {/* Analyzer routes */}
         <Route path="analyzers">

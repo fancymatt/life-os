@@ -28,6 +28,10 @@ function Sidebar({ isOpen, onClose }) {
               <span className="nav-icon">🖼️</span>
               <span className="nav-label">Gallery</span>
             </NavLink>
+            <NavLink to="/stories" className="nav-link" onClick={onClose}>
+              <span className="nav-icon">📚</span>
+              <span className="nav-label">Stories</span>
+            </NavLink>
             <NavLink to="/jobs" className="nav-link" onClick={onClose}>
               <span className="nav-icon">📋</span>
               <span className="nav-label">Job History</span>
