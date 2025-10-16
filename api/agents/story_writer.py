@@ -80,9 +80,9 @@ class StoryWriterAgent(Agent):
 
         # Call LLM
         try:
-            response = await self.llm_router.call(
+            response = await self.llm_router.acall(
                 prompt=prompt,
-                model="gemini-2.0-flash-exp",
+                model="gemini/gemini-2.0-flash-exp",
                 max_tokens=4000  # Longer for full story
             )
 

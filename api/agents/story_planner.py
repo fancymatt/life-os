@@ -92,7 +92,7 @@ class StoryPlannerAgent(Agent):
             outline = await self.llm_router.call_structured(
                 prompt=prompt,
                 response_model=StoryOutline,
-                model="gemini-2.0-flash-exp"
+                model="gemini/gemini-2.0-flash-exp"
             )
 
             return {
