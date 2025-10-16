@@ -46,68 +46,25 @@ function Dashboard() {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>🎨 Dashboard</h1>
+        <h1>Dashboard</h1>
         <p className="subtitle">Welcome to Life-OS AI Studio</p>
       </header>
 
-      {/* Featured Tools */}
-      <section className="featured-section">
-        <h2>✨ Featured</h2>
-        <div className="featured-grid">
-          <div
-            className="featured-card composer"
-            onClick={() => navigate('/composer')}
-          >
-            <div className="featured-icon">🎭</div>
-            <h3>Preset Composer</h3>
+      {/* Main Tools */}
+      <section className="tools-section">
+        <h2>Main Tools</h2>
+        <div className="tools-grid">
+          <div className="tool-card" onClick={() => navigate('/composer')}>
+            <h3>🎭 Preset Composer</h3>
             <p>Drag and drop presets to build stunning compositions</p>
-            <span className="featured-badge">Most Popular</span>
           </div>
-
-          <div
-            className="featured-card workflow"
-            onClick={() => navigate('/workflows/story')}
-          >
-            <div className="featured-icon">📖</div>
-            <h3>Story Generator</h3>
-            <p>Create illustrated stories with AI workflows</p>
-            <span className="featured-badge new">New</span>
+          <div className="tool-card" onClick={() => navigate('/gallery')}>
+            <h3>🖼️ Gallery</h3>
+            <p>View and manage your generated images</p>
           </div>
-
-          <div
-            className="featured-card generator"
-            onClick={() => navigate('/generators/modular')}
-          >
-            <div className="featured-icon">🎨</div>
-            <h3>Modular Generator</h3>
+          <div className="tool-card" onClick={() => navigate('/generators/modular')}>
+            <h3>🎨 Modular Generator</h3>
             <p>Mix and match presets for custom images</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Stats */}
-      <section className="stats-section">
-        <div className="stat-card">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <h3>{analyzers.length}</h3>
-            <p>Analyzers</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">✨</div>
-          <div className="stat-content">
-            <h3>{generators.length + 2}</h3>
-            <p>Generators</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">⚙️</div>
-          <div className="stat-content">
-            <h3>1</h3>
-            <p>Workflows</p>
           </div>
         </div>
       </section>
@@ -139,7 +96,7 @@ function Dashboard() {
 
       {/* Generators */}
       <section className="tools-section">
-        <h2>🎨 Generators</h2>
+        <h2>Generators</h2>
         <div className="tools-grid">
           {generators.map(tool => (
             <div
@@ -151,6 +108,17 @@ function Dashboard() {
               <p>{tool.description}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Workflows */}
+      <section className="tools-section">
+        <h2>Workflows</h2>
+        <div className="tools-grid">
+          <div className="tool-card" onClick={() => navigate('/workflows/story')}>
+            <h3>📖 Story Generator</h3>
+            <p>Create illustrated stories with AI workflows</p>
+          </div>
         </div>
       </section>
     </div>
