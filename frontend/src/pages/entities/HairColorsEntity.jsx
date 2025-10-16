@@ -1,5 +1,5 @@
 import EntityBrowser from '../../components/entities/EntityBrowser'
-import { hairColorsConfig } from '../../components/entities/entityConfigs'
+import { hairColorsConfig } from '../../components/entities/configs'
 
 function HairColorsEntity() {
   return <EntityBrowser config={hairColorsConfig} />

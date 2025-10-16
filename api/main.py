@@ -15,7 +15,7 @@ from api.config import settings
 from api.logging_config import setup_logging
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows
+from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters
 
 # Initialize logging
 setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
@@ -90,10 +90,12 @@ app.include_router(discovery.router, tags=["discovery"])
 app.include_router(analyzers.router, prefix="/analyze", tags=["analyzers"])
 app.include_router(generators.router, prefix="/generate", tags=["generators"])
 app.include_router(presets.router, prefix="/presets", tags=["presets"])
+app.include_router(characters.router, prefix="/characters", tags=["characters"])
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(favorites.router, prefix="/favorites", tags=["favorites"])
 app.include_router(compositions.router, prefix="/compositions", tags=["compositions"])
 app.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
+app.include_router(story_tools.router, prefix="/story-tools", tags=["story-tools"])
 
 
 @app.get("/", response_model=APIInfo)

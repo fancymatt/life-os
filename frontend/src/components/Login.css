@@ -43,20 +43,33 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   font-weight: 600;
-  color: #374151;
+  color: #374151 !important;
   font-size: 0.875rem;
+  display: block;
 }
 
 .form-group input {
   padding: 0.75rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #d1d5db !important;
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.2s;
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.form-group input::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
 }
 
 .form-group input:focus {
@@ -66,8 +79,38 @@
 }
 
 .form-group input:disabled {
-  background-color: #f3f4f6;
+  background-color: #f3f4f6 !important;
   cursor: not-allowed;
+}
+
+/* Override browser autofill styles */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus,
+.form-group input:-webkit-autofill:active {
+  -webkit-text-fill-color: #1f2937 !important;
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  box-shadow: 0 0 0 30px white inset !important;
+  background-color: white !important;
+}
+
+/* Force visibility for password fields */
+.form-group input[type="password"] {
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  background-color: #ffffff !important;
+  display: block !important;
+  width: 100% !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  border: 2px solid #d1d5db !important;
+}
+
+/* Extra specificity for password input */
+input#password {
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  background-color: #ffffff !important;
 }
 
 .error-message {

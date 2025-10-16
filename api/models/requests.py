@@ -156,3 +156,61 @@ class ModularGenerateRequest(BaseModel):
                 "visual_style": "film-noir-id"
             }
         }
+
+
+class CharacterCreate(BaseModel):
+    """Request to create a character"""
+    name: str = Field(..., description="Character name")
+    visual_description: Optional[str] = Field(None, description="Visual appearance description")
+    personality: Optional[str] = Field(None, description="Personality traits and characteristics")
+    reference_image: Optional[ImageInput] = Field(None, description="Reference image for the character")
+    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Luna",
+                "visual_description": "young girl with curly brown hair and green eyes, wearing a red dress",
+                "personality": "curious and brave, loves to explore",
+                "tags": ["protagonist", "adventure"]
+            }
+        }
+
+
+class CharacterUpdate(BaseModel):
+    """Request to update a character"""
+    name: Optional[str] = Field(None, description="Character name")
+    visual_description: Optional[str] = Field(None, description="Visual appearance description")
+    personality: Optional[str] = Field(None, description="Personality traits")
+    reference_image: Optional[ImageInput] = Field(None, description="Reference image")
+    tags: Optional[List[str]] = Field(None, description="Tags")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Luna the Explorer",
+                "personality": "curious, brave, and kind-hearted"
+            }
+        }
+
+
+class CharacterFromSubject(BaseModel):
+    """Request to create character from a subject image"""
+    subject_path: str = Field(..., description="Path to subject image (e.g., jenny.png) or full URL")
+    name: str = Field(..., description="Character name")
+    analyze_first: bool = Field(True, description="Run comprehensive analysis first")
+    create_presets: bool = Field(False, description="Create presets from analysis")
+    personality: Optional[str] = Field(None, description="Personality traits")
+    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "subject_path": "jenny.png",
+                "name": "Jenny",
+                "analyze_first": True,
+                "create_presets": False,
+                "personality": "cheerful and energetic",
+                "tags": ["main", "protagonist"]
+            }
+        }

@@ -107,3 +107,28 @@ class HealthResponse(BaseModel):
         "cache_dir": False,
         "output_dir": False
     }
+
+
+class CharacterInfo(BaseModel):
+    """Character information"""
+    character_id: str
+    name: str
+    visual_description: Optional[str] = None
+    personality: Optional[str] = None
+    reference_image_url: Optional[str] = None
+    tags: List[str] = []
+    created_at: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+
+class CharacterListResponse(BaseModel):
+    """List of characters"""
+    count: int
+    characters: List[CharacterInfo]
+
+
+class CharacterFromSubjectResponse(BaseModel):
+    """Response from creating character from subject"""
+    character: CharacterInfo
+    analysis: Optional[Dict[str, Any]] = None
+    created_presets: List[Dict[str, str]] = []  # [{"type": "outfit", "preset_id": "...", "name": "..."}]

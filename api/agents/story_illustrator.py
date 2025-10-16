@@ -157,26 +157,47 @@ class StoryIllustratorAgent(Agent):
 
     async def _generate_illustration(self, prompt: str) -> Dict[str, Any]:
         """Generate a single illustration"""
-
-        # For now, use direct image generation
-        # In a full implementation, this would use the modular generator with presets
-
-        # Use the LLM router to generate image
-        from ai_tools.shared.router import LLMRouter
-        router = LLMRouter()
+        import os
+        import base64
+        from pathlib import Path
+        from openai import AsyncOpenAI
 
         try:
-            # Generate image using Gemini
-            image_url = await router.generate_image_with_gemini(
+            # Use DALL-E for text-to-image generation
+            client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+            response = await client.images.generate(
+                model="dall-e-3",
                 prompt=prompt,
-                output_format="image/png",
-                num_images=1
+                size="1024x1024",
+                quality="standard",
+                n=1
             )
 
-            # The image URL needs to be saved to the output directory
-            # For now, return the generated URL
+            # Download the generated image
+            import httpx
+            image_url = response.data[0].url
+
+            async with httpx.AsyncClient() as http_client:
+                img_response = await http_client.get(image_url)
+                img_response.raise_for_status()
+                image_data = img_response.content
+
+            # Save to output directory
+            output_dir = Path("/app/output/stories")
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate unique filename
+            import uuid
+            filename = f"story_ill_{uuid.uuid4().hex[:12]}.png"
+            output_path = output_dir / filename
+
+            with open(output_path, 'wb') as f:
+                f.write(image_data)
+
+            # Return URL path
             return {
-                "image_url": image_url if image_url else "/output/placeholder.png",
+                "image_url": f"/output/stories/{filename}",
                 "prompt": prompt
             }
 

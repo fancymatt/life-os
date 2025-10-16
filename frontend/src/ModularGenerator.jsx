@@ -9,6 +9,9 @@ function ModularGenerator({ onClose }) {
   const handleClose = onClose || (() => navigate(-1))
   // Subject selection
   const [subject, setSubject] = useState('jenny.png')
+  const [characters, setCharacters] = useState([])
+  const [subjects, setSubjects] = useState([])
+  const [loadingSubjects, setLoadingSubjects] = useState(true)
 
   // Category configurations
   const categories = [
@@ -46,7 +49,35 @@ function ModularGenerator({ onClose }) {
 
     // Fetch user favorites
     fetchFavorites()
+
+    // Fetch characters and subjects
+    fetchCharactersAndSubjects()
   }, [])
+
+  const fetchCharactersAndSubjects = async () => {
+    setLoadingSubjects(true)
+    try {
+      // Fetch characters
+      const charsResponse = await api.get('/characters/')
+      setCharacters(charsResponse.data.characters || [])
+
+      // Fetch subjects
+      const subsResponse = await api.get('/analyze/subjects')
+      setSubjects(subsResponse.data || [])
+
+      // Set default subject if available
+      if (charsResponse.data.characters && charsResponse.data.characters.length > 0) {
+        setSubject(`character:${charsResponse.data.characters[0].character_id}`)
+      } else if (subsResponse.data && subsResponse.data.length > 0) {
+        setSubject(subsResponse.data[0].filename)
+      }
+    } catch (err) {
+      console.error('Failed to fetch characters/subjects:', err)
+      setError('Failed to load characters and subjects')
+    } finally {
+      setLoadingSubjects(false)
+    }
+  }
 
   const fetchFavorites = async () => {
     try {
@@ -214,13 +245,37 @@ function ModularGenerator({ onClose }) {
           {/* Subject Selection */}
           <div className="form-group">
             <label htmlFor="subject">Subject Image</label>
-            <select
-              id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-            >
-              <option value="jenny.png">jenny.png</option>
-            </select>
+            {loadingSubjects ? (
+              <div className="loading">Loading subjects...</div>
+            ) : (
+              <select
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              >
+                {characters.length > 0 && (
+                  <optgroup label="Characters">
+                    {characters.map(char => (
+                      <option key={char.character_id} value={`character:${char.character_id}`}>
+                        {char.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {subjects.length > 0 && (
+                  <optgroup label="Subjects">
+                    {subjects.map(sub => (
+                      <option key={sub.filename} value={sub.filename}>
+                        {sub.filename}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {characters.length === 0 && subjects.length === 0 && (
+                  <option value="">No subjects or characters available</option>
+                )}
+              </select>
+            )}
           </div>
 
           {/* Category Selections */}

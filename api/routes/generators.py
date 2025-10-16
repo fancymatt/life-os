@@ -35,28 +35,48 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
     Modular generation endpoint for frontend workflow
 
     Accepts a subject image path and preset IDs for any combination of categories.
+    Also supports character IDs in the format "character:{character_id}".
     Generates multiple variations in the background.
     """
     from ai_tools.modular_image_generator.tool import ModularImageGenerator
+    from api.services.character_service import CharacterService
 
     # Resolve subject image path
-    subject_path = Path(request.subject_image)
+    # Check if it's a character reference
+    if request.subject_image.startswith("character:"):
+        character_id = request.subject_image.split(":", 1)[1]
+        character_service = CharacterService()
+        character_data = character_service.get_character(character_id)
 
-    # If it's just a filename (no path), look in subjects directory first, then uploads
-    if not subject_path.is_absolute() and str(subject_path).count('/') == 0:
-        # Try subjects directory
-        subjects_path = settings.subjects_dir / request.subject_image
-        if subjects_path.exists():
-            subject_path = subjects_path
-        else:
-            # Try uploads directory
-            uploads_path = settings.upload_dir / request.subject_image
-            if uploads_path.exists():
-                subject_path = uploads_path
+        if not character_data:
+            raise HTTPException(status_code=404, detail=f"Character not found: {character_id}")
+
+        reference_image_path = character_data.get('reference_image_path')
+        if not reference_image_path:
+            raise HTTPException(status_code=404, detail=f"Character {character_id} has no reference image")
+
+        subject_path = Path(reference_image_path)
+        if not subject_path.exists():
+            raise HTTPException(status_code=404, detail=f"Character reference image not found: {reference_image_path}")
+    else:
+        # Regular subject image path
+        subject_path = Path(request.subject_image)
+
+        # If it's just a filename (no path), look in subjects directory first, then uploads
+        if not subject_path.is_absolute() and str(subject_path).count('/') == 0:
+            # Try subjects directory
+            subjects_path = settings.subjects_dir / request.subject_image
+            if subjects_path.exists():
+                subject_path = subjects_path
             else:
-                raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
-    elif not subject_path.exists():
-        raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
+                # Try uploads directory
+                uploads_path = settings.upload_dir / request.subject_image
+                if uploads_path.exists():
+                    subject_path = uploads_path
+                else:
+                    raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
+        elif not subject_path.exists():
+            raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
 
     # Create job for tracking
     job_manager = get_job_queue_manager()
