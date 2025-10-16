@@ -6,6 +6,8 @@ import Layout from './components/layout/Layout'
 import Dashboard from './pages/Dashboard'
 import ComposerPage from './pages/ComposerPage'
 import GalleryPage from './pages/GalleryPage'
+import JobsPage from './pages/JobsPage'
+import StoryWorkflowPage from './pages/StoryWorkflowPage'
 import OutfitAnalyzer from './OutfitAnalyzer'
 import GenericAnalyzer from './GenericAnalyzer'
 import ModularGenerator from './ModularGenerator'
@@ -55,14 +57,14 @@ function App() {
           <Route path="modular" element={<ModularGenerator />} />
         </Route>
 
-        {/* Workflow routes - placeholder for now */}
+        {/* Workflow routes */}
         <Route path="workflows">
           <Route index element={<Dashboard />} />
-          <Route path="story" element={<Dashboard />} />
+          <Route path="story" element={<StoryWorkflowPage />} />
         </Route>
 
-        {/* Job history - placeholder */}
-        <Route path="jobs" element={<Dashboard />} />
+        {/* Job history */}
+        <Route path="jobs" element={<JobsPage />} />
       </Route>
 
       {/* Catch all - redirect to home */}
