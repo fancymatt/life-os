@@ -107,3 +107,8 @@ image_costs:
 video_costs:
   sora-2: 0.125
   sora-2-pro: 0.50
+
+# Tool-specific settings (temperature, etc.)
+tool_settings:
+  character_appearance_analyzer:
+    temperature: 0.3

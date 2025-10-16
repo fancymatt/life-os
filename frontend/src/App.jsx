@@ -24,6 +24,7 @@ import StoryProseStylesEntity from './pages/entities/StoryProseStylesEntity'
 import StoryPlannerConfigsEntity from './pages/entities/StoryPlannerConfigsEntity'
 import StoryWriterConfigsEntity from './pages/entities/StoryWriterConfigsEntity'
 import StoryIllustratorConfigsEntity from './pages/entities/StoryIllustratorConfigsEntity'
+import ToolConfigPage from './pages/ToolConfigPage'
 
 // Tool Pages - Analyzers
 import OutfitAnalyzer from './OutfitAnalyzer'
@@ -137,6 +138,9 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="modular" element={<ModularGenerator />} />
           </Route>
+
+          {/* Tool Configuration */}
+          <Route path=":category/:toolName/config" element={<ToolConfigPage />} />
         </Route>
 
         {/* Workflows */}

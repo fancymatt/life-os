@@ -1,0 +1,248 @@
+.tool-config-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  color: white;
+}
+
+.tool-config-header {
+  margin-bottom: 2rem;
+}
+
+.tool-config-header h1 {
+  margin: 1rem 0 0.5rem 0;
+  font-size: 2rem;
+  color: white;
+}
+
+.tool-description {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.back-button {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.error-message {
+  padding: 1rem;
+  background: rgba(255, 100, 100, 0.1);
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  border-radius: 8px;
+  color: #ff6b6b;
+  margin-bottom: 1.5rem;
+}
+
+.tool-config-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.config-section,
+.test-section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.config-section h2,
+.test-section h2 {
+  margin: 0 0 1.5rem 0;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.form-group select,
+.form-group input[type="range"] {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.form-group select:focus,
+.form-group input:focus {
+  border-color: rgba(102, 126, 234, 0.5);
+}
+
+.form-group small {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.template-group textarea {
+  width: 100%;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+
+.template-group textarea:focus {
+  border-color: rgba(102, 126, 234, 0.5);
+}
+
+.config-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.primary-button,
+.secondary-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.test-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.test-upload input[type="file"] {
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.test-image-preview {
+  width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.test-image-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.test-results {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.test-results h3 {
+  margin: 0 0 1rem 0;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.test-results pre {
+  margin: 0;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  color: #66c2a5;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .tool-config-content {
+    grid-template-columns: 1fr;
+  }
+}
