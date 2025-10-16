@@ -18,6 +18,7 @@
 ### 3. Preset Composer (Drag & Drop) ✅
 - Full-page three-column layout (Library | Canvas | Applied Stack)
 - HTML5 drag-and-drop for presets
+- Click-to-apply alternative (better for touch devices)
 - Cumulative preset stacking:
   - Outfits can layer (multiple outfits combine)
   - Other categories replace (one hair color, one makeup, etc.)
@@ -26,44 +27,93 @@
 - Subtle corner loading indicator (keeps image visible)
 - Integration with job queue system
 
-## Current Sprint 3 Work
+### 4. Subject Image Selector ✅
+- Dedicated `/subjects/` directory for subject images
+- Subject dropdown in canvas header
+- Lists both default and uploaded subjects
+- Updates cache when subject changes
 
-### In Progress: Subject Image Selector
-**Goal**: Allow users to choose which subject image to use instead of hardcoded "jenny.png"
+### 5. Preset Search/Filtering ✅
+- Real-time search in preset library
+- Filters by preset name or ID
+- Maintains favorites-first sorting
+- Clear search button for quick reset
 
-**Tasks**:
-1. Create `/api/subjects` endpoint to list available subject images
-   - Check `/uploads/` directory for uploaded images
-   - Check root directory for default subjects (jenny.png, etc.)
-   - Return list with filename, path, URL, thumbnail
+### 6. Save/Load Preset Combinations ✅
+- Save current applied presets as named "composition"
+- Collapsible saved compositions section in right panel
+- Quick-load compositions with one click
+- Delete compositions with confirmation
+- Shows composition metadata (preset count, subject)
+- Compositions persist per user in `/data/compositions/`
 
-2. Update Composer UI
-   - Add subject selector dropdown in canvas header
-   - Show thumbnail preview of selected subject
-   - Update cache key when subject changes
-   - Clear applied presets when subject changes (optional)
+**Backend Implementation**:
+- Created `/api/compositions` endpoints (save, list, get, delete)
+- Compositions stored as JSON files in `data/compositions/{username}/`
+- Includes timestamps (created_at, updated_at)
 
-3. Update subject upload flow
-   - Integrate with existing `/api/upload` endpoint
-   - Auto-refresh subject list after upload
+**Frontend Implementation**:
+- Modal dialog for naming compositions
+- Collapsible compositions list with toggle button
+- Load (↻) and delete (×) buttons for each composition
+- Smooth animations for modal and list
 
-### Planned Features
+### 7. Download Button for Generated Images ✅
+- Download button appears when image is generated
+- Automatically generates descriptive filename with:
+  - Subject name
+  - Applied preset names
+  - Timestamp
+- Green badge positioned in bottom-right corner
+- Smooth hover animations and feedback
+- Client-side download (no server roundtrip)
 
-1. **Preset Search/Filtering** (Priority: Medium)
-   - Search box in preset library
-   - Filter by name, tags, or description
-   - Maintain favorites-first sorting
+### 8. Mobile Responsive Design ✅
+**Goal**: Make the Preset Composer fully usable on mobile phones without sacrificing desktop UX
 
-2. **Save/Load Preset Combinations** (Priority: Medium)
-   - Save current applied presets as named "composition"
-   - List saved compositions
-   - Quick-load to recreate complex setups
+**Implementation Strategy**:
+- **Desktop (≥768px)**: Three-column grid layout (unchanged)
+- **Mobile (<768px)**: Tab-based navigation with single-column layout
 
-3. **Download Button for Generated Images** (Priority: Low)
-   - Add download button on canvas
-   - Include metadata (presets used, generation date)
+**Mobile Features**:
+- Bottom tab navigation bar with 3 tabs:
+  - 📚 **Library**: Browse and search presets
+  - 🎨 **Canvas**: View and generate images
+  - 📋 **Applied**: Manage applied presets
+- Active tab indicator with blue highlight
+- Badge notifications:
+  - Red badge on Applied tab showing preset count
+  - Lightning badge on Canvas when generating
+- Smart navigation:
+  - Auto-switches to Canvas when applying presets
+  - Auto-switches to Canvas when generating starts
+- Touch-optimized:
+  - 44px minimum touch targets (iOS guidelines)
+  - Larger buttons and padding
+  - Improved tap areas for all interactive elements
+- Layout optimizations:
+  - 2-column preset grid on mobile
+  - 1-column on very small phones (<375px)
+  - Full-width modals
+  - Repositioned download button (above tabs)
+  - Vertical subject selector
+  - Reduced margins and padding where appropriate
 
-4. **Variation Count Control** (Priority: Low)
+**Responsive Breakpoints**:
+- **Desktop**: ≥768px (three-column grid)
+- **Tablet**: 768-1400px (narrower columns)
+- **Mobile**: <768px (tab navigation)
+- **Small phones**: <375px (single-column presets)
+
+**CSS Architecture**:
+- Mobile-first media queries
+- Progressive enhancement from mobile to desktop
+- Conditional visibility based on screen size
+- No JavaScript required for responsive layout (pure CSS)
+
+## Planned Features (Future Sprints)
+
+1. **Variation Count Control** (Priority: Low)
    - Slider to generate 1-4 variations at once
    - Show all variations in grid
    - Select favorite from variations
@@ -71,12 +121,17 @@
 ## Technical Notes
 
 ### Key Files Modified This Sprint
-- `frontend/src/Composer.jsx` - Main composer component
-- `frontend/src/Composer.css` - Full-page layout styling
+- `frontend/src/Composer.jsx` - Main composer component with all new features
+- `frontend/src/Composer.css` - Full-page layout styling, compositions, modals
 - `frontend/src/Gallery.jsx` - Image gallery with comparison
-- `frontend/nginx.conf` - **CRITICAL**: Proxy `/output/` and `/uploads/` to API
+- `frontend/nginx.conf` - **CRITICAL**: Proxy `/output/`, `/uploads/`, `/subjects/` to API
 - `api/routes/favorites.py` - Favorites endpoints
-- `api/services/favorites_service.py` - Favorites persistence
+- `api/routes/compositions.py` - **NEW**: Compositions save/load endpoints
+- `api/routes/analyzers.py` - Updated subject path resolution
+- `api/routes/generators.py` - Updated subject path resolution for subjects directory
+- `api/main.py` - Added compositions router, subjects static files
+- `api/config.py` - Added subjects_dir configuration
+- `docker-compose.yml` - Added subjects volume mount
 
 ### Important Patterns
 - **Outfit layering**: Check `preset.category === 'outfits'` to allow stacking
@@ -107,6 +162,49 @@ We use a hybrid approach optimized for each use case:
 
 This approach uses each model's strengths - DALL-E for creation, Gemini for transformation.
 
+## Sprint 3 Summary
+
+**Sprint Status**: ✅ **COMPLETED** (including mobile responsive design)
+
+**Features Delivered**: 8 major features
+1. Gallery with Comparison Mode
+2. Favorites System
+3. Preset Composer with Drag & Drop
+4. Subject Image Selector
+5. Preset Search/Filtering
+6. Save/Load Preset Combinations
+7. Download Button for Generated Images
+8. **Mobile Responsive Design** (NEW!)
+
+**Lines of Code**:
+- Frontend: ~1,400 lines (Composer.jsx, Composer.css with responsive)
+- Backend: ~300 lines (compositions.py, path resolution updates)
+
+**User Experience Improvements**:
+- Click-to-apply alternative to drag-and-drop (accessibility++)
+- Real-time preset search (better discoverability)
+- Persistent compositions (workflow efficiency++)
+- Organized subjects directory (better file management)
+- Smart caching (faster generation)
+- Descriptive download filenames (better organization)
+- **Fully mobile-responsive** (phone/tablet support++)
+
+**Technical Achievements**:
+- RESTful composition API with full CRUD
+- Hybrid image generation strategy (DALL-E + Gemini)
+- Smooth animations and transitions throughout
+- Robust path resolution for subjects
+- Per-user data persistence
+- **Responsive design with pure CSS** (no layout JS)
+- **Tab-based mobile navigation**
+- **Touch-optimized UI** (44px touch targets)
+
+**Supported Devices**:
+- ✅ Desktop (1400px+) - Three-column layout
+- ✅ Laptop (768-1400px) - Narrow three-column layout
+- ✅ Tablet/Mobile (768px and below) - Tab navigation
+- ✅ Small phones (<375px) - Optimized single-column
+
 ## Next Sprint Ideas (Sprint 4)
 
 - Real-time collaboration (multiple users composing together)
@@ -114,3 +212,4 @@ This approach uses each model's strengths - DALL-E for creation, Gemini for tran
 - Advanced caching with IndexedDB for offline support
 - Export composition as JSON for sharing
 - Batch generation (generate with multiple subjects at once)
+- Variation count control (generate 1-4 variations at once)

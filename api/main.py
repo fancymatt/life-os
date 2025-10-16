@@ -7,6 +7,7 @@ Main API application with routes for analyzers, generators, and preset managemen
 import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+# from starlette.middleware.gzip import GZIPMiddleware  # Will add back with correct import
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
@@ -14,7 +15,7 @@ from api.config import settings
 from api.logging_config import setup_logging
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites
+from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions
 
 # Initialize logging
 setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
@@ -40,8 +41,13 @@ app.add_middleware(
     allow_headers=settings.cors_allow_headers,
 )
 
+# GZIP compression middleware (60-80% bandwidth reduction)
+# TODO: Add GZIP middleware with correct import
+# app.add_middleware(GZIPMiddleware, minimum_size=1000)
+
 # Log CORS configuration on startup
 print(f"✅ CORS configured for origins: {settings.cors_origins}")
+# print(f"✅ GZIP compression enabled (min size: 1KB)")
 
 # Log authentication status
 if settings.require_authentication:
@@ -49,10 +55,31 @@ if settings.require_authentication:
 else:
     print(f"⚠️  Authentication: DISABLED (development mode)")
 
-# Serve static files (generated images, uploads)
+
+# Custom StaticFiles class with Cache-Control headers
+class CachedStaticFiles(StaticFiles):
+    """StaticFiles with Cache-Control headers for better caching"""
+
+    def __init__(self, *args, max_age: int = 3600, **kwargs):
+        self.max_age = max_age
+        super().__init__(*args, **kwargs)
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        # Add Cache-Control header for better browser caching
+        response.headers["Cache-Control"] = f"public, max-age={self.max_age}"
+        return response
+
+
+# Serve static files (generated images, uploads, subjects) with caching
 try:
-    app.mount("/output", StaticFiles(directory=str(settings.output_dir)), name="output")
-    app.mount("/uploads", StaticFiles(directory=str(settings.upload_dir)), name="uploads")
+    # Generated images: 1 hour cache (they don't change once generated)
+    app.mount("/output", CachedStaticFiles(directory=str(settings.output_dir), max_age=3600), name="output")
+    # Uploads: 30 minute cache (temporary files)
+    app.mount("/uploads", CachedStaticFiles(directory=str(settings.upload_dir), max_age=1800), name="uploads")
+    # Subjects: 1 hour cache (reference images)
+    app.mount("/subjects", CachedStaticFiles(directory=str(settings.subjects_dir), max_age=3600), name="subjects")
+    print(f"✅ Static file caching enabled (Cache-Control headers)")
 except RuntimeError:
     # Directories might not exist yet
     pass
@@ -65,6 +92,7 @@ app.include_router(generators.router, prefix="/generate", tags=["generators"])
 app.include_router(presets.router, prefix="/presets", tags=["presets"])
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(favorites.router, prefix="/favorites", tags=["favorites"])
+app.include_router(compositions.router, prefix="/compositions", tags=["compositions"])
 
 
 @app.get("/", response_model=APIInfo)

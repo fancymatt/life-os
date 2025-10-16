@@ -1,0 +1,65 @@
+{
+  "composition_id": "comp-1",
+  "name": "Comp 1",
+  "subject": "jenny.png",
+  "presets": [
+    {
+      "preset_id": "9b4eb5f1-06a9-4caf-91c5-d7c83d59a109",
+      "display_name": "Leather Trench Glamour",
+      "category": "outfits",
+      "created_at": null,
+      "tool": null,
+      "notes": null
+    },
+    {
+      "preset_id": "d8343b9e-f70d-4719-b740-6806107f4bab",
+      "display_name": "Pendant Gaze Portrait",
+      "category": "visual_styles",
+      "created_at": null,
+      "tool": null,
+      "notes": null
+    },
+    {
+      "preset_id": "f10f7ab9-1c18-4729-ae48-893460778602",
+      "display_name": "Voluminous Flowing Style",
+      "category": "hair_styles",
+      "created_at": null,
+      "tool": null,
+      "notes": null
+    },
+    {
+      "preset_id": "a133557e-11fe-413f-b84b-f6393651c9d6",
+      "display_name": "Dark Jet Black",
+      "category": "hair_colors",
+      "created_at": null,
+      "tool": null,
+      "notes": null
+    },
+    {
+      "preset_id": "4b551641-b7d5-40c7-ae2b-c176e8ba9d6a",
+      "display_name": "Leather Dress Ensemble",
+      "category": "outfits",
+      "created_at": null,
+      "tool": null,
+      "notes": null
+    },
+    {
+      "preset_id": "e166e647-f499-408e-ad56-c2c15edc978c",
+      "display_name": "Retro Glam Beauty",
+      "category": "makeup",
+      "created_at": null,
+      "tool": null,
+      "notes": null
+    },
+    {
+      "preset_id": "9fe7efe1-0567-401c-911e-44cc42986e51",
+      "display_name": "Sultry Playful Gaze",
+      "category": "expressions",
+      "created_at": null,
+      "tool": null,
+      "notes": null
+    }
+  ],
+  "created_at": "2025-10-16T02:24:13.698978",
+  "updated_at": "2025-10-16T02:24:13.698991"
+}

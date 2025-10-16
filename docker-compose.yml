@@ -49,12 +49,10 @@ services:
       # Optional volumes
       - ./cache:/app/cache               # Cache (can be ephemeral)
       - ./uploads:/app/uploads           # Temporary uploads
+      - ./subjects:/app/subjects         # Subject images for composition
 
       # Mount configs (read-only)
       - ./configs:/app/configs:ro
-
-      # Mount test images
-      - ./jenny.png:/app/jenny.png:ro
 
     restart: unless-stopped
 

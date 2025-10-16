@@ -10,6 +10,7 @@ import base64
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Query, Depends
 from typing import List, Optional
+import aiofiles
 
 from api.models.requests import AnalyzeRequest
 from api.models.responses import AnalyzeResponse, ToolInfo
@@ -31,16 +32,16 @@ async def download_or_decode_image(image_input) -> Path:
     if image_input.image_data:
         # Decode base64
         image_bytes = base64.b64decode(image_input.image_data)
-        with open(temp_file, 'wb') as f:
-            f.write(image_bytes)
+        async with aiofiles.open(temp_file, 'wb') as f:
+            await f.write(image_bytes)
     elif image_input.image_url:
         # Download from URL
         import httpx
         async with httpx.AsyncClient() as client:
             response = await client.get(str(image_input.image_url))
             response.raise_for_status()
-            with open(temp_file, 'wb') as f:
-                f.write(response.content)
+            async with aiofiles.open(temp_file, 'wb') as f:
+                await f.write(response.content)
     else:
         raise ValueError("Either image_url or image_data must be provided")
 
@@ -218,20 +219,21 @@ async def list_subjects():
     """
     List all available subject images
 
-    Returns subject images from both the root directory and uploads folder.
+    Returns subject images from both the subjects directory and uploads folder.
     """
     subjects = []
 
-    # Check root directory for default subjects
-    root_path = Path("/app")
-    for image_file in root_path.glob("*.png"):
-        if image_file.is_file():
-            subjects.append({
-                "filename": image_file.name,
-                "path": str(image_file),
-                "url": f"/{image_file.name}",
-                "source": "default"
-            })
+    # Check subjects directory for default subjects
+    if settings.subjects_dir.exists():
+        for image_file in settings.subjects_dir.glob("*"):
+            if image_file.is_file():
+                if any(image_file.name.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
+                    subjects.append({
+                        "filename": image_file.name,
+                        "path": str(image_file),
+                        "url": f"/subjects/{image_file.name}",
+                        "source": "default"
+                    })
 
     # Check uploads directory
     if settings.upload_dir.exists():
@@ -265,9 +267,9 @@ async def upload_image(file: UploadFile = File(...)):
 
     # Save file
     file_path = settings.upload_dir / file.filename
-    with open(file_path, 'wb') as f:
-        content = await file.read()
-        f.write(content)
+    content = await file.read()
+    async with aiofiles.open(file_path, 'wb') as f:
+        await f.write(content)
 
     return {
         "filename": file.filename,

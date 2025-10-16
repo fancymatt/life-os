@@ -39,9 +39,23 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
     """
     from ai_tools.modular_image_generator.tool import ModularImageGenerator
 
-    # Validate subject image exists
+    # Resolve subject image path
     subject_path = Path(request.subject_image)
-    if not subject_path.exists():
+
+    # If it's just a filename (no path), look in subjects directory first, then uploads
+    if not subject_path.is_absolute() and str(subject_path).count('/') == 0:
+        # Try subjects directory
+        subjects_path = settings.subjects_dir / request.subject_image
+        if subjects_path.exists():
+            subject_path = subjects_path
+        else:
+            # Try uploads directory
+            uploads_path = settings.upload_dir / request.subject_image
+            if uploads_path.exists():
+                subject_path = uploads_path
+            else:
+                raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
+    elif not subject_path.exists():
         raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
 
     # Create job for tracking

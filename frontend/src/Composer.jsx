@@ -15,6 +15,12 @@ function Composer() {
   const [activeCategory, setActiveCategory] = useState(null)
   const [generationHistory, setGenerationHistory] = useState([])
   const [selectedPreset, setSelectedPreset] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [compositions, setCompositions] = useState([])
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [compositionName, setCompositionName] = useState('')
+  const [showCompositions, setShowCompositions] = useState(false)
+  const [mobileTab, setMobileTab] = useState('canvas') // 'library', 'canvas', 'applied'
 
   // Category configurations
   const categoryConfig = [
@@ -32,6 +38,7 @@ function Composer() {
     loadPresets()
     fetchFavorites()
     fetchSubjects()
+    fetchCompositions()
   }, [])
 
   const loadPresets = async () => {
@@ -64,8 +71,12 @@ function Composer() {
 
   const fetchSubjects = async () => {
     try {
-      const response = await api.get('/subjects')
+      const response = await api.get('/analyze/subjects')
       setSubjects(response.data)
+      // Set first subject as default if available
+      if (response.data.length > 0 && !subject) {
+        setSubject(response.data[0].filename)
+      }
     } catch (err) {
       console.error('Failed to fetch subjects:', err)
     }
@@ -121,6 +132,11 @@ function Composer() {
 
     // Clear selected preset after applying
     setSelectedPreset(null)
+
+    // On mobile, switch to canvas tab when generating
+    if (window.innerWidth < 768) {
+      setMobileTab('canvas')
+    }
 
     // Auto-generate with new preset combination
     await generateImage(newAppliedPresets)
@@ -301,6 +317,121 @@ function Composer() {
     }
   }
 
+  // Composition Management
+  const fetchCompositions = async () => {
+    try {
+      const response = await api.get('/compositions/list')
+      setCompositions(response.data)
+    } catch (err) {
+      console.error('Failed to fetch compositions:', err)
+    }
+  }
+
+  const handleSaveComposition = async () => {
+    if (!compositionName.trim()) {
+      alert('Please enter a name for this composition')
+      return
+    }
+
+    if (appliedPresets.length === 0) {
+      alert('No presets to save')
+      return
+    }
+
+    try {
+      await api.post('/compositions/save', {
+        name: compositionName,
+        subject: subject,
+        presets: appliedPresets
+      })
+
+      // Refresh compositions list
+      await fetchCompositions()
+
+      // Close dialog and reset
+      setShowSaveDialog(false)
+      setCompositionName('')
+
+      alert('Composition saved successfully!')
+    } catch (err) {
+      console.error('Failed to save composition:', err)
+      alert('Failed to save composition: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const loadComposition = async (composition) => {
+    try {
+      // Set subject
+      setSubject(composition.subject)
+
+      // Clear current presets
+      setAppliedPresets([])
+
+      // Apply composition presets
+      setAppliedPresets(composition.presets)
+
+      // Clear generation since we're starting fresh
+      setGeneratedImage(null)
+      setGenerationHistory([])
+
+      // Generate with new presets
+      await generateImage(composition.presets)
+
+      alert(`Loaded composition: ${composition.name}`)
+    } catch (err) {
+      console.error('Failed to load composition:', err)
+      alert('Failed to load composition')
+    }
+  }
+
+  const deleteComposition = async (compositionId) => {
+    if (!confirm('Are you sure you want to delete this composition?')) {
+      return
+    }
+
+    try {
+      await api.delete(`/compositions/${compositionId}`)
+      await fetchCompositions()
+      alert('Composition deleted')
+    } catch (err) {
+      console.error('Failed to delete composition:', err)
+      alert('Failed to delete composition')
+    }
+  }
+
+  const downloadImage = async () => {
+    if (!generatedImage) return
+
+    try {
+      // Fetch the image
+      const response = await fetch(generatedImage)
+      const blob = await response.blob()
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+
+      // Generate filename with timestamp and preset info
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+      const presetNames = appliedPresets.map(p => p.display_name || p.preset_id).join('_')
+      const filename = `composition_${subject}_${presetNames.substring(0, 50)}_${timestamp}.png`
+
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      // Cleanup
+      window.URL.revokeObjectURL(url)
+
+      console.log('✅ Downloaded image:', filename)
+    } catch (err) {
+      console.error('Failed to download image:', err)
+      alert('Failed to download image')
+    }
+  }
+
   if (loading) {
     return (
       <div className="composer-loading">
@@ -311,8 +442,37 @@ function Composer() {
 
   return (
     <div className="composer">
+      {/* Mobile Tab Navigation */}
+      <div className="mobile-tabs">
+        <button
+          className={`mobile-tab ${mobileTab === 'library' ? 'active' : ''}`}
+          onClick={() => setMobileTab('library')}
+        >
+          <span className="tab-icon">📚</span>
+          <span className="tab-label">Library</span>
+        </button>
+        <button
+          className={`mobile-tab ${mobileTab === 'canvas' ? 'active' : ''}`}
+          onClick={() => setMobileTab('canvas')}
+        >
+          <span className="tab-icon">🎨</span>
+          <span className="tab-label">Canvas</span>
+          {generating && <span className="tab-badge">⚡</span>}
+        </button>
+        <button
+          className={`mobile-tab ${mobileTab === 'applied' ? 'active' : ''}`}
+          onClick={() => setMobileTab('applied')}
+        >
+          <span className="tab-icon">📋</span>
+          <span className="tab-label">Applied</span>
+          {appliedPresets.length > 0 && (
+            <span className="tab-badge">{appliedPresets.length}</span>
+          )}
+        </button>
+      </div>
+
       {/* Left Panel - Preset Library */}
-      <div className="composer-sidebar left">
+      <div className={`composer-sidebar left ${mobileTab === 'library' ? 'mobile-active' : ''}`}>
         <h2>Preset Library</h2>
         <div className="category-tabs">
           {categories.map(cat => (
@@ -331,8 +491,39 @@ function Composer() {
           {activeCategory ? (
             <div className="preset-category-section">
               <h3>{categories.find(c => c.key === activeCategory)?.label}</h3>
+
+              {/* Search Input */}
+              <div className="preset-search">
+                <input
+                  type="text"
+                  placeholder="Search presets..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button
+                    className="clear-search-btn"
+                    onClick={() => setSearchQuery('')}
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
               <div className="preset-library-grid">
                 {(presets[activeCategory] || [])
+                  .filter(preset => {
+                    // Filter by search query
+                    if (!searchQuery) return true
+
+                    const searchLower = searchQuery.toLowerCase()
+                    const displayName = (preset.display_name || preset.preset_id).toLowerCase()
+                    const presetId = preset.preset_id.toLowerCase()
+
+                    return displayName.includes(searchLower) || presetId.includes(searchLower)
+                  })
                   .sort((a, b) => {
                     const cat = categories.find(c => c.key === activeCategory)
                     const aKey = `${cat.apiCategory}:${a.preset_id}`
@@ -387,7 +578,7 @@ function Composer() {
       </div>
 
       {/* Center Panel - Canvas */}
-      <div className="composer-canvas">
+      <div className={`composer-canvas ${mobileTab === 'canvas' ? 'mobile-active' : ''}`}>
         <div className="canvas-header">
           <div className="canvas-header-top">
             <div>
@@ -434,6 +625,15 @@ function Composer() {
                   <span>Generating...</span>
                 </div>
               )}
+              {!generating && (
+                <button
+                  className="download-image-btn"
+                  onClick={downloadImage}
+                  title="Download image"
+                >
+                  ⬇ Download
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -461,7 +661,53 @@ function Composer() {
       </div>
 
       {/* Right Panel - Applied Presets Stack */}
-      <div className="composer-sidebar right">
+      <div className={`composer-sidebar right ${mobileTab === 'applied' ? 'mobile-active' : ''}`}>
+        {/* Saved Compositions Section */}
+        <div className="compositions-section">
+          <button
+            className="compositions-toggle-btn"
+            onClick={() => setShowCompositions(!showCompositions)}
+          >
+            <span>💾 Saved Compositions ({compositions.length})</span>
+            <span>{showCompositions ? '▼' : '▶'}</span>
+          </button>
+
+          {showCompositions && (
+            <div className="compositions-list">
+              {compositions.length === 0 ? (
+                <p className="no-compositions">No saved compositions yet</p>
+              ) : (
+                compositions.map(comp => (
+                  <div key={comp.composition_id} className="composition-item">
+                    <div className="composition-info">
+                      <span className="composition-name">{comp.name}</span>
+                      <span className="composition-meta">
+                        {comp.presets.length} preset(s) · {comp.subject}
+                      </span>
+                    </div>
+                    <div className="composition-actions">
+                      <button
+                        className="load-comp-btn"
+                        onClick={() => loadComposition(comp)}
+                        title="Load composition"
+                      >
+                        ↻
+                      </button>
+                      <button
+                        className="delete-comp-btn"
+                        onClick={() => deleteComposition(comp.composition_id)}
+                        title="Delete composition"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
         <h2>Applied Presets</h2>
         <p className="stack-count">{appliedPresets.length} preset(s)</p>
 
@@ -494,17 +740,65 @@ function Composer() {
         )}
 
         {appliedPresets.length > 0 && (
-          <button
-            className="clear-all-btn"
-            onClick={() => {
-              setAppliedPresets([])
-              setGeneratedImage(null)
-            }}
-          >
-            Clear All
-          </button>
+          <>
+            <button
+              className="save-composition-btn"
+              onClick={() => setShowSaveDialog(true)}
+            >
+              💾 Save Composition
+            </button>
+            <button
+              className="clear-all-btn"
+              onClick={() => {
+                setAppliedPresets([])
+                setGeneratedImage(null)
+              }}
+            >
+              Clear All
+            </button>
+          </>
         )}
       </div>
+
+      {/* Save Composition Dialog */}
+      {showSaveDialog && (
+        <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>Save Composition</h3>
+            <p className="modal-hint">Give your composition a name</p>
+            <input
+              type="text"
+              placeholder="e.g., Summer Beach Look"
+              value={compositionName}
+              onChange={(e) => setCompositionName(e.target.value)}
+              className="composition-name-input"
+              autoFocus
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSaveComposition()
+                }
+              }}
+            />
+            <div className="modal-actions">
+              <button
+                className="modal-btn cancel"
+                onClick={() => {
+                  setShowSaveDialog(false)
+                  setCompositionName('')
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="modal-btn save"
+                onClick={handleSaveComposition}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
