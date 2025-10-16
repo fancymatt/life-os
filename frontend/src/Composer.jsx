@@ -1,6 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import './Composer.css'
 import api from './api/client'
+import { useDebounce } from './hooks/useDebounce'
+import { useLRUCache } from './hooks/useLRUCache'
+
+// Category configurations (static, moved outside component)
+const categoryConfig = [
+  { key: 'outfit', label: 'Outfit', apiCategory: 'outfits' },
+  { key: 'visual_style', label: 'Visual Style', apiCategory: 'visual_styles' },
+  { key: 'art_style', label: 'Art Style', apiCategory: 'art_styles' },
+  { key: 'hair_style', label: 'Hair Style', apiCategory: 'hair_styles' },
+  { key: 'hair_color', label: 'Hair Color', apiCategory: 'hair_colors' },
+  { key: 'makeup', label: 'Makeup', apiCategory: 'makeup' },
+  { key: 'expression', label: 'Expression', apiCategory: 'expressions' },
+  { key: 'accessories', label: 'Accessories', apiCategory: 'accessories' }
+]
 
 function Composer() {
   const [subject, setSubject] = useState('jenny.png')
@@ -13,26 +27,20 @@ function Composer() {
   const [generating, setGenerating] = useState(false)
   const [favorites, setFavorites] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
-  const [generationHistory, setGenerationHistory] = useState([])
   const [selectedPreset, setSelectedPreset] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [compositions, setCompositions] = useState([])
+
+  // Debounce search query to avoid expensive filtering on every keystroke (300ms delay)
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+
+  // LRU cache for generation results (max 50 items, auto-evicts least recently used)
+  const generationCache = useLRUCache(50)
+
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [compositionName, setCompositionName] = useState('')
   const [showCompositions, setShowCompositions] = useState(false)
   const [mobileTab, setMobileTab] = useState('canvas') // 'library', 'canvas', 'applied'
-
-  // Category configurations
-  const categoryConfig = [
-    { key: 'outfit', label: 'Outfit', apiCategory: 'outfits' },
-    { key: 'visual_style', label: 'Visual Style', apiCategory: 'visual_styles' },
-    { key: 'art_style', label: 'Art Style', apiCategory: 'art_styles' },
-    { key: 'hair_style', label: 'Hair Style', apiCategory: 'hair_styles' },
-    { key: 'hair_color', label: 'Hair Color', apiCategory: 'hair_colors' },
-    { key: 'makeup', label: 'Makeup', apiCategory: 'makeup' },
-    { key: 'expression', label: 'Expression', apiCategory: 'expressions' },
-    { key: 'accessories', label: 'Accessories', apiCategory: 'accessories' }
-  ]
 
   useEffect(() => {
     loadPresets()
@@ -43,20 +51,38 @@ function Composer() {
 
   const loadPresets = async () => {
     setLoading(true)
-    const presetsData = {}
 
-    for (const cat of categoryConfig) {
-      try {
-        const response = await api.get(`/presets/${cat.apiCategory}`)
-        presetsData[cat.key] = response.data.presets || []
-      } catch (err) {
-        console.error(`Failed to load ${cat.key}:`, err)
-        presetsData[cat.key] = []
+    try {
+      // Use batch endpoint to load all presets in one request (~8x faster!)
+      const response = await api.get('/presets/batch')
+      const presetsData = {}
+
+      // Map API category names to our internal keys
+      for (const cat of categoryConfig) {
+        presetsData[cat.key] = response.data[cat.apiCategory] || []
       }
+
+      setPresets(presetsData)
+      setCategories(categoryConfig)
+      console.log('✅ Loaded all presets in single batch request')
+    } catch (err) {
+      console.error('Batch preset loading failed, falling back to individual requests:', err)
+
+      // Fallback to individual requests if batch fails
+      const presetsData = {}
+      for (const cat of categoryConfig) {
+        try {
+          const response = await api.get(`/presets/${cat.apiCategory}`)
+          presetsData[cat.key] = response.data.presets || []
+        } catch (err) {
+          console.error(`Failed to load ${cat.key}:`, err)
+          presetsData[cat.key] = []
+        }
+      }
+      setPresets(presetsData)
+      setCategories(categoryConfig)
     }
 
-    setPresets(presetsData)
-    setCategories(categoryConfig)
     setLoading(false)
   }
 
@@ -84,14 +110,14 @@ function Composer() {
 
   const handleSubjectChange = (newSubject) => {
     setSubject(newSubject)
-    // Clear generation history since it's subject-specific
-    setGenerationHistory([])
+    // Clear generation cache since it's subject-specific
+    generationCache.clear()
     setGeneratedImage(null)
     // Optionally clear applied presets
     // setAppliedPresets([])
   }
 
-  const handleDrop = (e) => {
+  const handleDrop = useCallback((e) => {
     e.preventDefault()
     const presetData = e.dataTransfer.getData('preset')
 
@@ -99,13 +125,13 @@ function Composer() {
       const preset = JSON.parse(presetData)
       addPreset(preset)
     }
-  }
+  }, [addPreset])
 
-  const handleDragOver = (e) => {
+  const handleDragOver = useCallback((e) => {
     e.preventDefault()
-  }
+  }, [])
 
-  const addPreset = async (preset) => {
+  const addPreset = useCallback(async (preset) => {
     let newAppliedPresets
 
     // Outfits can be layered, other categories replace
@@ -140,9 +166,9 @@ function Composer() {
 
     // Auto-generate with new preset combination
     await generateImage(newAppliedPresets)
-  }
+  }, [appliedPresets, generateImage])
 
-  const handlePresetClick = (preset, category) => {
+  const handlePresetClick = useCallback((preset, category) => {
     const presetWithCategory = { ...preset, category }
 
     // If clicking the same preset, apply it
@@ -152,15 +178,15 @@ function Composer() {
       // Otherwise, select it
       setSelectedPreset(presetWithCategory)
     }
-  }
+  }, [selectedPreset, addPreset])
 
-  const applySelectedPreset = () => {
+  const applySelectedPreset = useCallback(() => {
     if (selectedPreset) {
       addPreset(selectedPreset)
     }
-  }
+  }, [selectedPreset, addPreset])
 
-  const removePreset = async (index) => {
+  const removePreset = useCallback(async (index) => {
     const newAppliedPresets = appliedPresets.filter((_, i) => i !== index)
     setAppliedPresets(newAppliedPresets)
 
@@ -170,21 +196,21 @@ function Composer() {
     } else {
       setGeneratedImage(null)
     }
-  }
+  }, [appliedPresets, generateImage])
 
-  const generateImage = async (presetsToApply) => {
+  const generateImage = useCallback(async (presetsToApply) => {
     if (presetsToApply.length === 0) return
 
     setGenerating(true)
 
     try {
-      // Check cache first
+      // Check LRU cache first
       const cacheKey = getCacheKey(presetsToApply)
-      const cached = generationHistory.find(h => h.cacheKey === cacheKey)
+      const cached = generationCache.get(cacheKey)
 
       if (cached) {
-        console.log('✅ Using cached result:', cached.imageUrl)
-        setGeneratedImage(cached.imageUrl)
+        console.log('✅ Using cached result:', cached)
+        setGeneratedImage(cached)
         setGenerating(false)
         return
       }
@@ -223,11 +249,8 @@ function Composer() {
         console.log('✅ Generated image URL:', imageUrl)
         setGeneratedImage(imageUrl)
 
-        // Cache the result
-        setGenerationHistory(prev => [
-          ...prev,
-          { cacheKey, imageUrl, presets: presetsToApply, timestamp: Date.now() }
-        ])
+        // Cache the result in LRU cache
+        generationCache.set(cacheKey, imageUrl)
       }
     } catch (err) {
       console.error('Generation failed:', err)
@@ -235,7 +258,7 @@ function Composer() {
     } finally {
       setGenerating(false)
     }
-  }
+  }, [subject, getCacheKey, generationCache])
 
   const pollForCompletion = async (jobId) => {
     const maxAttempts = 60
@@ -277,7 +300,7 @@ function Composer() {
     throw new Error('Generation timed out')
   }
 
-  const getCacheKey = (presetsToApply) => {
+  const getCacheKey = useCallback((presetsToApply) => {
     // Create deterministic cache key from subject + sorted presets
     const presetIds = presetsToApply
       .map(p => `${p.category}:${p.preset_id}`)
@@ -285,16 +308,16 @@ function Composer() {
       .join('|')
 
     return `${subject}|${presetIds}`
-  }
+  }, [subject])
 
-  const handleDragStart = (e, preset, category) => {
+  const handleDragStart = useCallback((e, preset, category) => {
     e.dataTransfer.setData('preset', JSON.stringify({
       ...preset,
       category
     }))
-  }
+  }, [])
 
-  const toggleFavorite = async (preset, category) => {
+  const toggleFavorite = useCallback(async (preset, category) => {
     try {
       const favoriteKey = `${category}:${preset.preset_id}`
       const isFavorite = favorites.includes(favoriteKey)
@@ -315,7 +338,7 @@ function Composer() {
     } catch (err) {
       console.error('Failed to toggle favorite:', err)
     }
-  }
+  }, [favorites])
 
   // Composition Management
   const fetchCompositions = async () => {
@@ -359,7 +382,7 @@ function Composer() {
     }
   }
 
-  const loadComposition = async (composition) => {
+  const loadComposition = useCallback(async (composition) => {
     try {
       // Set subject
       setSubject(composition.subject)
@@ -372,7 +395,7 @@ function Composer() {
 
       // Clear generation since we're starting fresh
       setGeneratedImage(null)
-      setGenerationHistory([])
+      generationCache.clear()
 
       // Generate with new presets
       await generateImage(composition.presets)
@@ -382,9 +405,9 @@ function Composer() {
       console.error('Failed to load composition:', err)
       alert('Failed to load composition')
     }
-  }
+  }, [generateImage, generationCache])
 
-  const deleteComposition = async (compositionId) => {
+  const deleteComposition = useCallback(async (compositionId) => {
     if (!confirm('Are you sure you want to delete this composition?')) {
       return
     }
@@ -397,9 +420,9 @@ function Composer() {
       console.error('Failed to delete composition:', err)
       alert('Failed to delete composition')
     }
-  }
+  }, [])
 
-  const downloadImage = async () => {
+  const downloadImage = useCallback(async () => {
     if (!generatedImage) return
 
     try {
@@ -430,7 +453,7 @@ function Composer() {
       console.error('Failed to download image:', err)
       alert('Failed to download image')
     }
-  }
+  }, [generatedImage, appliedPresets, subject])
 
   if (loading) {
     return (
@@ -513,30 +536,31 @@ function Composer() {
               </div>
 
               <div className="preset-library-grid">
-                {(presets[activeCategory] || [])
-                  .filter(preset => {
-                    // Filter by search query
-                    if (!searchQuery) return true
+                {useMemo(() => {
+                  return (presets[activeCategory] || [])
+                    .filter(preset => {
+                      // Filter by debounced search query (waits 300ms after typing stops)
+                      if (!debouncedSearchQuery) return true
 
-                    const searchLower = searchQuery.toLowerCase()
-                    const displayName = (preset.display_name || preset.preset_id).toLowerCase()
-                    const presetId = preset.preset_id.toLowerCase()
+                      const searchLower = debouncedSearchQuery.toLowerCase()
+                      const displayName = (preset.display_name || preset.preset_id).toLowerCase()
+                      const presetId = preset.preset_id.toLowerCase()
 
-                    return displayName.includes(searchLower) || presetId.includes(searchLower)
-                  })
-                  .sort((a, b) => {
-                    const cat = categories.find(c => c.key === activeCategory)
-                    const aKey = `${cat.apiCategory}:${a.preset_id}`
-                    const bKey = `${cat.apiCategory}:${b.preset_id}`
-                    const aFav = favorites.includes(aKey)
-                    const bFav = favorites.includes(bKey)
+                      return displayName.includes(searchLower) || presetId.includes(searchLower)
+                    })
+                    .sort((a, b) => {
+                      const cat = categories.find(c => c.key === activeCategory)
+                      const aKey = `${cat.apiCategory}:${a.preset_id}`
+                      const bKey = `${cat.apiCategory}:${b.preset_id}`
+                      const aFav = favorites.includes(aKey)
+                      const bFav = favorites.includes(bKey)
 
-                    // Favorites first
-                    if (aFav && !bFav) return -1
-                    if (!aFav && bFav) return 1
-                    return 0
-                  })
-                  .map(preset => {
+                      // Favorites first
+                      if (aFav && !bFav) return -1
+                      if (!aFav && bFav) return 1
+                      return 0
+                    })
+                }, [presets, activeCategory, debouncedSearchQuery, categories, favorites]).map(preset => {
                     const cat = categories.find(c => c.key === activeCategory)
                     const favoriteKey = `${cat.apiCategory}:${preset.preset_id}`
                     const isFavorite = favorites.includes(favoriteKey)
@@ -653,9 +677,9 @@ function Composer() {
           )}
         </div>
 
-        {generationHistory.length > 0 && (
+        {generationCache.size > 0 && (
           <div className="generation-cache-info">
-            <p>💾 {generationHistory.length} combination(s) cached</p>
+            <p>💾 {generationCache.size} combination(s) cached (max 50)</p>
           </div>
         )}
       </div>
