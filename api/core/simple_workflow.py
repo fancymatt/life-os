@@ -65,17 +65,23 @@ class SimpleWorkflow:
     Executes workflow steps in order, passing data through shared context.
     """
 
-    def __init__(self, definition: WorkflowDefinition, agents: Dict[str, Agent]):
+    def __init__(
+        self,
+        definition: WorkflowDefinition,
+        agents: Dict[str, Agent],
+        progress_callback: Optional[Callable[[int, str, str], None]] = None
+    ):
         """
         Initialize workflow
 
         Args:
             definition: Workflow definition
             agents: Map of agent_id -> Agent instance
+            progress_callback: Optional callback for progress updates (step_num, step_name, message)
         """
         self.definition = definition
         self.agents = agents
-        self.executions: Dict[str, WorkflowExecution] = {}
+        self.progress_callback = progress_callback
 
     async def execute(self, input_params: Dict[str, Any]) -> WorkflowExecution:
         """
@@ -98,8 +104,6 @@ class SimpleWorkflow:
             started_at=datetime.now()
         )
 
-        self.executions[execution_id] = execution
-
         start_time = time.time()
 
         try:
@@ -107,6 +111,10 @@ class SimpleWorkflow:
             for i, step in enumerate(self.definition.steps):
                 execution.current_step = step.step_id
                 execution.progress = i / len(self.definition.steps)
+
+                # Report progress if callback provided
+                if self.progress_callback:
+                    self.progress_callback(i + 1, step.step_id, step.description)
 
                 # Get agent
                 agent = self.agents.get(step.agent_id)
@@ -161,11 +169,3 @@ class SimpleWorkflow:
             execution.execution_time = time.time() - start_time
 
         return execution
-
-    def get_execution(self, execution_id: str) -> Optional[WorkflowExecution]:
-        """Get execution by ID"""
-        return self.executions.get(execution_id)
-
-    def list_executions(self) -> List[WorkflowExecution]:
-        """List all executions"""
-        return list(self.executions.values())

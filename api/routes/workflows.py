@@ -4,19 +4,18 @@ Workflow Routes
 Endpoints for executing multi-step workflows.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
-from api.core.simple_workflow import SimpleWorkflow, WorkflowDefinition, WorkflowStep, WorkflowExecution
+from api.core.simple_workflow import SimpleWorkflow, WorkflowDefinition, WorkflowStep
 from api.agents.story_planner import StoryPlannerAgent
 from api.agents.story_writer import StoryWriterAgent
 from api.agents.story_illustrator import StoryIllustratorAgent
+from api.services.job_queue import get_job_queue_manager
+from api.models.jobs import JobType
 
 router = APIRouter()
-
-# In-memory storage for workflow executions
-workflow_executions: Dict[str, WorkflowExecution] = {}
 
 
 class StoryGenerationRequest(BaseModel):
@@ -31,7 +30,7 @@ class StoryGenerationRequest(BaseModel):
 
 
 @router.post("/story-generation/execute")
-async def execute_story_generation(request: StoryGenerationRequest):
+async def execute_story_generation(request: StoryGenerationRequest, background_tasks: BackgroundTasks):
     """
     Execute story generation workflow
 
@@ -40,135 +39,117 @@ async def execute_story_generation(request: StoryGenerationRequest):
     2. Story Writer - Writes full story
     3. Story Illustrator - Generates illustrations
 
-    Returns execution_id for tracking progress.
+    Returns job_id for tracking progress via /api/jobs/{job_id}
     """
-    try:
-        # Create workflow definition
-        workflow_def = WorkflowDefinition(
-            workflow_id="story_generation_v1",
-            name="Story Generation with Illustrations",
-            description="Create an illustrated story from character and theme",
-            version="1.0.0",
-            steps=[
-                WorkflowStep(
-                    step_id="plan_story",
-                    agent_id="story_planner",
-                    description="Generate story outline",
-                    inputs=["character", "theme", "target_scenes", "age_group"],
-                    outputs=["outline"]
-                ),
-                WorkflowStep(
-                    step_id="write_story",
-                    agent_id="story_writer",
-                    description="Write full story from outline",
-                    inputs=["outline", "prose_style"],
-                    outputs=["written_story"]
-                ),
-                WorkflowStep(
-                    step_id="illustrate_story",
-                    agent_id="story_illustrator",
-                    description="Generate illustrations for scenes",
-                    inputs=["written_story", "art_style", "max_illustrations"],
-                    outputs=["illustrated_story"]
+    # Create job for tracking
+    job_manager = get_job_queue_manager()
+    character_name = request.character.get('name', 'Character')
+    job_id = job_manager.create_job(
+        job_type=JobType.WORKFLOW,
+        title=f"Generate Story: {character_name}",
+        description=f"{request.theme.capitalize()} story with {request.max_illustrations} illustrations",
+        total_steps=3,  # Planning, Writing, Illustrating
+        cancelable=False
+    )
+
+    # Define background task
+    async def execute_workflow():
+        """Execute the story generation workflow"""
+        job_manager = get_job_queue_manager()
+
+        try:
+            job_manager.start_job(job_id)
+            job_manager.update_progress(job_id, 0.0, "Starting story generation...")
+
+            # Create workflow definition
+            workflow_def = WorkflowDefinition(
+                workflow_id="story_generation_v1",
+                name="Story Generation with Illustrations",
+                description="Create an illustrated story from character and theme",
+                version="1.0.0",
+                steps=[
+                    WorkflowStep(
+                        step_id="plan_story",
+                        agent_id="story_planner",
+                        description="Generate story outline",
+                        inputs=["character", "theme", "target_scenes", "age_group"],
+                        outputs=["outline"]
+                    ),
+                    WorkflowStep(
+                        step_id="write_story",
+                        agent_id="story_writer",
+                        description="Write full story from outline",
+                        inputs=["outline", "prose_style"],
+                        outputs=["written_story"]
+                    ),
+                    WorkflowStep(
+                        step_id="illustrate_story",
+                        agent_id="story_illustrator",
+                        description="Generate illustrations for scenes",
+                        inputs=["written_story", "art_style", "max_illustrations"],
+                        outputs=["illustrated_story"]
+                    )
+                ]
+            )
+
+            # Create agents
+            agents = {
+                "story_planner": StoryPlannerAgent(),
+                "story_writer": StoryWriterAgent(),
+                "story_illustrator": StoryIllustratorAgent()
+            }
+
+            # Create workflow executor with progress callback
+            def progress_callback(step_num: int, step_name: str, message: str):
+                progress = step_num / 3.0
+                job_manager.update_progress(
+                    job_id,
+                    progress,
+                    message=message,
+                    current_step=step_num
                 )
-            ]
-        )
 
-        # Create agents
-        agents = {
-            "story_planner": StoryPlannerAgent(),
-            "story_writer": StoryWriterAgent(),
-            "story_illustrator": StoryIllustratorAgent()
-        }
+            workflow = SimpleWorkflow(workflow_def, agents, progress_callback=progress_callback)
 
-        # Create workflow executor
-        workflow = SimpleWorkflow(workflow_def, agents)
+            # Prepare input parameters
+            input_params = {
+                "character": request.character,
+                "theme": request.theme,
+                "target_scenes": request.target_scenes,
+                "age_group": request.age_group,
+                "prose_style": request.prose_style,
+                "art_style": request.art_style,
+                "max_illustrations": request.max_illustrations,
+                "character_appearance": request.character.get('appearance', '')
+            }
 
-        # Prepare input parameters
-        input_params = {
-            "character": request.character,
-            "theme": request.theme,
-            "target_scenes": request.target_scenes,
-            "age_group": request.age_group,
-            "prose_style": request.prose_style,
-            "art_style": request.art_style,
-            "max_illustrations": request.max_illustrations,
-            "character_appearance": request.character.get('appearance', '')
-        }
+            # Execute workflow
+            execution = await workflow.execute(input_params)
 
-        # Execute workflow
-        execution = await workflow.execute(input_params)
+            # Check execution status
+            if execution.status == "completed":
+                job_manager.complete_job(job_id, result=execution.result)
+                print(f"✅ Story generation completed: {execution.result.get('title', 'Untitled')}")
+            else:
+                job_manager.fail_job(job_id, execution.error or "Workflow failed")
+                print(f"❌ Story generation failed: {execution.error}")
 
-        # Store execution for later retrieval
-        workflow_executions[execution.execution_id] = execution
+        except Exception as e:
+            job_manager.fail_job(job_id, f"Story generation failed: {str(e)}")
+            print(f"❌ Story generation failed with unexpected error: {e}")
 
-        # Return immediate response
-        return {
-            "execution_id": execution.execution_id,
-            "status": execution.status,
-            "message": "Workflow execution started" if execution.status == "running" else "Workflow completed",
-            "current_step": execution.current_step,
-            "progress": execution.progress,
-            "result": execution.result if execution.status == "completed" else None,
-            "error": execution.error if execution.status == "failed" else None
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Workflow execution failed: {str(e)}")
-
-
-@router.get("/executions/{execution_id}")
-async def get_execution_status(execution_id: str):
-    """
-    Get workflow execution status and results
-
-    Returns current status, progress, and results if completed.
-    """
-    execution = workflow_executions.get(execution_id)
-
-    if not execution:
-        raise HTTPException(status_code=404, detail=f"Execution not found: {execution_id}")
+    # Start workflow in background
+    background_tasks.add_task(execute_workflow)
 
     return {
-        "execution_id": execution.execution_id,
-        "workflow_id": execution.workflow_id,
-        "status": execution.status,
-        "current_step": execution.current_step,
-        "steps_completed": execution.steps_completed,
-        "steps_total": execution.steps_total,
-        "progress": execution.progress,
-        "result": execution.result,
-        "error": execution.error,
-        "started_at": execution.started_at.isoformat(),
-        "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
-        "execution_time": execution.execution_time
+        "message": "Story generation started",
+        "status": "queued",
+        "job_id": job_id,
+        "character": character_name,
+        "theme": request.theme
     }
 
 
-@router.get("/executions")
-async def list_executions(limit: int = 10):
-    """
-    List recent workflow executions
-
-    Returns most recent workflow executions.
-    """
-    executions = sorted(
-        workflow_executions.values(),
-        key=lambda x: x.started_at,
-        reverse=True
-    )[:limit]
-
-    return [
-        {
-            "execution_id": e.execution_id,
-            "workflow_id": e.workflow_id,
-            "status": e.status,
-            "progress": e.progress,
-            "started_at": e.started_at.isoformat(),
-            "execution_time": e.execution_time
-        }
-        for e in executions
-    ]
 
 
 @router.get("/story-generation/info")

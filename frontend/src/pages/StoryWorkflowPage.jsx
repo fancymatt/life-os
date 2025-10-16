@@ -51,7 +51,7 @@ function StoryWorkflowPage() {
 
       const response = await api.post('/workflows/story-generation/execute', payload)
 
-      setSuccess(`Story generation started! Job ID: ${response.data.workflow_execution_id || response.data.job_id}. Check the Task Manager (⚡) to track progress.`)
+      setSuccess(`Story generation started! Check Job History to track progress and view the completed story.`)
 
       // Reset form
       setFormData({
