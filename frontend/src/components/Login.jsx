@@ -60,6 +60,7 @@ function Login() {
               placeholder="Enter your username"
               disabled={loading}
               autoComplete="username"
+              autoCapitalize="off"
               autoFocus
             />
           </div>
