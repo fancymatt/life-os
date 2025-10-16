@@ -155,6 +155,7 @@ function Composer() {
       const imageUrl = await pollForCompletion(jobId)
 
       if (imageUrl) {
+        console.log('✅ Generated image URL:', imageUrl)
         setGeneratedImage(imageUrl)
 
         // Cache the result
@@ -186,11 +187,23 @@ function Composer() {
           if (job.result?.file_paths && job.result.file_paths.length > 0) {
             // Convert file path to URL
             const filePath = job.result.file_paths[0]
-            return filePath.replace('/app', '')
+            // Ensure URL starts with /
+            let imageUrl = filePath.replace('/app', '')
+            if (!imageUrl.startsWith('/')) {
+              imageUrl = '/' + imageUrl
+            }
+            console.log('📸 Job completed, file path:', filePath)
+            console.log('📸 Converted to URL:', imageUrl)
+            return imageUrl
+          } else {
+            console.log('⚠️ Job completed but no file_paths in result:', job.result)
           }
         } else if (job.status === 'failed') {
           throw new Error(job.error || 'Generation failed')
         }
+
+        console.log(`⏳ Job status: ${job.status}, progress: ${job.progress}`)
+
       } catch (err) {
         console.error('Polling error:', err)
       }
@@ -318,6 +331,11 @@ function Composer() {
               src={generatedImage}
               alt="Generated composition"
               className="generated-preview"
+              onLoad={() => console.log('✅ Image loaded successfully:', generatedImage)}
+              onError={(e) => {
+                console.error('❌ Image failed to load:', generatedImage)
+                console.error('Error event:', e)
+              }}
             />
           ) : (
             <div className="empty-canvas">
