@@ -12,7 +12,8 @@ from typing import List
 from api.models.requests import GenerateRequest, ModularGenerateRequest
 from api.models.responses import GenerateResponse, ToolInfo
 from api.services import GeneratorService, PresetService
-from api.services.task_tracker import get_task_tracker
+from api.services.job_queue import get_job_queue_manager
+from api.models.jobs import JobType
 from api.config import settings
 from api.routes.analyzers import download_or_decode_image
 
@@ -43,9 +44,15 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
     if not subject_path.exists():
         raise HTTPException(status_code=404, detail=f"Subject image not found: {request.subject_image}")
 
-    # Create task for tracking
-    tracker = get_task_tracker()
-    task = tracker.create_task("modular_generation", total=request.variations)
+    # Create job for tracking
+    job_manager = get_job_queue_manager()
+    job_id = job_manager.create_job(
+        job_type=JobType.BATCH_GENERATE,
+        title=f"Generate {request.variations} variation(s)",
+        description=f"Modular generation from {request.subject_image}",
+        total_steps=request.variations,
+        cancelable=True
+    )
 
     # Build kwargs for generator
     kwargs = {
@@ -74,84 +81,105 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
     # Define background task
     async def generate_variations():
         """Generate all requested variations with resilient error handling (async)"""
-        task.set_in_progress("Starting generation...")
-        generator = ModularImageGenerator()
-        successful_paths = []
-        failed_items = []
+        job_manager = get_job_queue_manager()
 
-        for i in range(request.variations):
-            try:
-                task.update(
-                    current=i,
-                    message=f"Generating variation {i + 1}/{request.variations}..."
+        try:
+            job_manager.start_job(job_id)
+            job_manager.update_progress(job_id, 0.0, "Starting generation...")
+
+            generator = ModularImageGenerator()
+            successful_paths = []
+            failed_items = []
+
+            for i in range(request.variations):
+                try:
+                    # Update progress
+                    progress = i / request.variations
+                    job_manager.update_progress(
+                        job_id,
+                        progress,
+                        message=f"Generating variation {i + 1}/{request.variations}...",
+                        current_step=i
+                    )
+                    print(f"🎨 Generating variation {i + 1}/{request.variations}...")
+
+                    result = await generator.agenerate(**kwargs)
+                    successful_paths.append(str(result.file_path))
+                    print(f"✅ Variation {i + 1} complete: {result.file_path}")
+
+                except Exception as e:
+                    # Log the error but continue with remaining variations
+                    error_msg = str(e)
+                    failed_items.append({
+                        "variation": i + 1,
+                        "error": error_msg
+                    })
+                    print(f"⚠️ Variation {i + 1} failed: {error_msg}")
+                    print(f"   Continuing with remaining variations...")
+
+            # Determine final status
+            if len(successful_paths) == 0:
+                # All variations failed
+                error_summary = f"All {request.variations} variations failed. Errors: " + "; ".join([f"Variation {item['variation']}: {item['error']}" for item in failed_items])
+                job_manager.fail_job(job_id, error_summary)
+                print(f"❌ All variations failed")
+            elif len(failed_items) == 0:
+                # All variations succeeded
+                job_manager.complete_job(
+                    job_id,
+                    result={"file_paths": successful_paths}
                 )
-                print(f"🎨 Generating variation {i + 1}/{request.variations}...")
+                print(f"🎉 All {request.variations} variation(s) generated successfully!")
+            else:
+                # Partial success
+                job_manager.complete_job(
+                    job_id,
+                    result={
+                        "file_paths": successful_paths,
+                        "failed": failed_items,
+                        "summary": f"{len(successful_paths)}/{request.variations} succeeded, {len(failed_items)} failed"
+                    }
+                )
+                print(f"⚠️ Partial success: {len(successful_paths)} succeeded, {len(failed_items)} failed")
 
-                result = await generator.agenerate(**kwargs)
-                successful_paths.append(str(result.file_path))
-                print(f"✅ Variation {i + 1} complete: {result.file_path}")
-
-            except Exception as e:
-                # Log the error but continue with remaining variations
-                error_msg = str(e)
-                failed_items.append({
-                    "variation": i + 1,
-                    "error": error_msg
-                })
-                print(f"⚠️ Variation {i + 1} failed: {error_msg}")
-                print(f"   Continuing with remaining variations...")
-
-        # Determine final status
-        if len(successful_paths) == 0:
-            # All variations failed
-            error_summary = f"All {request.variations} variations failed. Errors: " + "; ".join([f"Variation {item['variation']}: {item['error']}" for item in failed_items])
-            task.set_failed(error_summary)
-            print(f"❌ All variations failed")
-        elif len(failed_items) == 0:
-            # All variations succeeded
-            task.set_completed(
-                result={"file_paths": successful_paths},
-                message=f"Generated {len(successful_paths)} variation(s) successfully"
-            )
-            print(f"🎉 All {request.variations} variation(s) generated successfully!")
-        else:
-            # Partial success
-            task.set_completed(
-                result={
-                    "file_paths": successful_paths,
-                    "failed": failed_items,
-                    "summary": f"{len(successful_paths)}/{request.variations} succeeded, {len(failed_items)} failed"
-                },
-                message=f"Generated {len(successful_paths)}/{request.variations} variations ({len(failed_items)} failed)"
-            )
-            print(f"⚠️ Partial success: {len(successful_paths)} succeeded, {len(failed_items)} failed")
+        except Exception as e:
+            # Unexpected error in the generation loop itself
+            job_manager.fail_job(job_id, f"Generation failed: {str(e)}")
+            print(f"❌ Generation failed with unexpected error: {e}")
 
     # Start generation in background
     background_tasks.add_task(generate_variations)
 
     return {
         "message": "Modular generation started",
-        "status": "generating",
-        "task_id": task.task_id,
+        "status": "queued",
+        "job_id": job_id,
         "variations": request.variations,
         "output_dir": "output/generated"
     }
 
 
-@router.get("/modular/status/{task_id}")
-async def get_generation_status(task_id: str):
+@router.get("/modular/status/{job_id}")
+async def get_generation_status(job_id: str):
     """
-    Get the status of a modular generation task
+    Get the status of a modular generation job
 
-    Returns progress information including current/total and status
+    [DEPRECATED] Use /api/jobs/{job_id} instead.
+    This endpoint is kept for backward compatibility.
     """
-    tracker = get_task_tracker()
-    task = tracker.get_task(task_id)
-
-    if not task:
-        raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
-
-    return task.to_dict()
+    job_manager = get_job_queue_manager()
+    try:
+        job = job_manager.get_job(job_id)
+        # Return in old format for compatibility
+        return {
+            "status": job.status,
+            "progress": job.progress * 100,  # Convert to percentage
+            "message": job.progress_message or "",
+            "result": job.result,
+            "error": job.error
+        }
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
 
 
 @router.post("/{generator_name}", response_model=GenerateResponse)

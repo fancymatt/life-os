@@ -23,12 +23,8 @@ function ModularGenerator({ onClose }) {
   // Note: outfit category uses an array for multiple selection
   const [categoryStates, setCategoryStates] = useState({})
   const [iterations, setIterations] = useState(1)
-  const [generating, setGenerating] = useState(false)
   const [error, setError] = useState(null)
-  const [result, setResult] = useState(null)
-  const [taskId, setTaskId] = useState(null)
-  const [progress, setProgress] = useState(0)
-  const [progressMessage, setProgressMessage] = useState('')
+  const [success, setSuccess] = useState(null)
 
   // Initialize category states
   useEffect(() => {
@@ -126,39 +122,9 @@ function ModularGenerator({ onClose }) {
     })
   }
 
-  const pollStatus = async (taskId) => {
-    try {
-      const response = await api.get(`/generate/modular/status/${taskId}`)
-      const status = response.data
-
-      setProgress(status.progress || 0)
-      setProgressMessage(status.message || '')
-
-      if (status.status === 'completed') {
-        setResult(status.result)
-        setGenerating(false)
-        setTaskId(null)
-      } else if (status.status === 'failed') {
-        setError(status.error || 'Generation failed')
-        setGenerating(false)
-        setTaskId(null)
-      } else {
-        // Still in progress, poll again in 1 second
-        setTimeout(() => pollStatus(taskId), 1000)
-      }
-    } catch (err) {
-      setError(err.response?.data?.detail || err.message)
-      setGenerating(false)
-      setTaskId(null)
-    }
-  }
-
   const handleGenerate = async () => {
-    setGenerating(true)
     setError(null)
-    setResult(null)
-    setProgress(0)
-    setProgressMessage('Starting generation...')
+    setSuccess(null)
 
     try {
       // Build the request payload
@@ -186,17 +152,18 @@ function ModularGenerator({ onClose }) {
 
       // Call the generation endpoint
       const response = await api.post('/generate/modular', payload)
-      setTaskId(response.data.task_id)
 
-      // Start polling for status
-      setTimeout(() => pollStatus(response.data.task_id), 1000)
+      // Show success message
+      setSuccess(`Generation started! Check the Task Manager (⚡) to track progress. Job ID: ${response.data.job_id}`)
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(null), 5000)
     } catch (err) {
       setError(err.response?.data?.detail || err.message)
-      setGenerating(false)
     }
   }
 
-  const canGenerate = subject && !generating
+  const canGenerate = subject
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -214,7 +181,6 @@ function ModularGenerator({ onClose }) {
               id="subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              disabled={generating}
             >
               <option value="jenny.png">jenny.png</option>
             </select>
@@ -237,7 +203,6 @@ function ModularGenerator({ onClose }) {
                       id={`enable-${cat.key}`}
                       checked={state.enabled || false}
                       onChange={() => handleToggleCategory(cat.key, cat.apiCategory)}
-                      disabled={generating}
                       style={{ marginRight: '0.5rem' }}
                     />
                     <label
@@ -275,7 +240,6 @@ function ModularGenerator({ onClose }) {
                                 preset={preset}
                                 category={cat.apiCategory}
                                 selected={isSelected}
-                                disabled={generating}
                                 onClick={() => handleSelectPreset(cat.key, preset.preset_id)}
                               />
                             )
@@ -299,54 +263,12 @@ function ModularGenerator({ onClose }) {
               max="10"
               value={iterations}
               onChange={(e) => setIterations(e.target.value)}
-              disabled={generating}
               style={{ width: '100px' }}
             />
           </div>
 
           {error && <div className="error-message">{error}</div>}
-
-          {generating && (
-            <div style={{ marginTop: '1rem' }}>
-              <div style={{ marginBottom: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                {progressMessage}
-              </div>
-              <div style={{
-                width: '100%',
-                height: '8px',
-                backgroundColor: '#e5e7eb',
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  width: `${progress}%`,
-                  height: '100%',
-                  backgroundColor: '#3b82f6',
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
-              <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#9ca3af', textAlign: 'right' }}>
-                {Math.round(progress)}%
-              </div>
-            </div>
-          )}
-
-          {result && (
-            <div className="success-message" style={{ marginTop: '1rem' }}>
-              <h4>Generation Complete!</h4>
-              <p>Generated {iterations} image(s)</p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                Check output/generated/ directory for results
-              </p>
-              {result.file_paths && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                  {result.file_paths.map((path, idx) => (
-                    <div key={idx} style={{ fontFamily: 'monospace' }}>{path}</div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {success && <div className="success-message" style={{ marginTop: '1rem' }}>{success}</div>}
 
           {/* Generate Button */}
           <button
@@ -355,7 +277,7 @@ function ModularGenerator({ onClose }) {
             disabled={!canGenerate}
             style={{ marginTop: '1.5rem', width: '100%' }}
           >
-            {generating ? 'Generating...' : 'Generate'}
+            Generate
           </button>
         </div>
       </div>
@@ -363,7 +285,7 @@ function ModularGenerator({ onClose }) {
   )
 }
 
-function PresetCard({ preset, category, selected, disabled, onClick }) {
+function PresetCard({ preset, category, selected, onClick }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
 
@@ -371,8 +293,8 @@ function PresetCard({ preset, category, selected, disabled, onClick }) {
 
   return (
     <div
-      className={`preset-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
-      onClick={disabled ? undefined : onClick}
+      className={`preset-card ${selected ? 'selected' : ''}`}
+      onClick={onClick}
     >
       <div className="preset-preview">
         {!imageLoaded && !imageError && (
