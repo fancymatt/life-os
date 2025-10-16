@@ -74,19 +74,26 @@ function Composer() {
   }
 
   const addPreset = async (preset) => {
-    // Check if preset of same category already exists
-    const existingIndex = appliedPresets.findIndex(
-      p => p.category === preset.category
-    )
-
     let newAppliedPresets
-    if (existingIndex >= 0) {
-      // Replace preset in same category
-      newAppliedPresets = [...appliedPresets]
-      newAppliedPresets[existingIndex] = preset
-    } else {
-      // Add new preset
+
+    // Outfits can be layered, other categories replace
+    if (preset.category === 'outfits') {
+      // Always add outfits (they stack)
       newAppliedPresets = [...appliedPresets, preset]
+    } else {
+      // For other categories, check if preset of same category already exists
+      const existingIndex = appliedPresets.findIndex(
+        p => p.category === preset.category
+      )
+
+      if (existingIndex >= 0) {
+        // Replace preset in same category
+        newAppliedPresets = [...appliedPresets]
+        newAppliedPresets[existingIndex] = preset
+      } else {
+        // Add new preset
+        newAppliedPresets = [...appliedPresets, preset]
+      }
     }
 
     setAppliedPresets(newAppliedPresets)
