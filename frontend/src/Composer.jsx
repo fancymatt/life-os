@@ -321,29 +321,40 @@ function Composer() {
           onDrop={handleDrop}
           onDragOver={handleDragOver}
         >
-          {generating ? (
-            <div className="generating-overlay">
-              <div className="spinner"></div>
-              <p>Generating...</p>
-            </div>
-          ) : generatedImage ? (
-            <img
-              src={generatedImage}
-              alt="Generated composition"
-              className="generated-preview"
-              onLoad={() => console.log('✅ Image loaded successfully:', generatedImage)}
-              onError={(e) => {
-                console.error('❌ Image failed to load:', generatedImage)
-                console.error('Error event:', e)
-              }}
-            />
+          {generatedImage ? (
+            <>
+              <img
+                src={generatedImage}
+                alt="Generated composition"
+                className="generated-preview"
+                onLoad={() => console.log('✅ Image loaded successfully:', generatedImage)}
+                onError={(e) => {
+                  console.error('❌ Image failed to load:', generatedImage)
+                  console.error('Error event:', e)
+                }}
+              />
+              {generating && (
+                <div className="generating-badge">
+                  <div className="spinner-small"></div>
+                  <span>Generating...</span>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="empty-canvas">
-              <div className="subject-placeholder">
-                <p>Subject: {subject}</p>
-                <p className="canvas-instruction">Drop presets to start composing</p>
+            <>
+              <div className="empty-canvas">
+                <div className="subject-placeholder">
+                  <p>Subject: {subject}</p>
+                  <p className="canvas-instruction">Drop presets to start composing</p>
+                </div>
               </div>
-            </div>
+              {generating && (
+                <div className="generating-overlay">
+                  <div className="spinner"></div>
+                  <p>Generating...</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
