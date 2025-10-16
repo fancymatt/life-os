@@ -1,7 +1,27 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import './Sidebar.css'
 
 function Sidebar({ isOpen, onClose }) {
+  // Track which sections are collapsed
+  const [collapsed, setCollapsed] = useState({
+    entities: false,
+    tools: false,
+    analyzers: false,
+    storyTools: false,
+    generators: false,
+    workflows: false,
+    applications: false,
+    system: false
+  })
+
+  const toggleSection = (section) => {
+    setCollapsed(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
   return (
     <>
       {/* Mobile overlay */}
@@ -14,84 +34,256 @@ function Sidebar({ isOpen, onClose }) {
         </div>
 
         <nav className="sidebar-nav">
+          {/* ENTITIES SECTION */}
           <section className="nav-section">
-            <h3>Main</h3>
-            <NavLink to="/" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">🏠</span>
-              <span className="nav-label">Dashboard</span>
-            </NavLink>
-            <NavLink to="/composer" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">🎭</span>
-              <span className="nav-label">Composer</span>
-            </NavLink>
-            <NavLink to="/gallery" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">🖼️</span>
-              <span className="nav-label">Gallery</span>
-            </NavLink>
-            <NavLink to="/stories" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">📚</span>
-              <span className="nav-label">Stories</span>
-            </NavLink>
-            <NavLink to="/jobs" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">📋</span>
-              <span className="nav-label">Job History</span>
-            </NavLink>
+            <button
+              className="nav-section-header"
+              onClick={() => toggleSection('entities')}
+            >
+              <span className="nav-section-title">
+                <span className="nav-section-icon">📦</span>
+                Entities
+              </span>
+              <span className={`nav-section-toggle ${collapsed.entities ? 'collapsed' : ''}`}>
+                ▼
+              </span>
+            </button>
+            {!collapsed.entities && (
+              <div className="nav-section-content">
+                <NavLink to="/entities/stories" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📚</span>
+                  <span className="nav-label">Stories</span>
+                </NavLink>
+                <NavLink to="/entities/images" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🖼️</span>
+                  <span className="nav-label">Images</span>
+                </NavLink>
+                <NavLink to="/entities/outfits" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">👔</span>
+                  <span className="nav-label">Outfits</span>
+                </NavLink>
+                <NavLink to="/entities/expressions" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">😊</span>
+                  <span className="nav-label">Expressions</span>
+                </NavLink>
+                <NavLink to="/entities/makeup" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">💄</span>
+                  <span className="nav-label">Makeup</span>
+                </NavLink>
+                <NavLink to="/entities/hair-styles" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">💇</span>
+                  <span className="nav-label">Hair Styles</span>
+                </NavLink>
+                <NavLink to="/entities/hair-colors" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎨</span>
+                  <span className="nav-label">Hair Colors</span>
+                </NavLink>
+                <NavLink to="/entities/visual-styles" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📸</span>
+                  <span className="nav-label">Visual Styles</span>
+                </NavLink>
+                <NavLink to="/entities/art-styles" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎨</span>
+                  <span className="nav-label">Art Styles</span>
+                </NavLink>
+                <NavLink to="/entities/accessories" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">👓</span>
+                  <span className="nav-label">Accessories</span>
+                </NavLink>
+              </div>
+            )}
           </section>
 
+          {/* TOOLS SECTION */}
           <section className="nav-section">
-            <h3>Analyzers</h3>
-            <NavLink to="/analyzers/outfit" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">👔</span>
-              <span className="nav-label">Outfit</span>
-            </NavLink>
-            <NavLink to="/analyzers/comprehensive" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">📊</span>
-              <span className="nav-label">Comprehensive</span>
-            </NavLink>
-            <NavLink to="/analyzers/visual-style" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">📸</span>
-              <span className="nav-label">Photograph Style</span>
-            </NavLink>
-            <NavLink to="/analyzers/art-style" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">🎨</span>
-              <span className="nav-label">Art Style</span>
-            </NavLink>
-            <NavLink to="/analyzers/hair-style" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">💇</span>
-              <span className="nav-label">Hair Style</span>
-            </NavLink>
-            <NavLink to="/analyzers/hair-color" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">🎨</span>
-              <span className="nav-label">Hair Color</span>
-            </NavLink>
-            <NavLink to="/analyzers/makeup" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">💄</span>
-              <span className="nav-label">Makeup</span>
-            </NavLink>
-            <NavLink to="/analyzers/expression" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">😊</span>
-              <span className="nav-label">Expression</span>
-            </NavLink>
-            <NavLink to="/analyzers/accessories" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">👓</span>
-              <span className="nav-label">Accessories</span>
-            </NavLink>
+            <button
+              className="nav-section-header"
+              onClick={() => toggleSection('tools')}
+            >
+              <span className="nav-section-title">
+                <span className="nav-section-icon">🔧</span>
+                Tools
+              </span>
+              <span className={`nav-section-toggle ${collapsed.tools ? 'collapsed' : ''}`}>
+                ▼
+              </span>
+            </button>
+            {!collapsed.tools && (
+              <div className="nav-section-content">
+                {/* Analyzers Subsection */}
+                <div className="nav-subsection">
+                  <button
+                    className="nav-subsection-header"
+                    onClick={() => toggleSection('analyzers')}
+                  >
+                    <span className="nav-subsection-label">Analyzers</span>
+                    <span className={`nav-subsection-toggle ${collapsed.analyzers ? 'collapsed' : ''}`}>
+                      ▼
+                    </span>
+                  </button>
+                  {!collapsed.analyzers && (
+                    <>
+                      <NavLink to="/tools/analyzers/outfit" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">👔</span>
+                        <span className="nav-label">Outfit</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/comprehensive" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">📊</span>
+                        <span className="nav-label">Comprehensive</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/visual-style" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">📸</span>
+                        <span className="nav-label">Visual Style</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/art-style" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">🎨</span>
+                        <span className="nav-label">Art Style</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/hair-style" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">💇</span>
+                        <span className="nav-label">Hair Style</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/hair-color" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">🎨</span>
+                        <span className="nav-label">Hair Color</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/makeup" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">💄</span>
+                        <span className="nav-label">Makeup</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/expression" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">😊</span>
+                        <span className="nav-label">Expression</span>
+                      </NavLink>
+                      <NavLink to="/tools/analyzers/accessories" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">👓</span>
+                        <span className="nav-label">Accessories</span>
+                      </NavLink>
+                    </>
+                  )}
+                </div>
+
+                {/* Story Tools Subsection */}
+                <div className="nav-subsection">
+                  <button
+                    className="nav-subsection-header"
+                    onClick={() => toggleSection('storyTools')}
+                  >
+                    <span className="nav-subsection-label">Story Tools</span>
+                    <span className={`nav-subsection-toggle ${collapsed.storyTools ? 'collapsed' : ''}`}>
+                      ▼
+                    </span>
+                  </button>
+                  {!collapsed.storyTools && (
+                    <>
+                      <NavLink to="/tools/story/planner" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">📝</span>
+                        <span className="nav-label">Story Planner</span>
+                      </NavLink>
+                      <NavLink to="/tools/story/writer" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">✍️</span>
+                        <span className="nav-label">Story Writer</span>
+                      </NavLink>
+                      <NavLink to="/tools/story/illustrator" className="nav-link nav-link-sub" onClick={onClose}>
+                        <span className="nav-icon">🎨</span>
+                        <span className="nav-label">Story Illustrator</span>
+                      </NavLink>
+                    </>
+                  )}
+                </div>
+
+                {/* Generators Subsection */}
+                <div className="nav-subsection">
+                  <button
+                    className="nav-subsection-header"
+                    onClick={() => toggleSection('generators')}
+                  >
+                    <span className="nav-subsection-label">Generators</span>
+                    <span className={`nav-subsection-toggle ${collapsed.generators ? 'collapsed' : ''}`}>
+                      ▼
+                    </span>
+                  </button>
+                  {!collapsed.generators && (
+                    <NavLink to="/tools/generators/modular" className="nav-link nav-link-sub" onClick={onClose}>
+                      <span className="nav-icon">🎨</span>
+                      <span className="nav-label">Modular Generator</span>
+                    </NavLink>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
+          {/* WORKFLOWS SECTION */}
           <section className="nav-section">
-            <h3>Generators</h3>
-            <NavLink to="/generators/modular" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">🎨</span>
-              <span className="nav-label">Modular Generator</span>
-            </NavLink>
+            <button
+              className="nav-section-header"
+              onClick={() => toggleSection('workflows')}
+            >
+              <span className="nav-section-title">
+                <span className="nav-section-icon">⚡</span>
+                Workflows
+              </span>
+              <span className={`nav-section-toggle ${collapsed.workflows ? 'collapsed' : ''}`}>
+                ▼
+              </span>
+            </button>
+            {!collapsed.workflows && (
+              <div className="nav-section-content">
+                <NavLink to="/workflows/story" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📖</span>
+                  <span className="nav-label">Story Generator</span>
+                </NavLink>
+              </div>
+            )}
           </section>
 
+          {/* APPLICATIONS SECTION */}
           <section className="nav-section">
-            <h3>Workflows</h3>
-            <NavLink to="/workflows/story" className="nav-link" onClick={onClose}>
-              <span className="nav-icon">📖</span>
-              <span className="nav-label">Story Generator</span>
-            </NavLink>
+            <button
+              className="nav-section-header"
+              onClick={() => toggleSection('applications')}
+            >
+              <span className="nav-section-title">
+                <span className="nav-section-icon">🎯</span>
+                Applications
+              </span>
+              <span className={`nav-section-toggle ${collapsed.applications ? 'collapsed' : ''}`}>
+                ▼
+              </span>
+            </button>
+            {!collapsed.applications && (
+              <div className="nav-section-content">
+                <NavLink to="/apps/composer" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎭</span>
+                  <span className="nav-label">Composer</span>
+                </NavLink>
+              </div>
+            )}
+          </section>
+
+          {/* SYSTEM SECTION */}
+          <section className="nav-section">
+            <button
+              className="nav-section-header"
+              onClick={() => toggleSection('system')}
+            >
+              <span className="nav-section-title">
+                <span className="nav-section-icon">⚙️</span>
+                System
+              </span>
+              <span className={`nav-section-toggle ${collapsed.system ? 'collapsed' : ''}`}>
+                ▼
+              </span>
+            </button>
+            {!collapsed.system && (
+              <div className="nav-section-content">
+                <NavLink to="/jobs" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📋</span>
+                  <span className="nav-label">Job History</span>
+                </NavLink>
+              </div>
+            )}
           </section>
         </nav>
       </aside>
