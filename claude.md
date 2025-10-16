@@ -621,3 +621,268 @@ POST /api/compositions/save         # Save composition
 **Remember**: Life-OS is evolving into a multi-domain AI platform. Always consider how your changes will support the plugin architecture and workflow orchestration planned for Phase 2.
 
 **Current Priority**: Build story generation workflow to validate architectural needs, then continue Phase 1 optimizations.
+
+---
+
+## 🚨 CRITICAL: Mandatory Development Workflow
+
+### Deployment Pipeline (MEMORIZE THIS)
+
+**Backend Changes (Python/API)**:
+```bash
+# 1. Edit files in api/ or ai_tools/
+# 2. Rebuild API container
+docker-compose up -d --build api
+# 3. Check logs for errors
+docker logs ai-studio-api --tail 50
+# 4. Changes are IMMEDIATELY live (no browser refresh needed for API)
+```
+
+**Frontend Changes (React/JavaScript)**:
+```bash
+# 1. Edit files in frontend/src/
+# 2. Rebuild frontend container (REQUIRED - Vite builds static bundle)
+docker-compose up -d --build frontend
+# 3. Check build succeeded
+docker logs ai-studio-frontend --tail 20
+# 4. Hard refresh browser (Cmd+Shift+R) to clear cache
+# 5. Verify bundle hash changed in Network tab: index-XXXXXXXX.js
+```
+
+**Config Changes (YAML/JSON)**:
+```bash
+# configs/models.yaml → Restart API
+docker-compose restart api
+
+# configs/agent_configs/ → Restart API (loaded at runtime)
+docker-compose restart api
+
+# frontend/vite.config.js → Rebuild frontend
+docker-compose up -d --build frontend
+```
+
+**What File is Actually Being Used?**
+- ALWAYS check `App.jsx` imports to see which component renders for a route
+- Example: `/entities/stories` route uses `StoriesEntity.jsx`, NOT `StoriesPage.jsx`
+- If unsure, grep for the component: `grep -r "ComponentName" src/`
+
+### Critical System Knowledge (DO NOT FORGET)
+
+#### Gemini Image Generation Models
+```yaml
+# ✅ CORRECT - Use these exact model names
+gemini/gemini-2.5-flash-image    # Image generation (NEW dedicated model)
+gemini/gemini-2.0-flash-exp      # Text/analysis (multimodal)
+
+# ❌ WRONG - These don't exist
+gemini/gemini-2.5-flash-latest   # No image generation support
+gemini-2.5-flash-image           # Missing "gemini/" prefix for router
+```
+
+**How Gemini Routing Works**:
+1. LiteLLM expects: `gemini/model-name` (prefix for routing)
+2. `ai_tools/shared/router.py` strips the `gemini/` prefix before calling Gemini API
+3. Gemini API receives: `model-name` (no prefix)
+
+**Gemini Image Generation Requirements** (ai_tools/shared/router.py:458-663):
+```python
+# 1. Header-based authentication (NOT query parameter)
+headers = {
+    "Content-Type": "application/json",
+    "x-goog-api-key": api_key  # NOT in URL
+}
+
+# 2. responseModalities parameter (REQUIRED for image output)
+"generationConfig": {
+    "responseModalities": ["image"]  # Must specify image output
+}
+
+# 3. Request format
+POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
+```
+
+#### Tools/Entities/Workflows Architecture
+
+**CRITICAL PRINCIPLE**: Tools must work standalone AND in workflows
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Entity (Data + Self-Description)                            │
+│ - Defines properties (name, description, prompt_guidance)   │
+│ - Stored in: data/{entity_type}/*.json                      │
+│ - Examples: Characters, Visual Styles, Story Themes         │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ used by
+┌─────────────────────────────────────────────────────────────┐
+│ Tool (Prompting Logic + Model Config)                       │
+│ - Describes HOW to use entities in prompts                  │
+│ - Configurable: model, temperature, system prompt           │
+│ - Stored in: ai_tools/{tool_name}/tool.py                   │
+│ - Examples: story_illustrator, outfit_analyzer              │
+│ - MUST have standalone API endpoint: /api/tools/{tool}      │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ orchestrated by
+┌─────────────────────────────────────────────────────────────┐
+│ Workflow (Multi-Tool Coordination)                          │
+│ - Chains multiple tools together                            │
+│ - Passes data between tools                                 │
+│ - Uses SAME tool code as standalone endpoints               │
+│ - Stored in: api/routes/workflows.py                        │
+│ - Examples: Story workflow (planner→writer→illustrator)     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**❌ ANTI-PATTERNS (DO NOT DO THIS)**:
+1. Creating workflow-specific prompting logic that bypasses tools
+2. Making a tool that only works in workflows (not standalone)
+3. Duplicating prompting logic between tool and workflow
+4. Creating a job system that bypasses the existing job queue
+
+**✅ CORRECT PATTERN**:
+1. Tool works perfectly standalone: `/api/tools/story-illustrator`
+2. Workflow calls the same tool code with same parameters
+3. Results are identical whether called standalone or in workflow
+4. Refining the tool improves both standalone AND workflow results
+
+### Mandatory Commit/Push Workflow
+
+**WHEN TO COMMIT** (Do this automatically, don't wait for user):
+- ✅ After completing a feature (working end-to-end)
+- ✅ After fixing a bug (verified fixed)
+- ✅ After major refactoring (tests pass)
+- ✅ Before switching to a different task
+- ❌ NOT after every file edit (too granular)
+
+**COMMIT CHECKLIST**:
+```bash
+# 1. Check what changed
+git status
+git diff --stat
+
+# 2. Stage relevant files only (don't commit data files)
+git add path/to/file.py path/to/another.jsx
+
+# 3. Commit with descriptive message
+git commit -m "type: description
+
+Details...
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 4. PUSH IMMEDIATELY (don't forget this!)
+git push origin main
+```
+
+**FILES TO NEVER COMMIT**:
+- `data/users.json` (user accounts - contains passwords)
+- `data/characters/*_ref.png` (temporary reference images)
+- `data/characters/*.json` (unless new template/example)
+- `output/` (generated images)
+- `cache/` (temporary cache files)
+- `.env` (secrets)
+
+### Testing Requirements
+
+**BEFORE asking user to test**:
+```bash
+# 1. Backend: Check logs for errors
+docker logs ai-studio-api --tail 100
+
+# 2. Frontend: Verify build succeeded and bundle hash changed
+docker logs ai-studio-frontend --tail 20
+# Look for: "✓ built in XXXms" and "index-XXXXXXXX.js"
+
+# 3. API: Test endpoint with curl or /docs
+curl -X POST http://localhost:8000/api/workflows/story
+
+# 4. Frontend: Check browser console for errors
+# Open browser DevTools → Console tab
+
+# 5. If any errors: FIX THEM FIRST before asking user
+```
+
+**Tests to Write** (Priority Order):
+1. **Critical Path Tests** (story workflow, character import, image generation)
+2. **API Endpoint Tests** (all /api/ routes return 200 or expected error)
+3. **Frontend Component Tests** (pages render without crashing)
+4. **Integration Tests** (workflow end-to-end)
+
+**Setting Up Tests**:
+```bash
+# Backend (pytest)
+pip install pytest pytest-asyncio httpx
+pytest tests/ -v
+
+# Frontend (Vitest)
+npm install -D vitest @testing-library/react @testing-library/jest-dom
+npm run test
+```
+
+### Error Rate Reduction Strategies
+
+**1. Document learnings in code** (not just claude.md):
+```python
+# ✅ CORRECT - Document critical details
+async def generate_image(model: str, prompt: str):
+    """Generate image using Gemini 2.5 Flash Image model.
+
+    CRITICAL:
+    - Model must be 'gemini/gemini-2.5-flash-image' (with prefix)
+    - Prefix is stripped before calling Gemini API (see router.py:612)
+    - Must use header auth, not query param (router.py:458)
+    - Must include responseModalities: ["image"] (router.py:656)
+    """
+    pass
+```
+
+**2. Add validation to prevent mistakes**:
+```python
+# ✅ Add checks for common mistakes
+def validate_gemini_model(model: str):
+    valid_models = [
+        "gemini/gemini-2.5-flash-image",
+        "gemini/gemini-2.0-flash-exp"
+    ]
+    if model not in valid_models:
+        raise ValueError(f"Invalid model: {model}. Use {valid_models}")
+```
+
+**3. Create smoke tests** (quick checks that basics work):
+```python
+# tests/smoke_test.py - Run before asking user to test
+def test_all_pages_load():
+    """Verify all routes return 200 OK"""
+    pages = ["/", "/entities/stories", "/entities/characters", "/workflows/story"]
+    for page in pages:
+        response = client.get(page)
+        assert response.status_code == 200, f"{page} failed"
+```
+
+**4. Use the TODO tool** to track progress:
+- Always use TodoWrite when working on multi-step tasks
+- Mark tasks in_progress BEFORE starting work
+- Mark completed IMMEDIATELY after finishing
+- One task in_progress at a time
+
+---
+
+## Summary: Required Development Discipline
+
+**Every work session MUST include**:
+1. ✅ Clear understanding of deployment pipeline for changes
+2. ✅ Testing changes locally before asking user
+3. ✅ Committing logical units of work
+4. ✅ Pushing commits to remote immediately
+5. ✅ Following tools/entities/workflows architecture
+6. ✅ Documenting critical learnings in code comments
+7. ✅ Using TodoWrite for multi-step tasks
+
+**Red Flags That Indicate Sloppy Work**:
+- 🚩 Asking user "can you test this?" without checking logs first
+- 🚩 Editing a file that isn't actually being used (check imports!)
+- 🚩 Forgetting model names you've used multiple times
+- 🚩 Creating workflow-specific code instead of reusable tools
+- 🚩 Not committing for multiple work sessions
+- 🚩 Restarting services randomly hoping it fixes things
