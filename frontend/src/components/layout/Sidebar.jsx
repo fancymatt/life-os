@@ -1,19 +1,41 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import './Sidebar.css'
 
+const SIDEBAR_STORAGE_KEY = 'lifeos_sidebar_collapsed'
+
 function Sidebar({ isOpen, onClose }) {
-  // Track which sections are collapsed
-  const [collapsed, setCollapsed] = useState({
-    entities: false,
-    tools: false,
-    analyzers: false,
-    storyTools: false,
-    generators: false,
-    workflows: false,
-    applications: false,
-    system: false
+  // Load collapse state from localStorage or use defaults
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY)
+      if (saved) {
+        return JSON.parse(saved)
+      }
+    } catch (error) {
+      console.error('Failed to load sidebar state:', error)
+    }
+    // Default state - all sections expanded
+    return {
+      entities: false,
+      tools: false,
+      analyzers: false,
+      storyTools: false,
+      generators: false,
+      workflows: false,
+      applications: false,
+      system: false
+    }
   })
+
+  // Save collapse state to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(collapsed))
+    } catch (error) {
+      console.error('Failed to save sidebar state:', error)
+    }
+  }, [collapsed])
 
   const toggleSection = (section) => {
     setCollapsed(prev => ({

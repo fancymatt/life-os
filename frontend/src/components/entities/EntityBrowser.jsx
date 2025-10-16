@@ -92,52 +92,96 @@ function EntityBrowser({ config }) {
     })
   }, [filteredEntities, sortBy, config.customSort])
 
-  // Keyboard navigation for detail view
+  // Keyboard shortcuts for list and detail views
   useEffect(() => {
-    if (view !== 'detail' || !selectedEntity || sortedEntities.length === 0 || saving) {
-      return
-    }
-
     const handleKeyPress = (e) => {
-      // Only handle arrow keys if not in an input/textarea
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        return
-      }
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+      const modKey = isMac ? e.metaKey : e.ctrlKey
+      const isInputFocused = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA'
 
-      // Don't navigate if currently loading data
-      if (saving) return
-
-      // Get the stable entity ID for comparison
-      const currentEntityId = selectedEntity.presetId || selectedEntity.characterId || selectedEntity.id
-
-      const currentIndex = sortedEntities.findIndex(
-        entity => {
-          const entityId = entity.presetId || entity.characterId || entity.id
-          return entityId === currentEntityId
+      // Global shortcuts (work in both list and detail view)
+      // Ctrl/Cmd + K - Focus search (only in list view)
+      if (modKey && e.key === 'k' && view === 'list' && config.enableSearch) {
+        e.preventDefault()
+        const searchInput = document.querySelector('.search-box input')
+        if (searchInput) {
+          searchInput.focus()
         }
-      )
-
-      if (currentIndex === -1) {
-        console.warn('Current entity not found in sorted list')
         return
       }
 
-      if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        // Navigate to next entity (loop to first if at end)
-        const nextIndex = (currentIndex + 1) % sortedEntities.length
-        handleEntityClick(sortedEntities[nextIndex])
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        // Navigate to previous entity (loop to last if at start)
-        const prevIndex = currentIndex === 0 ? sortedEntities.length - 1 : currentIndex - 1
-        handleEntityClick(sortedEntities[prevIndex])
+      // Detail view shortcuts
+      if (view === 'detail' && selectedEntity) {
+        // Escape - Go back to list
+        if (e.key === 'Escape' && !saving) {
+          e.preventDefault()
+          handleBackToList()
+          return
+        }
+
+        // Ctrl/Cmd + S - Save changes
+        if (modKey && e.key === 's' && config.enableEdit) {
+          e.preventDefault()
+          if (!saving) {
+            handleSave()
+          }
+          return
+        }
+
+        // Ctrl/Cmd + Enter - Save and close
+        if (modKey && e.key === 'Enter' && config.enableEdit) {
+          e.preventDefault()
+          if (!saving) {
+            handleSave()
+            // Wait for save to complete, then go back
+            setTimeout(() => handleBackToList(), 500)
+          }
+          return
+        }
+
+        // Delete key - Delete current entity (with confirmation)
+        if (e.key === 'Delete' && config.enableEdit && !isInputFocused) {
+          e.preventDefault()
+          if (!saving) {
+            handleDelete()
+          }
+          return
+        }
+
+        // Arrow key navigation (only when not in input/textarea)
+        if (!isInputFocused && sortedEntities.length > 0 && !saving) {
+          const currentEntityId = selectedEntity.presetId || selectedEntity.characterId || selectedEntity.id
+
+          const currentIndex = sortedEntities.findIndex(
+            entity => {
+              const entityId = entity.presetId || entity.characterId || entity.id
+              return entityId === currentEntityId
+            }
+          )
+
+          if (currentIndex === -1) {
+            console.warn('Current entity not found in sorted list')
+            return
+          }
+
+          if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            // Navigate to next entity (loop to first if at end)
+            const nextIndex = (currentIndex + 1) % sortedEntities.length
+            handleEntityClick(sortedEntities[nextIndex])
+          } else if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            // Navigate to previous entity (loop to last if at start)
+            const prevIndex = currentIndex === 0 ? sortedEntities.length - 1 : currentIndex - 1
+            handleEntityClick(sortedEntities[prevIndex])
+          }
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [view, selectedEntity, sortedEntities, saving])
+  }, [view, selectedEntity, sortedEntities, saving, config.enableEdit, config.enableSearch])
 
   const fetchData = async () => {
     try {
