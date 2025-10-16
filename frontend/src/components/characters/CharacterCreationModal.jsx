@@ -4,13 +4,12 @@ import api from '../../api/client'
 /**
  * Character Creation Modal
  *
- * Modal for creating new characters with name, visual description, personality, and tags.
- * Also supports optional reference image upload.
+ * Modal for creating new characters with name, personality, tags, and reference image.
+ * Physical appearance is automatically analyzed from the reference image in the background.
  */
 function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
   const [formData, setFormData] = useState({
     name: '',
-    visual_description: '',
     personality: '',
     tags: ''
   })
@@ -44,10 +43,9 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
     setError(null)
 
     try {
-      // Create FormData for multipart upload
+      //Create FormData for multipart upload
       const submitData = new FormData()
       submitData.append('name', formData.name.trim())
-      submitData.append('visual_description', formData.visual_description.trim())
       submitData.append('personality', formData.personality.trim())
 
       // Parse tags from comma-separated string
@@ -59,7 +57,7 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
         submitData.append('reference_image', referenceImage)
       }
 
-      const response = await api.post('/characters/', submitData, {
+      const response = await api.post('/characters/multipart', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -68,7 +66,6 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
       // Reset form
       setFormData({
         name: '',
-        visual_description: '',
         personality: '',
         tags: ''
       })
@@ -91,7 +88,6 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
     if (!creating) {
       setFormData({
         name: '',
-        visual_description: '',
         personality: '',
         tags: ''
       })
@@ -186,37 +182,6 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
             />
           </div>
 
-          {/* Visual Description */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{
-              display: 'block',
-              color: 'rgba(255, 255, 255, 0.9)',
-              marginBottom: '0.5rem',
-              fontWeight: 500
-            }}>
-              Visual Description
-            </label>
-            <textarea
-              value={formData.visual_description}
-              onChange={(e) => handleChange('visual_description', e.target.value)}
-              placeholder="Describe the character's physical appearance..."
-              disabled={creating}
-              rows="4"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '0.95rem',
-                resize: 'vertical',
-                fontFamily: 'inherit',
-                outline: 'none'
-              }}
-            />
-          </div>
-
           {/* Personality */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{
@@ -285,7 +250,7 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
               marginBottom: '0.5rem',
               fontWeight: 500
             }}>
-              Reference Image (optional)
+              Reference Image
             </label>
             <input
               type="file"
@@ -302,10 +267,18 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
                 fontSize: '0.95rem'
               }}
             />
+            <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.85rem', margin: '0.5rem 0 0 0', lineHeight: '1.4' }}>
+              Upload an image of your character. Physical appearance will be automatically analyzed in the background.
+            </p>
             {referenceImage && (
-              <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                Selected: {referenceImage.name}
-              </p>
+              <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(102, 126, 234, 0.1)', borderRadius: '8px', border: '1px solid rgba(102, 126, 234, 0.3)' }}>
+                <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.85rem', margin: '0 0 0.25rem 0' }}>
+                  ✓ Selected: {referenceImage.name}
+                </p>
+                <p style={{ color: 'rgba(102, 126, 234, 0.9)', fontSize: '0.8rem', margin: 0 }}>
+                  Appearance will be analyzed automatically after creation
+                </p>
+              </div>
             )}
           </div>
 
@@ -346,7 +319,9 @@ function CharacterCreationModal({ isOpen, onClose, onCharacterCreated }) {
                 boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
               }}
             >
-              {creating ? 'Creating...' : 'Create Character'}
+              {creating
+                ? (referenceImage ? 'Creating & Analyzing...' : 'Creating...')
+                : 'Create Character'}
             </button>
           </div>
         </form>
