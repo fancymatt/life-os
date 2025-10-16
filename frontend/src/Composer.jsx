@@ -17,8 +17,8 @@ const categoryConfig = [
 ]
 
 function Composer() {
-  const [subject, setSubject] = useState('jenny.png')
-  const [subjects, setSubjects] = useState([])
+  const [subject, setSubject] = useState(null) // Now stores character_id
+  const [characters, setCharacters] = useState([])
   const [categories, setCategories] = useState([])
   const [presets, setPresets] = useState({})
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,7 @@ function Composer() {
   useEffect(() => {
     loadPresets()
     fetchFavorites()
-    fetchSubjects()
+    fetchCharacters()
     fetchCompositions()
   }, [])
 
@@ -95,16 +95,17 @@ function Composer() {
     }
   }
 
-  const fetchSubjects = async () => {
+  const fetchCharacters = async () => {
     try {
-      const response = await api.get('/analyze/subjects')
-      setSubjects(response.data)
-      // Set first subject as default if available
-      if (response.data.length > 0 && !subject) {
-        setSubject(response.data[0].filename)
+      const response = await api.get('/characters/')
+      setCharacters(response.data.characters || [])
+      // Set first character as default if available
+      if (response.data.characters && response.data.characters.length > 0 && !subject) {
+        setSubject(response.data.characters[0].character_id)
       }
     } catch (err) {
-      console.error('Failed to fetch subjects:', err)
+      console.error('Failed to fetch characters:', err)
+      setCharacters([])
     }
   }
 
@@ -195,9 +196,27 @@ function Composer() {
         return
       }
 
+      // Find the selected character to get its reference image path
+      const selectedCharacter = characters.find(c => c.character_id === subject)
+      if (!selectedCharacter) {
+        alert('Please select a character')
+        setGenerating(false)
+        return
+      }
+
+      if (!selectedCharacter.reference_image_url) {
+        alert('Selected character has no reference image')
+        setGenerating(false)
+        return
+      }
+
+      // Use the character's reference image path for generation
+      // The backend stores character images as: data/characters/{character_id}_ref.png
+      const characterImagePath = `data/characters/${selectedCharacter.character_id}_ref.png`
+
       // Build request payload
       const payload = {
-        subject_image: subject,
+        subject_image: characterImagePath,
         variations: 1
       }
 
@@ -238,7 +257,7 @@ function Composer() {
     } finally {
       setGenerating(false)
     }
-  }, [subject, getCacheKey, generationCache])
+  }, [subject, getCacheKey, generationCache, characters])
 
   const addPreset = useCallback(async (preset) => {
     let newAppliedPresets
@@ -437,8 +456,9 @@ function Composer() {
 
       // Generate filename with timestamp and preset info
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+      const characterName = characters.find(c => c.character_id === subject)?.name || 'unknown'
       const presetNames = appliedPresets.map(p => p.display_name || p.preset_id).join('_')
-      const filename = `composition_${subject}_${presetNames.substring(0, 50)}_${timestamp}.png`
+      const filename = `composition_${characterName}_${presetNames.substring(0, 50)}_${timestamp}.png`
 
       link.download = filename
       document.body.appendChild(link)
@@ -453,7 +473,7 @@ function Composer() {
       console.error('Failed to download image:', err)
       alert('Failed to download image')
     }
-  }, [generatedImage, appliedPresets, subject])
+  }, [generatedImage, appliedPresets, subject, characters])
 
   // Memoized filtered and sorted presets for the active category
   const filteredPresets = useMemo(() => {
@@ -617,17 +637,21 @@ function Composer() {
               <p className="canvas-hint">Drag presets here to build your image</p>
             </div>
             <div className="subject-selector">
-              <label htmlFor="subject-select">Subject:</label>
+              <label htmlFor="subject-select">Character:</label>
               <select
                 id="subject-select"
-                value={subject}
+                value={subject || ''}
                 onChange={(e) => handleSubjectChange(e.target.value)}
               >
-                {subjects.map(subj => (
-                  <option key={subj.filename} value={subj.filename}>
-                    {subj.filename} {subj.source === 'uploaded' ? '(uploaded)' : ''}
-                  </option>
-                ))}
+                {characters.length === 0 ? (
+                  <option value="">No characters available</option>
+                ) : (
+                  characters.map(char => (
+                    <option key={char.character_id} value={char.character_id}>
+                      {char.name}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           </div>
@@ -670,7 +694,7 @@ function Composer() {
             <>
               <div className="empty-canvas">
                 <div className="subject-placeholder">
-                  <p>Subject: {subject}</p>
+                  <p>Character: {characters.find(c => c.character_id === subject)?.name || 'None selected'}</p>
                   <p className="canvas-instruction">Drop presets to start composing</p>
                 </div>
               </div>
@@ -713,7 +737,7 @@ function Composer() {
                     <div className="composition-info">
                       <span className="composition-name">{comp.name}</span>
                       <span className="composition-meta">
-                        {comp.presets.length} preset(s) · {comp.subject}
+                        {comp.presets.length} preset(s) · {characters.find(c => c.character_id === comp.subject)?.name || comp.subject}
                       </span>
                     </div>
                     <div className="composition-actions">
