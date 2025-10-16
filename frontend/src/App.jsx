@@ -8,6 +8,7 @@ import ModularGenerator from './ModularGenerator'
 import ComprehensiveAnalyzer from './ComprehensiveAnalyzer'
 import TaskManager from './TaskManager'
 import Gallery from './Gallery'
+import Composer from './Composer'
 import api from './api/client'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
   const [showModularGenerator, setShowModularGenerator] = useState(false)
   const [showComprehensiveAnalyzer, setShowComprehensiveAnalyzer] = useState(false)
   const [showGallery, setShowGallery] = useState(false)
+  const [showComposer, setShowComposer] = useState(false)
 
   useEffect(() => {
     // Only fetch tools if authenticated
@@ -77,6 +79,22 @@ function App() {
   const analyzers = tools.filter(t => t.category === 'analyzer')
   const generators = tools.filter(t => t.category === 'generator')
 
+  // If Composer is active, show it full-screen
+  if (showComposer) {
+    return (
+      <>
+        <Composer />
+        <button
+          className="composer-back-button"
+          onClick={() => setShowComposer(false)}
+        >
+          ← Back to Tools
+        </button>
+        <TaskManager />
+      </>
+    )
+  }
+
   return (
     <>
       <div className="container">
@@ -123,8 +141,18 @@ function App() {
         </section>
 
         <section>
-          <h2>🎨 Generators ({generators.length + 1})</h2>
+          <h2>🎨 Generators ({generators.length + 2})</h2>
           <div className="tools-list">
+            {/* Preset Composer - NEW drag-and-drop interface */}
+            <div
+              className="tool-card clickable featured"
+              onClick={() => setShowComposer(true)}
+            >
+              <h3>🎭 Preset Composer</h3>
+              <p className="description">Drag and drop presets to build stunning compositions. Stack presets, see live previews, and cache your favorite combinations.</p>
+              <span className="new-badge">NEW</span>
+            </div>
+
             {/* Modular Generator - Frontend Workflow */}
             <div
               className="tool-card clickable"
