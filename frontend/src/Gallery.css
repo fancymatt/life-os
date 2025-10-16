@@ -77,11 +77,12 @@
 /* Gallery Grid */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
+  align-items: start;
 }
 
 .gallery-item {
@@ -92,6 +93,8 @@
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .gallery-item:hover {
@@ -113,12 +116,15 @@
 .gallery-image-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  padding-bottom: 100%; /* Creates 1:1 aspect ratio */
   overflow: hidden;
   background: #f3f4f6;
 }
 
 .gallery-image-container img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
