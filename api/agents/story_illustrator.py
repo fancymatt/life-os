@@ -217,7 +217,16 @@ class StoryIllustratorAgent(Agent):
         art_style: str,
         appearance_overrides: Optional[str] = None
     ) -> str:
-        """Build complete illustration prompt"""
+        """
+        Build complete illustration prompt (legacy method, prefer _build_illustration_prompt_from_config)
+        """
+
+        # Check if user wants realistic/no style (match various formats)
+        is_realistic = art_style and (
+            'realistic' in art_style.lower() or
+            'no style' in art_style.lower() or
+            art_style.lower() == 'none'
+        )
 
         # Combine all elements
         full_prompt = f"{scene_prompt}"
@@ -229,8 +238,8 @@ class StoryIllustratorAgent(Agent):
         if appearance_overrides:
             full_prompt += f" {appearance_overrides}"
 
-        # Skip art style modification for "realistic" - just photorealistic image generation
-        if art_style and art_style.lower() != 'realistic':
+        # Add art style or realistic mode
+        if not is_realistic:
             # Art style descriptions
             style_descriptions = {
                 'watercolor': "watercolor painting style, soft colors, artistic brush strokes",
@@ -245,7 +254,7 @@ class StoryIllustratorAgent(Agent):
             full_prompt += f". {style_desc}. High quality, professional illustration."
         else:
             # Realistic mode - no style modifications
-            full_prompt += ". Photorealistic, natural lighting, high quality."
+            full_prompt += ". Photorealistic image, natural lighting, realistic photography style, high quality."
 
         return full_prompt
 
@@ -439,13 +448,16 @@ class StoryIllustratorAgent(Agent):
         shot_types = prompt_template.get('shot_types', [])
         style_notes = prompt_template.get('style_notes', [])
 
+        # Check if user wants realistic/no style
+        # Match variations: "realistic", "Realistic (No Style)", "no style", etc.
+        is_realistic = art_style and (
+            'realistic' in art_style.lower() or
+            'no style' in art_style.lower() or
+            art_style.lower() == 'none'
+        )
+
         # Build prompt parts
         prompt_parts = []
-
-        # System context from config (for complex configs like cinematic)
-        if system_message and system_message != "Create clear, engaging illustrations that capture key story moments.":
-            # Only include if it's not the generic default
-            prompt_parts.append(f"Style Context: {system_message}")
 
         # Core scene description
         prompt_parts.append(scene_prompt)
@@ -458,7 +470,15 @@ class StoryIllustratorAgent(Agent):
         if appearance_overrides:
             prompt_parts.append(appearance_overrides)
 
-        # Visual principles from config
+        # Apply cinematography/composition guidance from config (independent of art style)
+        # This includes framing, lighting, camera angles - works with both realistic and styled rendering
+
+        # System context from config (for complex configs like cinematic)
+        if system_message and system_message != "Create clear, engaging illustrations that capture key story moments.":
+            # Only include if it's not the generic default
+            prompt_parts.append(f"Composition Context: {system_message}")
+
+        # Visual principles from config (composition, framing, mood)
         if visual_principles and len(visual_principles) > 0:
             # Add first few principles as inline guidance
             key_principles = visual_principles[:3]  # Top 3 most important
@@ -470,14 +490,16 @@ class StoryIllustratorAgent(Agent):
             prompt_parts.append(lighting_guidance)
 
         # Style notes for specific configs (like storybook, graphic novel)
+        # Note: These are about composition/mood, not rendering style
         if style_notes and len(style_notes) > 0:
             # Add one or two key style notes
             key_notes = style_notes[:2]
             for note in key_notes:
                 prompt_parts.append(note)
 
-        # Art style handling (realistic vs styled)
-        if art_style and art_style.lower() != 'realistic':
+        # Art style handling (realistic vs styled rendering)
+        if not is_realistic:
+            # Apply specific art style
             style_descriptions = {
                 'watercolor': "watercolor painting style, soft colors, artistic brush strokes",
                 'digital_art': "digital art, vibrant colors, detailed illustration",
@@ -489,7 +511,7 @@ class StoryIllustratorAgent(Agent):
             style_desc = style_descriptions.get(art_style, art_style)
             prompt_parts.append(f"{style_desc}. High quality, professional illustration.")
         else:
-            # Realistic mode
-            prompt_parts.append("Photorealistic, natural lighting, high quality.")
+            # Realistic mode - no stylization
+            prompt_parts.append("Photorealistic image, natural lighting, realistic photography style, high quality.")
 
         return " ".join(prompt_parts)
