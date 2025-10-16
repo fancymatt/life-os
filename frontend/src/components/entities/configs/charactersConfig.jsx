@@ -16,17 +16,8 @@ export const charactersConfig = {
   defaultSort: 'newest',
   searchFields: ['name', 'visual_description', 'personality'],
 
-  actions: [
-    {
-      label: 'New Character',
-      icon: '+',
-      primary: true,
-      onClick: () => {
-        // TODO: Open character creation modal/form
-        alert('Character creation UI coming soon!')
-      }
-    }
-  ],
+  // actions will be overridden by CharactersEntity page to provide modal handler
+  actions: [],
 
   fetchEntities: async () => {
     const response = await api.get('/characters')

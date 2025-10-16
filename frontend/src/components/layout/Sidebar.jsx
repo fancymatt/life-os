@@ -72,6 +72,10 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.entities && (
               <div className="nav-section-content">
+                <NavLink to="/entities/characters" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">👤</span>
+                  <span className="nav-label">Characters</span>
+                </NavLink>
                 <NavLink to="/entities/stories" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">📚</span>
                   <span className="nav-label">Stories</span>
