@@ -45,12 +45,7 @@ function TaskManager() {
             }
           })
 
-          // Auto-dismiss completed jobs after 5 seconds
-          if (job.status === 'completed') {
-            setTimeout(() => {
-              setJobs(prevJobs => prevJobs.filter(j => j.job_id !== job.job_id))
-            }, 5000)
-          }
+          // Note: Removed auto-dismiss - let user manually dismiss completed jobs
         } catch (err) {
           console.error('Failed to parse job update:', err)
         }
