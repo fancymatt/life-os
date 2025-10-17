@@ -121,6 +121,13 @@ class CharacterInfo(BaseModel):
     created_at: Optional[str] = None
     metadata: Dict[str, Any] = {}
 
+    # Detailed appearance fields (from character_appearance_analyzer)
+    age: Optional[str] = None
+    skin_tone: Optional[str] = None
+    face_description: Optional[str] = None
+    hair_description: Optional[str] = None
+    body_description: Optional[str] = None
+
 
 class CharacterListResponse(BaseModel):
     """List of characters"""

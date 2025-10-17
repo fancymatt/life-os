@@ -15,9 +15,19 @@ import './ToolConfigPage.css'
 function ToolConfigPage() {
   const { type } = useParams() // For tools like "character-appearance"
   const navigate = useNavigate()
+  const location = window.location
 
   // Convert URL param to tool name (e.g., "character-appearance" -> "character_appearance_analyzer")
-  const toolName = type ? `${type.replace(/-/g, '_')}_analyzer` : null
+  // If no type param, extract from pathname
+  let toolType = type
+  if (!toolType) {
+    const pathMatch = location.pathname.match(/\/analyzers\/([^/]+)/)
+    if (pathMatch) {
+      toolType = pathMatch[1]
+    }
+  }
+
+  const toolName = toolType ? `${toolType.replace(/-/g, '_')}_analyzer` : null
 
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -74,9 +84,14 @@ function ToolConfigPage() {
     setError(null)
 
     try {
+      // Use fixed temperature if model requires it, otherwise use edited value
+      const finalTemperature = hasFixedTemperature
+        ? temperatureRestrictions.fixed
+        : editedTemperature
+
       await api.put(`/tool-configs/tools/${toolName}`, {
         model: editedModel,
-        temperature: editedTemperature,
+        temperature: finalTemperature,
         template: editedTemplate
       })
 
@@ -91,6 +106,14 @@ function ToolConfigPage() {
       setSaving(false)
     }
   }
+
+  // Check if selected model has temperature restrictions
+  const selectedModelInfo = Object.values(availableModels)
+    .flat()
+    .find(m => m.id === editedModel)
+
+  const temperatureRestrictions = selectedModelInfo?.temperature_restrictions
+  const hasFixedTemperature = temperatureRestrictions?.fixed !== undefined
 
   const handleReset = () => {
     setEditedTemplate(config.template || '')
@@ -213,7 +236,10 @@ function ToolConfigPage() {
           {/* Temperature */}
           <div className="form-group">
             <label htmlFor="temperature">
-              Temperature: {editedTemperature.toFixed(2)}
+              Temperature: {hasFixedTemperature
+                ? `${temperatureRestrictions.fixed.toFixed(2)} (fixed for ${selectedModelInfo?.name})`
+                : editedTemperature.toFixed(2)
+              }
             </label>
             <input
               type="range"
@@ -221,11 +247,16 @@ function ToolConfigPage() {
               min="0"
               max="1"
               step="0.1"
-              value={editedTemperature}
+              value={hasFixedTemperature ? temperatureRestrictions.fixed : editedTemperature}
               onChange={(e) => setEditedTemperature(parseFloat(e.target.value))}
-              disabled={saving}
+              disabled={saving || hasFixedTemperature}
             />
-            <small>Higher values = more creative/random, lower values = more deterministic</small>
+            <small>
+              {hasFixedTemperature
+                ? (temperatureRestrictions.note || 'This model requires a fixed temperature value')
+                : 'Higher values = more creative/random, lower values = more deterministic'
+              }
+            </small>
           </div>
 
           {/* Prompt Template */}

@@ -8,10 +8,9 @@ Return a JSON object with this **exact** structure:
 
 ```json
 {
-  "suggested_name": "Short descriptive name (2-4 words, e.g., 'Young Adult Woman', 'Middle-Aged Man')",
   "age": "apparent age or age group (e.g., 'young child', 'teenager', 'young adult', 'middle-aged', 'elderly')",
   "skin_tone": "skin tone (e.g., 'fair', 'light', 'medium', 'olive', 'tan', 'brown', 'dark')",
-  "face_description": "complete facial description including shape, eyes, distinctive features, gender presentation, and ethnic features",
+  "face_description": "at least 25 words, complete facial description including shape, eyes, distinctive features, gender presentation, and ethnic features",
   "hair_description": "complete hair description including color, style, length, and texture",
   "body_description": "body description including build, height appearance, and physique",
   "overall_description": "a complete, flowing paragraph combining all features in natural language"
@@ -19,11 +18,6 @@ Return a JSON object with this **exact** structure:
 ```
 
 ## Field Descriptions
-
-### suggested_name
-- A short, descriptive identifier (2-4 words)
-- Examples: "Young Adult Woman", "Middle-Aged Man", "Teenage Girl", "Elderly Gentleman"
-- Should capture age group and gender presentation
 
 ### age
 - Apparent age or age group
@@ -38,7 +32,7 @@ Return a JSON object with this **exact** structure:
 ### face_description
 - **Comprehensive** facial description combining multiple aspects
 - Include:
-  - Face shape (oval, round, heart-shaped, square, long, diamond)
+  - Face shape
   - Eye description (color, shape, notable features)
   - Gender presentation (feminine, masculine, androgynous)
   - Ethnic features if discernible (East Asian, African, European, South Asian, Middle Eastern, Hispanic/Latin American, Indigenous)

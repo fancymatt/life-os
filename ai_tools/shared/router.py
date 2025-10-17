@@ -55,10 +55,11 @@ class RouterConfig:
         self.config = self._load_config()
 
     def _load_config(self) -> Dict[str, Any]:
-        """Load configuration from YAML file"""
+        """Load configuration from YAML file with overrides"""
+        # Load base config
         if not self.config_path.exists():
             # Return default config
-            return {
+            base_config = {
                 "defaults": {
                     "timeout": 180,
                     "retries": 3,
@@ -69,9 +70,23 @@ class RouterConfig:
                     "retries": 3,
                 }
             }
+        else:
+            with open(self.config_path, 'r') as f:
+                base_config = yaml.safe_load(f)
 
-        with open(self.config_path, 'r') as f:
-            return yaml.safe_load(f)
+        # Load user overrides (writable location)
+        overrides_path = Path(__file__).parent.parent.parent / "data" / "tool_configs" / "overrides.yaml"
+        if overrides_path.exists():
+            with open(overrides_path, 'r') as f:
+                overrides = yaml.safe_load(f) or {}
+
+                # Merge overrides into base config
+                if 'defaults' in overrides:
+                    base_config.setdefault('defaults', {}).update(overrides['defaults'])
+                if 'tool_settings' in overrides:
+                    base_config.setdefault('tool_settings', {}).update(overrides['tool_settings'])
+
+        return base_config
 
     def get_model_for_tool(self, tool_name: str) -> str:
         """Get the configured model for a specific tool"""

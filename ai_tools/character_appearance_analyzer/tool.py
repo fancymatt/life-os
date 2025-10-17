@@ -27,18 +27,27 @@ class CharacterAppearanceAnalyzer:
     Optimized for creating consistent character descriptions for story illustrations.
     """
 
-    def __init__(self, model: Optional[str] = None):
+    def __init__(self, model: Optional[str] = None, temperature: Optional[float] = None):
         """
         Initialize character appearance analyzer
 
         Args:
             model: Model to use (default from config)
+            temperature: Temperature to use (default from config)
         """
+        config = RouterConfig()
+
         if model is None:
-            config = RouterConfig()
             model = config.get_model_for_tool("character_appearance_analyzer")
 
+        if temperature is None:
+            # Load temperature from config
+            temperature = config.config.get('tool_settings', {}).get(
+                'character_appearance_analyzer', {}
+            ).get('temperature', 0.7)
+
         self.router = LLMRouter(model=model)
+        self.temperature = temperature
 
         # Load prompt template
         self.template_path = Path(__file__).parent / "template.md"
@@ -73,7 +82,7 @@ class CharacterAppearanceAnalyzer:
             prompt=self.prompt_template,
             response_model=CharacterAppearanceSpec,
             images=[image_path],
-            temperature=0.3
+            temperature=self.temperature
         )
 
         print(f"\n✅ Analysis complete")
@@ -110,7 +119,7 @@ class CharacterAppearanceAnalyzer:
             prompt=self.prompt_template,
             response_model=CharacterAppearanceSpec,
             images=[image_path],
-            temperature=0.3
+            temperature=self.temperature
         )
 
         print(f"\n✅ Analysis complete")

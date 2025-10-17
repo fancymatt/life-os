@@ -1,0 +1,26 @@
+defaults:
+  outfit_analyzer: gemini/gemini-2.0-flash-exp
+  visual_style_analyzer: gemini/gemini-2.0-flash-exp
+  art_style_analyzer: gemini/gemini-2.0-flash-exp
+  hair_style_analyzer: gemini/gemini-2.0-flash-exp
+  hair_color_analyzer: gemini/gemini-2.0-flash-exp
+  makeup_analyzer: gemini/gemini-2.0-flash-exp
+  expression_analyzer: gemini/gemini-2.0-flash-exp
+  accessories_analyzer: gemini/gemini-2.0-flash-exp
+  comprehensive_analyzer: gemini/gemini-2.0-flash-exp
+  style_guide_analyzer: gemini/gemini-2.0-flash-exp
+  character_appearance_analyzer: gemini/gemini-2.0-flash-exp
+  outfit_generator: gemini-2.5-flash-image
+  style_transfer_generator: gemini-2.5-flash-image
+  modular_image_generator: gemini-2.5-flash-image
+  art_style_generator: gemini-2.5-flash-image
+  style_guide_generator: gemini-2.5-flash-image
+  combined_transformation: gemini-2.5-flash-image
+  video_prompt_enhancer: gpt-4o
+  sora_video_generator: sora-2-pro
+  timeout: 180
+  retries: 3
+  temperature: 0.7
+tool_settings:
+  character_appearance_analyzer:
+    temperature: 1

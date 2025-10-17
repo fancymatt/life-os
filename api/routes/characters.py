@@ -52,7 +52,12 @@ async def list_characters(
             reference_image_url=ref_image_url,
             tags=char.get('tags', []),
             created_at=char.get('created_at'),
-            metadata=char.get('metadata', {})
+            metadata=char.get('metadata', {}),
+            age=char.get('age'),
+            skin_tone=char.get('skin_tone'),
+            face_description=char.get('face_description'),
+            hair_description=char.get('hair_description'),
+            body_description=char.get('body_description')
         ))
 
     return CharacterListResponse(
@@ -111,12 +116,16 @@ async def create_character_multipart(
                 service = CharacterService()
                 analyzer = CharacterAppearanceAnalyzer()
                 appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
-                analyzed_appearance = appearance_spec.overall_description
 
-                # Save physical description to character
+                # Save all appearance fields to character
                 service.update_character(
                     character_id,
-                    physical_description=analyzed_appearance
+                    physical_description=appearance_spec.overall_description,
+                    age=appearance_spec.age,
+                    skin_tone=appearance_spec.skin_tone,
+                    face_description=appearance_spec.face_description,
+                    hair_description=appearance_spec.hair_description,
+                    body_description=appearance_spec.body_description
                 )
                 print(f"✅ Physical description analyzed and saved for {name}")
             except Exception as e:
@@ -139,7 +148,12 @@ async def create_character_multipart(
         reference_image_url=ref_image_url,
         tags=character_data.get('tags', []),
         created_at=character_data.get('created_at'),
-        metadata=character_data.get('metadata', {})
+        metadata=character_data.get('metadata', {}),
+        age=character_data.get('age'),
+        skin_tone=character_data.get('skin_tone'),
+        face_description=character_data.get('face_description'),
+        hair_description=character_data.get('hair_description'),
+        body_description=character_data.get('body_description')
     )
 
 
@@ -216,7 +230,12 @@ async def create_character(
         reference_image_url=ref_image_url,
         tags=character_data.get('tags', []),
         created_at=character_data.get('created_at'),
-        metadata=character_data.get('metadata', {})
+        metadata=character_data.get('metadata', {}),
+        age=character_data.get('age'),
+        skin_tone=character_data.get('skin_tone'),
+        face_description=character_data.get('face_description'),
+        hair_description=character_data.get('hair_description'),
+        body_description=character_data.get('body_description')
     )
 
 
@@ -273,12 +292,16 @@ async def upload_character_image(
             print(f"🔍 Analyzing character appearance for {character_data['name']}...")
             analyzer = CharacterAppearanceAnalyzer()
             appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
-            analyzed_appearance = appearance_spec.overall_description
 
-            # Save physical description to character
+            # Save all appearance fields to character
             character_data = service.update_character(
                 character_id,
-                physical_description=analyzed_appearance
+                physical_description=appearance_spec.overall_description,
+                age=appearance_spec.age,
+                skin_tone=appearance_spec.skin_tone,
+                face_description=appearance_spec.face_description,
+                hair_description=appearance_spec.hair_description,
+                body_description=appearance_spec.body_description
             )
             print(f"✅ Physical description analyzed and saved")
         except Exception as e:
@@ -297,7 +320,12 @@ async def upload_character_image(
         reference_image_url=ref_image_url,
         tags=character_data.get('tags', []),
         created_at=character_data.get('created_at'),
-        metadata=character_data.get('metadata', {})
+        metadata=character_data.get('metadata', {}),
+        age=character_data.get('age'),
+        skin_tone=character_data.get('skin_tone'),
+        face_description=character_data.get('face_description'),
+        hair_description=character_data.get('hair_description'),
+        body_description=character_data.get('body_description')
     )
 
 
@@ -331,7 +359,12 @@ async def get_character(
         reference_image_url=ref_image_url,
         tags=character_data.get('tags', []),
         created_at=character_data.get('created_at'),
-        metadata=character_data.get('metadata', {})
+        metadata=character_data.get('metadata', {}),
+        age=character_data.get('age'),
+        skin_tone=character_data.get('skin_tone'),
+        face_description=character_data.get('face_description'),
+        hair_description=character_data.get('hair_description'),
+        body_description=character_data.get('body_description')
     )
 
 
@@ -385,7 +418,12 @@ async def update_character(
         reference_image_url=ref_image_url,
         tags=character_data.get('tags', []),
         created_at=character_data.get('created_at'),
-        metadata=character_data.get('metadata', {})
+        metadata=character_data.get('metadata', {}),
+        age=character_data.get('age'),
+        skin_tone=character_data.get('skin_tone'),
+        face_description=character_data.get('face_description'),
+        hair_description=character_data.get('hair_description'),
+        body_description=character_data.get('body_description')
     )
 
 
@@ -406,6 +444,69 @@ async def delete_character(
         raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
 
     return {"message": f"Character {character_id} deleted successfully"}
+
+
+@router.post("/{character_id}/re-analyze-appearance", response_model=CharacterInfo)
+async def re_analyze_character_appearance(
+    character_id: str,
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Re-analyze appearance for a specific character
+
+    Forces re-analysis of the character's reference image, updating all appearance fields.
+    Returns updated character info immediately.
+    """
+    service = CharacterService()
+
+    # Get character
+    character_data = service.get_character(character_id)
+    if not character_data:
+        raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
+
+    # Check for reference image
+    if not character_data.get('reference_image_path'):
+        raise HTTPException(status_code=400, detail=f"Character {character_id} has no reference image")
+
+    try:
+        print(f"🔍 Re-analyzing character appearance for {character_data['name']}...")
+        analyzer = CharacterAppearanceAnalyzer()
+        appearance_spec = await analyzer.aanalyze(Path(character_data['reference_image_path']))
+
+        # Update character with all appearance fields
+        character_data = service.update_character(
+            character_id,
+            physical_description=appearance_spec.overall_description,
+            age=appearance_spec.age,
+            skin_tone=appearance_spec.skin_tone,
+            face_description=appearance_spec.face_description,
+            hair_description=appearance_spec.hair_description,
+            body_description=appearance_spec.body_description
+        )
+        print(f"✅ Physical description re-analyzed and saved")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Appearance analysis failed: {str(e)}")
+
+    # Build reference image URL
+    ref_image_url = f"/api/characters/{character_id}/image"
+
+    return CharacterInfo(
+        character_id=character_data['character_id'],
+        name=character_data['name'],
+        visual_description=character_data.get('visual_description'),
+        physical_description=character_data.get('physical_description'),
+        personality=character_data.get('personality'),
+        reference_image_url=ref_image_url,
+        tags=character_data.get('tags', []),
+        created_at=character_data.get('created_at'),
+        metadata=character_data.get('metadata', {}),
+        age=character_data.get('age'),
+        skin_tone=character_data.get('skin_tone'),
+        face_description=character_data.get('face_description'),
+        hair_description=character_data.get('hair_description'),
+        body_description=character_data.get('body_description')
+    )
 
 
 @router.post("/analyze-appearances", response_model=dict)
@@ -480,12 +581,16 @@ async def analyze_character_appearances(
 
                     # Run appearance analyzer
                     appearance_spec = await analyzer.aanalyze(image_path)
-                    analyzed_description = appearance_spec.overall_description
 
-                    # Update character with physical description
+                    # Update character with all appearance fields
                     service.update_character(
                         character_id,
-                        physical_description=analyzed_description
+                        physical_description=appearance_spec.overall_description,
+                        age=appearance_spec.age,
+                        skin_tone=appearance_spec.skin_tone,
+                        face_description=appearance_spec.face_description,
+                        hair_description=appearance_spec.hair_description,
+                        body_description=appearance_spec.body_description
                     )
 
                     results.append({

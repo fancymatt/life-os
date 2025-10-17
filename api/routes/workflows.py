@@ -130,6 +130,25 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
 
             workflow = SimpleWorkflow(workflow_def, agents, progress_callback=progress_callback)
 
+            # Build character appearance from discrete fields or fallback to appearance field
+            character_appearance = request.character.get('appearance', '')
+
+            # If discrete fields are available, build appearance from them
+            appearance_parts = []
+            if request.character.get('age'):
+                appearance_parts.append(request.character['age'])
+            if request.character.get('skin_tone'):
+                appearance_parts.append(f"{request.character['skin_tone']} skin")
+            if request.character.get('face_description'):
+                appearance_parts.append(request.character['face_description'])
+            if request.character.get('hair_description'):
+                appearance_parts.append(request.character['hair_description'])
+            if request.character.get('body_description'):
+                appearance_parts.append(request.character['body_description'])
+
+            if appearance_parts:
+                character_appearance = ', '.join(appearance_parts)
+
             # Prepare input parameters
             input_params = {
                 "character": request.character,
@@ -147,7 +166,7 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
                 "target_scenes": request.target_scenes,
                 "art_style": request.art_style,
                 "max_illustrations": request.max_illustrations,
-                "character_appearance": request.character.get('appearance', ''),
+                "character_appearance": character_appearance,
                 "transformation": request.transformation.dict() if request.transformation else None,
                 # Appearance overrides
                 "outfit_id": request.outfit_id,

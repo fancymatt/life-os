@@ -28,23 +28,52 @@ def get_tool_dir(tool_name: str) -> Path:
 
 
 def get_models_config_path() -> Path:
-    """Get path to models.yaml"""
+    """Get path to models.yaml (read-only base config)"""
     return settings.base_dir / "configs" / "models.yaml"
 
 
+def get_tool_config_overrides_path() -> Path:
+    """Get path to tool config overrides (writable)"""
+    path = settings.base_dir / "data" / "tool_configs" / "overrides.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 async def load_models_config() -> Dict[str, Any]:
-    """Load models.yaml configuration"""
-    config_path = get_models_config_path()
-    async with aiofiles.open(config_path, 'r') as f:
+    """Load models.yaml configuration with overrides"""
+    # Load base config (read-only)
+    base_config_path = get_models_config_path()
+    async with aiofiles.open(base_config_path, 'r') as f:
         content = await f.read()
-        return yaml.safe_load(content)
+        base_config = yaml.safe_load(content)
+
+    # Load overrides (writable)
+    overrides_path = get_tool_config_overrides_path()
+    if overrides_path.exists():
+        async with aiofiles.open(overrides_path, 'r') as f:
+            content = await f.read()
+            overrides = yaml.safe_load(content) or {}
+
+            # Merge overrides into base config
+            if 'defaults' in overrides:
+                base_config.setdefault('defaults', {}).update(overrides['defaults'])
+            if 'tool_settings' in overrides:
+                base_config.setdefault('tool_settings', {}).update(overrides['tool_settings'])
+
+    return base_config
 
 
 async def save_models_config(config: Dict[str, Any]):
-    """Save models.yaml configuration"""
-    config_path = get_models_config_path()
-    async with aiofiles.open(config_path, 'w') as f:
-        await f.write(yaml.dump(config, default_flow_style=False, sort_keys=False))
+    """Save tool config overrides (not base config)"""
+    # Only save the parts that can be customized
+    overrides = {
+        'defaults': config.get('defaults', {}),
+        'tool_settings': config.get('tool_settings', {})
+    }
+
+    overrides_path = get_tool_config_overrides_path()
+    async with aiofiles.open(overrides_path, 'w') as f:
+        await f.write(yaml.dump(overrides, default_flow_style=False, sort_keys=False))
 
 
 @router.get("/tools")
@@ -120,11 +149,18 @@ async def get_tool_config(
     tool_settings = models_config.get('tool_settings', {})
     temperature = tool_settings.get(tool_name, {}).get('temperature', 0.7)
 
-    # Load template if exists
-    template_path = tool_dir / "template.md"
+    # Load template (check for custom override first, then base template)
     template = None
-    if template_path.exists():
-        async with aiofiles.open(template_path, 'r') as f:
+    custom_template_path = settings.base_dir / "data" / "tool_configs" / f"{tool_name}_template.md"
+    base_template_path = tool_dir / "template.md"
+
+    if custom_template_path.exists():
+        # Load custom template
+        async with aiofiles.open(custom_template_path, 'r') as f:
+            template = await f.read()
+    elif base_template_path.exists():
+        # Load base template
+        async with aiofiles.open(base_template_path, 'r') as f:
             template = await f.read()
 
     # Load tool.py to get description
@@ -188,11 +224,16 @@ async def update_tool_config(
 
     # Update template if provided
     if 'template' in config:
-        template_path = tool_dir / "template.md"
-        if not template_path.exists():
+        # Check if base template exists
+        base_template_path = tool_dir / "template.md"
+        if not base_template_path.exists():
             raise HTTPException(status_code=400, detail=f"Tool {tool_name} does not have a template")
 
-        async with aiofiles.open(template_path, 'w') as f:
+        # Save to custom template location (writable)
+        custom_template_path = settings.base_dir / "data" / "tool_configs" / f"{tool_name}_template.md"
+        custom_template_path.parent.mkdir(parents=True, exist_ok=True)
+
+        async with aiofiles.open(custom_template_path, 'w') as f:
             await f.write(config['template'])
 
     return {"message": "Tool configuration updated successfully"}
@@ -262,26 +303,39 @@ async def list_available_models(
     """
     List all available models
 
-    Returns models organized by provider
+    Returns models organized by provider, filtered by available API keys
     """
-    return {
-        "gemini": [
-            {"id": "gemini/gemini-2.0-flash-exp", "name": "Gemini 2.0 Flash (Experimental)"},
-            {"id": "gemini/gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
-            {"id": "gemini/gemini-1.5-pro", "name": "Gemini 1.5 Pro"},
-            {"id": "gemini-2.5-flash-image", "name": "Gemini 2.5 Flash Image"},
-        ],
-        "openai": [
-            {"id": "gpt-4o", "name": "GPT-4o"},
-            {"id": "gpt-4o-mini", "name": "GPT-4o Mini"},
-            {"id": "gpt-5", "name": "GPT-5"},
-        ],
-        "anthropic": [
-            {"id": "claude-3-5-sonnet", "name": "Claude 3.5 Sonnet"},
-            {"id": "claude-3-opus", "name": "Claude 3 Opus"},
-        ],
-        "openai-video": [
-            {"id": "sora-2", "name": "Sora 2"},
-            {"id": "sora-2-pro", "name": "Sora 2 Pro"},
-        ]
-    }
+    import os
+
+    # Load models registry
+    models_registry_path = settings.base_dir / "configs" / "available_models.yaml"
+    async with aiofiles.open(models_registry_path, 'r') as f:
+        content = await f.read()
+        registry = yaml.safe_load(content)
+
+    # Check which providers have API keys configured
+    available_models = {}
+
+    for provider, config in registry.get('providers', {}).items():
+        env_var = config.get('env_var')
+
+        # Check if API key exists
+        if env_var and os.getenv(env_var):
+            # Provider has API key, include their models
+            models = []
+            for model in config.get('models', []):
+                model_info = {
+                    "id": model['id'],
+                    "name": model['name']
+                }
+
+                # Include temperature restrictions if present
+                if 'temperature_restrictions' in model:
+                    model_info['temperature_restrictions'] = model['temperature_restrictions']
+
+                models.append(model_info)
+
+            if models:  # Only include provider if they have models
+                available_models[provider] = models
+
+    return available_models

@@ -166,6 +166,13 @@ class CharacterCreate(BaseModel):
     reference_image: Optional[ImageInput] = Field(None, description="Reference image for the character")
     tags: List[str] = Field(default_factory=list, description="Tags for categorization")
 
+    # Detailed appearance fields (from character_appearance_analyzer)
+    age: Optional[str] = Field(None, description="Apparent age or age group")
+    skin_tone: Optional[str] = Field(None, description="Skin tone description")
+    face_description: Optional[str] = Field(None, description="Facial description")
+    hair_description: Optional[str] = Field(None, description="Hair description")
+    body_description: Optional[str] = Field(None, description="Body/physique description")
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -184,6 +191,13 @@ class CharacterUpdate(BaseModel):
     personality: Optional[str] = Field(None, description="Personality traits")
     reference_image: Optional[ImageInput] = Field(None, description="Reference image")
     tags: Optional[List[str]] = Field(None, description="Tags")
+
+    # Detailed appearance fields (from character_appearance_analyzer)
+    age: Optional[str] = Field(None, description="Apparent age or age group")
+    skin_tone: Optional[str] = Field(None, description="Skin tone description")
+    face_description: Optional[str] = Field(None, description="Facial description")
+    hair_description: Optional[str] = Field(None, description="Hair description")
+    body_description: Optional[str] = Field(None, description="Body/physique description")
 
     class Config:
         json_schema_extra = {

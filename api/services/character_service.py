@@ -38,7 +38,13 @@ class CharacterService:
         personality: Optional[str] = None,
         reference_image_path: Optional[str] = None,
         tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        # Detailed appearance fields
+        age: Optional[str] = None,
+        skin_tone: Optional[str] = None,
+        face_description: Optional[str] = None,
+        hair_description: Optional[str] = None,
+        body_description: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create a new character
@@ -50,6 +56,11 @@ class CharacterService:
             reference_image_path: Path to reference image
             tags: List of tags
             metadata: Additional metadata
+            age: Apparent age or age group
+            skin_tone: Skin tone description
+            face_description: Facial description
+            hair_description: Hair description
+            body_description: Body/physique description
 
         Returns:
             Character data dict
@@ -66,7 +77,13 @@ class CharacterService:
             "tags": tags or [],
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
-            "metadata": metadata or {}
+            "metadata": metadata or {},
+            # Detailed appearance fields
+            "age": age,
+            "skin_tone": skin_tone,
+            "face_description": face_description,
+            "hair_description": hair_description,
+            "body_description": body_description
         }
 
         # Save character data
@@ -129,7 +146,13 @@ class CharacterService:
         physical_description: Optional[str] = None,
         reference_image_path: Optional[str] = None,
         tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        # Detailed appearance fields
+        age: Optional[str] = None,
+        skin_tone: Optional[str] = None,
+        face_description: Optional[str] = None,
+        hair_description: Optional[str] = None,
+        body_description: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Update a character
@@ -143,6 +166,11 @@ class CharacterService:
             reference_image_path: New reference image path (optional)
             tags: New tags (optional)
             metadata: New metadata (optional)
+            age: Apparent age or age group (optional)
+            skin_tone: Skin tone description (optional)
+            face_description: Facial description (optional)
+            hair_description: Hair description (optional)
+            body_description: Body/physique description (optional)
 
         Returns:
             Updated character data dict or None if not found
@@ -167,6 +195,18 @@ class CharacterService:
             character_data['tags'] = tags
         if metadata is not None:
             character_data['metadata'].update(metadata)
+
+        # Update appearance fields if provided
+        if age is not None:
+            character_data['age'] = age
+        if skin_tone is not None:
+            character_data['skin_tone'] = skin_tone
+        if face_description is not None:
+            character_data['face_description'] = face_description
+        if hair_description is not None:
+            character_data['hair_description'] = hair_description
+        if body_description is not None:
+            character_data['body_description'] = body_description
 
         character_data['updated_at'] = datetime.utcnow().isoformat()
 
