@@ -6,10 +6,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import StoryPresetModal from '../../components/story/StoryPresetModal'
-import axios from 'axios'
 
-// Mock axios
-vi.mock('axios')
+// Mock the entire API client module
+vi.mock('../../api/client', () => ({
+  default: {
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
+
+import api from '../../api/client'
 
 describe('StoryPresetModal', () => {
   const mockOnClose = vi.fn()
@@ -96,7 +104,7 @@ describe('StoryPresetModal', () => {
   it('calls API with correct data on submit', async () => {
     const user = userEvent.setup()
     const mockResponse = { data: { preset_id: 'test-123' } }
-    axios.post = vi.fn().mockResolvedValue(mockResponse)
+    api.post.mockResolvedValue(mockResponse)
 
     render(<StoryPresetModal {...defaultProps} />)
 
@@ -113,7 +121,7 @@ describe('StoryPresetModal', () => {
 
     // Verify API call
     await waitFor(() => {
-      expect(axios.post).toHaveBeenCalledWith('/presets/story_themes/', {
+      expect(api.post).toHaveBeenCalledWith('/presets/story_themes/', {
         name: 'Test Theme',
         data: expect.objectContaining({
           suggested_name: 'Test Theme',
@@ -127,7 +135,7 @@ describe('StoryPresetModal', () => {
   it('calls onPresetCreated and onClose on successful creation', async () => {
     const user = userEvent.setup()
     const mockResponse = { data: { preset_id: 'test-123' } }
-    axios.post = vi.fn().mockResolvedValue(mockResponse)
+    api.post.mockResolvedValue(mockResponse)
 
     render(<StoryPresetModal {...defaultProps} />)
 
@@ -148,7 +156,7 @@ describe('StoryPresetModal', () => {
   it('displays error message on API failure', async () => {
     const user = userEvent.setup()
     const errorMessage = 'Failed to create preset'
-    axios.post = vi.fn().mockRejectedValue({
+    api.post.mockRejectedValue({
       response: { data: { detail: errorMessage } }
     })
 
@@ -180,7 +188,7 @@ describe('StoryPresetModal', () => {
   it('resets form after successful creation', async () => {
     const user = userEvent.setup()
     const mockResponse = { data: { preset_id: 'test-123' } }
-    axios.post = vi.fn().mockResolvedValue(mockResponse)
+    api.post.mockResolvedValue(mockResponse)
 
     render(<StoryPresetModal {...defaultProps} />)
 
@@ -202,8 +210,7 @@ describe('StoryPresetModal', () => {
 
   it('includes all expected fields for story theme', async () => {
     const user = userEvent.setup()
-    const mockPost = vi.fn().mockResolvedValue({ data: { preset_id: 'test-123' } })
-    axios.post = mockPost
+    api.post.mockResolvedValue({ data: { preset_id: 'test-123' } })
 
     render(<StoryPresetModal {...defaultProps} category="story_themes" />)
 
@@ -214,7 +221,7 @@ describe('StoryPresetModal', () => {
     await user.click(createButton)
 
     await waitFor(() => {
-      const callArgs = mockPost.mock.calls[0][1]
+      const callArgs = api.post.mock.calls[0][1]
       expect(callArgs.data).toHaveProperty('suggested_name')
       expect(callArgs.data).toHaveProperty('description')
       expect(callArgs.data).toHaveProperty('setting_guidance')
@@ -227,12 +234,12 @@ describe('StoryPresetModal', () => {
 
   it('includes all expected fields for story audience', async () => {
     const user = userEvent.setup()
-    const mockPost = vi.fn().mockResolvedValue({ data: { preset_id: 'test-123' } })
-    axios.post = mockPost
+    api.post.mockResolvedValue({ data: { preset_id: 'test-123' } })
 
     const props = {
       ...defaultProps,
-      category: 'story_audiences'
+      category: 'story_audiences',
+      config: { entityType: 'story audience', icon: '👥' }
     }
     render(<StoryPresetModal {...props} />)
 
@@ -243,7 +250,7 @@ describe('StoryPresetModal', () => {
     await user.click(createButton)
 
     await waitFor(() => {
-      const callArgs = mockPost.mock.calls[0][1]
+      const callArgs = api.post.mock.calls[0][1]
       expect(callArgs.data).toHaveProperty('suggested_name')
       expect(callArgs.data).toHaveProperty('description')
       expect(callArgs.data).toHaveProperty('age_range')
@@ -255,12 +262,12 @@ describe('StoryPresetModal', () => {
 
   it('includes all expected fields for prose style', async () => {
     const user = userEvent.setup()
-    const mockPost = vi.fn().mockResolvedValue({ data: { preset_id: 'test-123' } })
-    axios.post = mockPost
+    api.post.mockResolvedValue({ data: { preset_id: 'test-123' } })
 
     const props = {
       ...defaultProps,
-      category: 'story_prose_styles'
+      category: 'story_prose_styles',
+      config: { entityType: 'prose style', icon: '✍️' }
     }
     render(<StoryPresetModal {...props} />)
 
@@ -271,7 +278,7 @@ describe('StoryPresetModal', () => {
     await user.click(createButton)
 
     await waitFor(() => {
-      const callArgs = mockPost.mock.calls[0][1]
+      const callArgs = api.post.mock.calls[0][1]
       expect(callArgs.data).toHaveProperty('suggested_name')
       expect(callArgs.data).toHaveProperty('description')
       expect(callArgs.data).toHaveProperty('tone')
