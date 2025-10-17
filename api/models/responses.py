@@ -140,3 +140,105 @@ class CharacterFromSubjectResponse(BaseModel):
     character: CharacterInfo
     analysis: Optional[Dict[str, Any]] = None
     created_presets: List[Dict[str, str]] = []  # [{"type": "outfit", "preset_id": "...", "name": "..."}]
+
+
+# ============================================================================
+# Board Game Models
+# ============================================================================
+
+class BoardGameInfo(BaseModel):
+    """Board game information"""
+    game_id: str
+    name: str
+    bgg_id: Optional[int] = None
+    designer: Optional[str] = None
+    publisher: Optional[str] = None
+    year: Optional[int] = None
+    description: Optional[str] = None
+    player_count_min: Optional[int] = None
+    player_count_max: Optional[int] = None
+    playtime_min: Optional[int] = None
+    playtime_max: Optional[int] = None
+    complexity: Optional[float] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+
+class BoardGameListResponse(BaseModel):
+    """List of board games"""
+    count: int
+    games: List[BoardGameInfo]
+
+
+class DocumentInfo(BaseModel):
+    """Document information"""
+    document_id: str
+    game_id: Optional[str] = None
+    title: str
+    source_type: Literal["pdf", "url", "text"]
+    source_url: Optional[str] = None
+    file_path: Optional[str] = None
+    page_count: Optional[int] = None
+    file_size_bytes: Optional[int] = None
+    processed: bool = False
+    processed_at: Optional[str] = None
+    markdown_path: Optional[str] = None
+    vector_ids: List[str] = []
+    created_at: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+
+class DocumentListResponse(BaseModel):
+    """List of documents"""
+    count: int
+    documents: List[DocumentInfo]
+
+
+class QAInfo(BaseModel):
+    """Q&A information"""
+    qa_id: str
+    question: str
+    answer: str
+    context_type: Literal["document", "general", "image", "comparison"]
+    game_id: Optional[str] = None
+    document_ids: List[str] = []
+    image_url: Optional[str] = None
+    citations: List[Dict[str, Any]] = []  # [{"document_id": "...", "page": 5, "excerpt": "..."}]
+    is_favorite: bool = False
+    was_helpful: Optional[bool] = None
+    user_notes: Optional[str] = None
+    custom_tags: List[str] = []
+    created_at: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+
+class QAListResponse(BaseModel):
+    """List of Q&As"""
+    count: int
+    qas: List[QAInfo]
+
+
+class BGGSearchResult(BaseModel):
+    """BoardGameGeek search result"""
+    bgg_id: int
+    name: str
+    year: Optional[int] = None
+    type: str
+
+
+class BGGSearchResponse(BaseModel):
+    """Response from BGG search"""
+    query: str
+    count: int
+    results: List[BGGSearchResult]
+
+
+class DocumentProcessResponse(BaseModel):
+    """Response from document processing"""
+    status: Literal["completed", "failed"]
+    document: Optional[DocumentInfo] = None
+    markdown_path: Optional[str] = None
+    chunk_count: Optional[int] = None
+    processing_time: Optional[float] = None
+    error: Optional[str] = None

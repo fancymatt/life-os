@@ -228,3 +228,95 @@ class CharacterFromSubject(BaseModel):
                 "tags": ["main", "protagonist"]
             }
         }
+
+
+# ============================================================================
+# Board Game Models
+# ============================================================================
+
+class BoardGameCreate(BaseModel):
+    """Request to create a board game"""
+    name: str = Field(..., description="Board game name")
+    bgg_id: Optional[int] = Field(None, description="BoardGameGeek ID")
+    designer: Optional[str] = Field(None, description="Game designer(s)")
+    publisher: Optional[str] = Field(None, description="Publisher")
+    year: Optional[int] = Field(None, description="Publication year")
+    description: Optional[str] = Field(None, description="Game description")
+    player_count_min: Optional[int] = Field(None, description="Minimum players")
+    player_count_max: Optional[int] = Field(None, description="Maximum players")
+    playtime_min: Optional[int] = Field(None, description="Minimum playtime (minutes)")
+    playtime_max: Optional[int] = Field(None, description="Maximum playtime (minutes)")
+    complexity: Optional[float] = Field(None, description="Complexity rating (1-5)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Wingspan",
+                "bgg_id": 266192,
+                "designer": "Elizabeth Hargrave",
+                "publisher": "Stonemaier Games",
+                "year": 2019,
+                "player_count_min": 1,
+                "player_count_max": 5,
+                "playtime_min": 40,
+                "playtime_max": 70,
+                "complexity": 2.4
+            }
+        }
+
+
+class BoardGameUpdate(BaseModel):
+    """Request to update a board game"""
+    name: Optional[str] = Field(None, description="Board game name")
+    designer: Optional[str] = Field(None, description="Game designer(s)")
+    publisher: Optional[str] = Field(None, description="Publisher")
+    year: Optional[int] = Field(None, description="Publication year")
+    description: Optional[str] = Field(None, description="Game description")
+    player_count_min: Optional[int] = Field(None, description="Minimum players")
+    player_count_max: Optional[int] = Field(None, description="Maximum players")
+    playtime_min: Optional[int] = Field(None, description="Minimum playtime (minutes)")
+    playtime_max: Optional[int] = Field(None, description="Maximum playtime (minutes)")
+    complexity: Optional[float] = Field(None, description="Complexity rating (1-5)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Wingspan (2nd Edition)",
+                "year": 2020
+            }
+        }
+
+
+class QAAskRequest(BaseModel):
+    """Request to ask a question"""
+    question: str = Field(..., description="The question to ask")
+    game_id: Optional[str] = Field(None, description="Board game ID (for document-grounded Q&A)")
+    document_ids: Optional[List[str]] = Field(None, description="Specific document IDs to search")
+    context_type: str = Field("general", description="Type of Q&A: document, general, image, comparison")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "question": "How many bird cards do you draw during setup?",
+                "game_id": "wingspan-266192",
+                "context_type": "document"
+            }
+        }
+
+
+class QAUpdate(BaseModel):
+    """Request to update a Q&A"""
+    is_favorite: Optional[bool] = Field(None, description="Mark as favorite")
+    was_helpful: Optional[bool] = Field(None, description="Mark as helpful or not")
+    user_notes: Optional[str] = Field(None, description="Personal notes")
+    custom_tags: Optional[List[str]] = Field(None, description="Custom tags")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "is_favorite": True,
+                "was_helpful": True,
+                "user_notes": "This rule is important for setup",
+                "custom_tags": ["setup", "cards"]
+            }
+        }
