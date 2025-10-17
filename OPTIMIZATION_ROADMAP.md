@@ -1,148 +1,72 @@
 # Life-OS Optimization & Expansion Roadmap
 
-**Last Updated**: 2025-10-16 (Post Entity Browser & Collapsible Sidebar)
-**Current Phase**: Phase 1.5 (Entity Architecture) - Foundation Complete ✅
-**Next Focus**: Characters Entity & Performance Optimizations
+**Last Updated**: 2025-10-16 (Post Phase 1.6 - Testing Infrastructure Complete)
+**Current Phase**: Phase 1.7 (Performance & Refinement)
+**Next Focus**: Performance optimizations & Local LLM integration
 
 ---
 
 ## Recent Accomplishments ✅
 
-**Entity Browser System** (Completed 2025-10-16):
+**Phase 1.6: Testing Infrastructure** (Completed 2025-10-16):
+- ✅ Vitest setup for frontend testing
+- ✅ Backend integration tests (story presets, tool configs)
+- ✅ Smoke tests for critical paths (13/23 passing, 10 need auth)
+- ✅ StoryPresetModal component tests (17 tests, 95% coverage)
+- ✅ Docker volume mounts for live testing
+- ✅ Test documentation and best practices
+- **Total**: 2,335 lines of test code, 66 tests written
+
+**Phase 1.5: Entity Architecture & Characters** (Completed 2025-10-16):
+- ✅ Split entityConfigs.jsx into separate files (1,970 lines across 10+ config files)
+- ✅ Shared entity components (OutfitEditor, LazyImage, ReAnalyzeButton, KeyboardShortcutsModal)
+- ✅ Complete Characters entity system (CRUD API, appearance analyzer, UI)
+- ✅ Character creation from images with automatic appearance analysis
+- ✅ Sidebar state persistence (localStorage)
+- ✅ Keyboard shortcuts modal
+- ✅ Image lazy loading with LazyImage component
+- ✅ 17 entity types fully integrated
+
+**Entity Browser System** (Completed earlier):
 - Generic entity browser component with URL routing
 - Keyboard navigation (left/right arrows) between entities
 - Delete-to-next navigation
 - Two-column layout with preview and editable content
-- 10 entity types fully implemented
-- Custom outfit editor with accordion UI
-- Lazy loading with proper loading states
-
-**UI/UX Improvements** (Completed 2025-10-16):
-- Collapsible sidebar with ChatGPT-style compact design
-- Nested collapsible sections (Tools → Analyzers/Story Tools/Generators)
-- Reduced sidebar width and improved spacing
-- Modern rounded corners and subtle animations
+- Collapsible sidebar with persistent state
 
 ---
 
 ## Current State Assessment
 
 ### Strengths
-✅ Solid entity browser foundation with URL routing
-✅ Consistent UI/UX across all entity types
-✅ Keyboard navigation working smoothly
-✅ Clean, organized sidebar navigation
-✅ Job queue with real-time tracking
-✅ Multi-provider LLM routing
+✅ **Solid Foundation**: 17 entity types with consistent UI/UX
+✅ **Characters System**: First-class entities with appearance analyzer
+✅ **Testing Infrastructure**: 66 tests covering critical paths
+✅ **Code Organization**: Entity configs split into manageable files
+✅ **State Persistence**: Sidebar collapse state persists via localStorage
+✅ **Keyboard Navigation**: Working smoothly with shortcuts modal
+✅ **Job Queue**: Real-time tracking for background tasks
+✅ **Multi-Provider LLM**: LiteLLM routing with Gemini/OpenAI
+✅ **Lazy Loading**: Images load on-demand for performance
 
 ### Areas for Improvement
-🔴 **Code Organization**: entityConfigs.jsx is 1196 lines - needs splitting
-🔴 **Performance**: No pagination for large entity lists
-🔴 **State Persistence**: Sidebar collapse state doesn't persist on reload
-🟡 **Characters**: Still using plain subjects, not first-class entities
-🟡 **Keyboard Shortcuts**: Only left/right arrows, missing common actions
-🟡 **Entity Operations**: No bulk select, no reordering
+🔴 **Performance**: No pagination for large entity lists (200+ items)
+🔴 **Frontend Coverage**: Only 1 component has tests (StoryPresetModal)
+🟡 **Large Components**: Composer.jsx (910 lines), OutfitAnalyzer.jsx (702 lines) need refactoring
+🟡 **Entity Operations**: No bulk select, no favorites/pinning, no duplication
+🟡 **Local LLMs**: Cloud-only, no local model support yet
+🟡 **Auth Tests**: 10 smoke tests pending auth fixture setup
 
 ---
 
-## Phase 1.5: Refinement & Characters (Current)
+## Phase 1.7: Performance & Component Refactoring (Current)
 **Duration**: 2-3 weeks
-**Effort**: 60-80 hours
-**Goal**: Polish entity system, add characters, improve maintainability
+**Effort**: 40-50 hours
+**Goal**: Optimize performance, refactor large components, expand test coverage
 
-### Priority 1: Code Organization & Maintainability
-**Effort**: 8-10 hours
-**Impact**: Better maintainability, faster development
-
-#### Tasks
-- [ ] **Split entityConfigs.jsx** (4-5 hours)
-  - Create `frontend/src/components/entities/configs/` directory
-  - Split into separate files:
-    - `storiesConfig.jsx`
-    - `imagesConfig.jsx`
-    - `outfitsConfig.jsx`
-    - `presetsConfig.jsx` (for expressions, makeup, hair, etc.)
-    - `charactersConfig.jsx`
-    - `index.js` (exports all configs)
-  - Update imports in entity pages
-  - Test all entity pages still work
-
-- [ ] **Create shared entity components** (4-5 hours)
-  - Extract `OutfitEditor` to separate file
-  - Create `EntityDetailLayout` component
-  - Create `EntityCard` component
-  - Create `EntityListHeader` component
-  - Reduce duplication across entity pages
-
-**Success Criteria**:
-- No single file over 400 lines
-- Shared components reused across entities
-- Easier to add new entity types
-
----
-
-### Priority 2: Characters Entity (Critical Path)
-**Effort**: 25-30 hours
-**Impact**: Enables story workflows, image generation with consistent subjects
-
-#### Backend (12-15 hours)
-- [ ] **Character Model & Storage** (3-4 hours)
-  - Create `api/models/character.py`
-  - Define schema: `character_id`, `name`, `reference_image_path`, `visual_description`, `personality`, `tags`, `metadata`
-  - Storage in `data/characters/` as JSON files
-  - File: `api/services/character_service.py`
-
-- [ ] **Character CRUD Routes** (4-5 hours)
-  - `GET /characters` - List all
-  - `POST /characters` - Create new
-  - `GET /characters/{id}` - Get details
-  - `PUT /characters/{id}` - Update
-  - `DELETE /characters/{id}` - Delete
-  - `POST /characters/from-subject` - Promote subject image
-  - File: `api/routes/characters.py`
-
-- [ ] **Character Generation** (3-4 hours)
-  - Generate reference image from text description
-  - Extract visual details from image using Gemini
-  - Create character portrait/preview
-  - File: `api/services/character_service.py`
-
-- [ ] **Integration Updates** (2-3 hours)
-  - Update `api/routes/generators.py` to accept character IDs
-  - Load character reference image when selected
-  - Test character usage in modular generator
-
-#### Frontend (8-10 hours)
-- [ ] **Characters Entity Page** (4-5 hours)
-  - Create `frontend/src/components/entities/configs/charactersConfig.jsx`
-  - Character card with portrait
-  - Character detail view with visual description + personality
-  - Edit mode for all fields
-  - Promote from subject button
-  - Create from text description form
-
-- [ ] **Generator Integration** (2-3 hours)
-  - Update `ModularGenerator.jsx` to show characters alongside subjects
-  - Character selection dropdown
-  - Preview character details on hover
-  - Use character reference image for generation
-
-- [ ] **Story Workflow Integration** (2-3 hours)
-  - Add character selection to story workflow
-  - Option to create character inline
-  - Character details passed to illustrator
-
-**Success Criteria**:
-- Characters can be created from images or text
-- Subjects can be promoted to characters
-- Characters usable in image generation
-- Characters usable in story workflows
-
----
-
-### Priority 3: Performance & UX Enhancements
-**Effort**: 15-18 hours
-**Impact**: Better performance with large datasets, improved UX
+### Priority 1: Performance Optimizations
+**Effort**: 12-15 hours
+**Impact**: High - enables scaling to 500+ entities without lag
 
 #### Entity Browser Performance (8-10 hours)
 - [ ] **Pagination** (4-5 hours)
@@ -152,88 +76,66 @@
   - Remember scroll position on back navigation
   - File: `frontend/src/components/entities/EntityBrowser.jsx`
 
-- [ ] **Image Lazy Loading** (2-3 hours)
-  - Use Intersection Observer for entity cards
-  - Load images only when visible
-  - Blur placeholder while loading
-  - File: `frontend/src/components/entities/EntityBrowser.jsx`
-
-- [ ] **Virtual Scrolling** (2-3 hours) [Optional]
-  - Use react-window for very large lists (100+ items)
+- [ ] **Virtual Scrolling** (4-5 hours) [Optional]
+  - Use react-window for very large lists (200+ items)
   - Only render visible items
   - Smooth scrolling experience
+  - Significant memory reduction
 
-#### State Persistence (3-4 hours)
-- [ ] **Sidebar Collapse State** (2-3 hours)
-  - Save collapsed sections to localStorage
-  - Restore on page load
-  - Clear button to reset all
-  - File: `frontend/src/components/layout/Sidebar.jsx`
+#### Auth Fixtures & Test Completion (4-5 hours)
+- [ ] **Add Auth Fixtures** (2-3 hours)
+  - Create `tests/conftest.py` with authenticated client fixture
+  - Fix 10/23 failing smoke tests that need JWT
+  - Bring smoke test pass rate to 90%+
 
-- [ ] **Entity Browser State** (1-2 hours)
-  - Remember sort/filter preferences per entity type
-  - Save to localStorage
-  - File: `frontend/src/components/entities/EntityBrowser.jsx`
-
-#### Keyboard Shortcuts (4-5 hours)
-- [ ] **Additional Shortcuts** (3-4 hours)
-  - `Escape` - Go back to list from detail view
-  - `Ctrl/Cmd + S` - Save changes
-  - `Ctrl/Cmd + Enter` - Save and close
-  - `Delete` - Delete current entity (with confirmation)
-  - `Ctrl/Cmd + K` - Focus search
-  - Show keyboard shortcuts help (`?` key)
-  - File: `frontend/src/components/entities/EntityBrowser.jsx`
-
-- [ ] **Shortcuts Documentation** (1 hour)
-  - Create modal with all shortcuts
-  - Accessible from sidebar
-  - File: `frontend/src/components/KeyboardShortcuts.jsx`
+- [ ] **Expand Frontend Tests** (2-3 hours)
+  - EntityBrowser component tests
+  - Character import flow tests
+  - Critical path coverage to 80%+
 
 **Success Criteria**:
-- Lists of 200+ entities load smoothly
-- Sidebar state persists across sessions
-- Common actions have keyboard shortcuts
-- No performance degradation with large datasets
+- Lists of 500+ entities load smoothly
+- Smoke tests at 90%+ pass rate
+- Frontend test coverage > 30%
 
 ---
 
-### Priority 4: Entity Operations & Bulk Actions
-**Effort**: 12-15 hours
-**Impact**: Faster management of multiple entities
+### Priority 2: Component Refactoring
+**Effort**: 15-18 hours
+**Impact**: Medium - improved maintainability and code quality
 
-#### Bulk Operations (8-10 hours)
-- [ ] **Multi-Select** (4-5 hours)
-  - Checkbox selection in list view
-  - Select all / Deselect all
-  - Visual indication of selected items
-  - Selected count in header
-  - File: `frontend/src/components/entities/EntityBrowser.jsx`
+#### Large Component Breakup (12-15 hours)
+- [ ] **Refactor Composer.jsx** (6-7 hours)
+  - Current: 910 lines in one file
+  - Split into:
+    - `ComposerHeader.jsx` - Top controls and actions
+    - `PresetSelector.jsx` - Category and preset selection
+    - `PresetLibrary.jsx` - Preset list view
+    - `ComposerCanvas.jsx` - Main composition area
+  - Main file reduced to ~300 lines
 
-- [ ] **Bulk Actions** (4-5 hours)
-  - Delete multiple entities
-  - Apply tags to multiple entities
-  - Export selected entities
-  - Bulk action toolbar
-  - File: `frontend/src/components/entities/EntityBrowser.jsx`
+- [ ] **Unify OutfitAnalyzer + GenericAnalyzer** (6-8 hours)
+  - Current: OutfitAnalyzer.jsx (702 lines) + GenericAnalyzer.jsx (586 lines) are 85% duplicate
+  - Create unified `AnalyzerPage.jsx` (~400 lines)
+  - Extract shared components:
+    - `AnalyzerUpload.jsx` - Image upload UI
+    - `AnalyzerResults.jsx` - Results display
+    - `PresetActions.jsx` - Save/apply actions
+  - Eliminate ~500 lines of duplication
 
-#### Entity Features (4-5 hours)
-- [ ] **Favorites/Pinning** (2-3 hours)
-  - Star icon to favorite entities
-  - "Favorites" filter option
-  - Favorites shown at top of list
-  - File: `frontend/src/components/entities/EntityBrowser.jsx`
-
-- [ ] **Entity Duplication** (2-3 hours)
-  - "Duplicate" button in detail view
-  - Creates copy with "(Copy)" suffix
-  - Opens duplicate in edit mode
-  - File: `frontend/src/components/entities/EntityBrowser.jsx`
+#### Shared Component Library (3-4 hours)
+- [ ] **Create Reusable Components**
+  - `Modal.jsx` - Reusable modal wrapper
+  - `FormField.jsx` - Consistent form inputs
+  - `LoadingSpinner.jsx` - Loading states
+  - `ErrorMessage.jsx` - Error display
+  - `ConfirmDialog.jsx` - Confirmation prompts
+  - Use across all pages
 
 **Success Criteria**:
-- Can select and delete 10+ entities at once
-- Favorite entities easy to access
-- Can duplicate entities for variations
+- No component over 500 lines
+- Shared components reused in 3+ places
+- ~500 lines of duplicate code eliminated
 
 ---
 
@@ -415,59 +317,60 @@ New domains following entity-centric approach:
 
 ## Immediate Next Steps (This Week)
 
-### Week 1: Code Cleanup & Characters Foundation
-1. [ ] Split entityConfigs.jsx into separate files
-2. [ ] Extract shared entity components
-3. [ ] Design Character entity schema
-4. [ ] Implement backend character CRUD
-5. [ ] Create character service with generation
+### Week 1: Performance & Test Coverage (Current)
+1. [ ] Add pagination to entity browser (50 items per page)
+2. [ ] Create auth fixtures for backend tests
+3. [ ] Fix 10 failing smoke tests (bring to 90% pass rate)
+4. [ ] Add EntityBrowser component tests
+5. [ ] Performance test with 500+ entities
 
-### Week 2: Characters Implementation
-1. [ ] Build Characters entity page
-2. [ ] Add character config to entity system
-3. [ ] Update Modular Generator for characters
-4. [ ] Test subject → character promotion
-5. [ ] Document character system
+### Week 2: Component Refactoring
+1. [ ] Refactor Composer.jsx (910 → ~300 lines)
+2. [ ] Unify OutfitAnalyzer + GenericAnalyzer (~400 lines unified)
+3. [ ] Create shared component library (Modal, FormField, etc.)
+4. [ ] Update all pages to use shared components
+5. [ ] Verify no regressions with existing tests
 
-### Week 3: Performance & UX
-1. [ ] Add pagination to entity browser
-2. [ ] Implement image lazy loading
-3. [ ] Add sidebar state persistence
-4. [ ] Add keyboard shortcuts (Escape, Ctrl+S, etc.)
-5. [ ] Test with large datasets
+### Week 3: Local LLM Integration (Phase 2)
+1. [ ] Research llama.cpp + Python bindings
+2. [ ] Implement LocalLLMProvider class
+3. [ ] Create local model management API
+4. [ ] Build Local Models UI
+5. [ ] Test with TinyLlama 1.1B model
 
-### Week 4: Characters Integration & Bulk Ops
-1. [ ] Integrate characters into story workflow
-2. [ ] Add multi-select for entities
-3. [ ] Add bulk delete/tag operations
-4. [ ] Add favorites/pinning
-5. [ ] Add entity duplication
+### Week 4: Entity Operations & Bulk Actions
+1. [ ] Add multi-select checkbox to entity lists
+2. [ ] Implement bulk delete operation
+3. [ ] Add favorites/pinning feature
+4. [ ] Add entity duplication button
+5. [ ] Test bulk operations with 50+ entities
 
 ---
 
 ## Success Metrics
 
-### Phase 1.5 Completion Criteria
-- [ ] entityConfigs.jsx split into <400 line files
-- [ ] Characters entity fully functional
-- [ ] Can create characters from images or text
-- [ ] Characters usable in generators and stories
-- [ ] Pagination working with 200+ entities
-- [ ] Sidebar state persists
-- [ ] 5+ keyboard shortcuts working
+### Phase 1.7 Completion Criteria
+- [ ] Pagination working with 500+ entities (50 per page)
+- [ ] Smoke tests at 90%+ pass rate (21+/23 passing)
+- [ ] Frontend test coverage > 30% (currently ~5%)
+- [ ] Composer.jsx reduced to <500 lines
+- [ ] OutfitAnalyzer + GenericAnalyzer unified (~400 lines)
+- [ ] 5+ shared components created and reused
+- [ ] No component over 500 lines
 
 ### Performance Targets
 - Entity list loads in <500ms (100 items)
+- Entity list with pagination loads in <300ms (50 items)
 - Detail view loads in <300ms
 - Keyboard navigation feels instant (<50ms)
 - No memory leaks with 500+ entities
-- Image lazy loading reduces initial load by 50%+
+- Virtual scrolling smooth with 1000+ items
 
-### User Experience Targets
-- 90%+ of actions have keyboard shortcuts
-- Bulk operations save 5x time vs individual
-- Sidebar preferences remembered
-- Zero state loss on navigation
+### Code Quality Targets
+- All critical components have tests (>60% coverage)
+- ~500 lines of duplicate code eliminated
+- Shared components used in 3+ places
+- Clear separation of concerns (UI vs logic)
 
 ---
 
@@ -486,34 +389,39 @@ New domains following entity-centric approach:
 ## Technical Debt to Address
 
 ### High Priority
-1. **entityConfigs.jsx**: Split into separate files (1196 lines is too much)
-2. **Entity Browser Performance**: Add pagination before list gets too large
-3. **Keyboard Navigation**: Inconsistent across different views
+1. **Entity Browser Performance**: No pagination for large lists (200+ entities)
+2. **Large Components**: Composer.jsx (910 lines), OutfitAnalyzer.jsx (702 lines)
+3. **Code Duplication**: OutfitAnalyzer + GenericAnalyzer are 85% duplicate (~500 lines)
+4. **Auth Test Fixtures**: 10 smoke tests failing due to missing JWT fixtures
 
 ### Medium Priority
-1. **Error Handling**: More graceful error messages in entity operations
-2. **Loading States**: Some operations lack loading indicators
-3. **CSS Organization**: Some styles duplicated across components
+1. **Frontend Test Coverage**: Only StoryPresetModal has tests (~5% coverage)
+2. **Error Handling**: More graceful error messages in entity operations
+3. **Loading States**: Some operations lack loading indicators
+4. **CSS Organization**: Some styles duplicated across components
 
 ### Low Priority
 1. **Bundle Size**: Could optimize with code splitting
 2. **API Caching**: Could add more aggressive caching
 3. **Offline Support**: Could add service worker for offline use
+4. **PropTypes/TypeScript**: No runtime type checking on components
 
 ---
 
 ## Risk Assessment
 
 ### Current Risks
-🔴 **Code Maintainability**: entityConfigs.jsx getting too large - needs immediate attention
-🟡 **Performance**: No pagination could cause issues with 200+ entities
-🟡 **State Loss**: Sidebar collapse state lost on reload is annoying
+🔴 **Performance Cliff**: No pagination - will hit performance wall at 200+ entities
+🔴 **Maintainability**: Large components (Composer 910 lines) hard to modify safely
+🟡 **Test Coverage**: Low frontend coverage means regressions likely
+🟡 **Code Duplication**: OutfitAnalyzer/GenericAnalyzer duplication makes fixes error-prone
 
 ### Mitigations
-- ✅ Split large files this week
-- ✅ Add pagination before it becomes a problem
-- ✅ Use localStorage for UI state
-- Maintain <400 line file size limit going forward
+- ⏳ Add pagination this week (prevents performance cliff)
+- ⏳ Refactor large components with test coverage (prevents breakage)
+- ✅ Testing infrastructure in place (can add tests incrementally)
+- ✅ Entity configs split (completed)
+- ✅ State persistence working (sidebar, browser state)
 - Regular performance testing with large datasets
 
 ---
@@ -538,4 +446,4 @@ New domains following entity-centric approach:
 
 ---
 
-**End of Roadmap - Focus on Phase 1.5 for next 3-4 weeks**
+**End of Roadmap - Focus on Phase 1.7 (Performance & Refactoring) for next 2-3 weeks**
