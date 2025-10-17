@@ -49,10 +49,19 @@ class CharacterAppearanceAnalyzer:
         self.router = LLMRouter(model=model)
         self.temperature = temperature
 
-        # Load prompt template
-        self.template_path = Path(__file__).parent / "template.md"
-        with open(self.template_path, 'r') as f:
-            self.prompt_template = f.read()
+        # Store template paths (but don't load yet - load fresh on each call)
+        self.custom_template_path = Path(__file__).parent.parent.parent / "data" / "tool_configs" / "character_appearance_analyzer_template.md"
+        self.base_template_path = Path(__file__).parent / "template.md"
+
+    def _load_template(self) -> str:
+        """Load the latest template (reloaded on each call to pick up edits)"""
+        if self.custom_template_path.exists():
+            template_path = self.custom_template_path
+        else:
+            template_path = self.base_template_path
+
+        with open(template_path, 'r') as f:
+            return f.read()
 
     def analyze(
         self,
@@ -77,17 +86,22 @@ class CharacterAppearanceAnalyzer:
         print(f"{'='*70}\n")
         print(f"Image: {image_path.name}")
 
+        # Load template fresh (picks up any edits immediately)
+        prompt_template = self._load_template()
+
         # Use the template (no call_structured, just call with response_format)
         result = self.router.call_structured(
-            prompt=self.prompt_template,
+            prompt=prompt_template,
             response_model=CharacterAppearanceSpec,
             images=[image_path],
             temperature=self.temperature
         )
 
         print(f"\n✅ Analysis complete")
-        print(f"\n📝 Overall Description:")
-        print(f"   {result.overall_description}")
+        print(f"\n📝 Summary:")
+        print(f"   Age: {result.age}")
+        print(f"   Hair: {result.hair_description}")
+        print(f"   Skin: {result.skin_tone}")
 
         return result
 
@@ -114,17 +128,22 @@ class CharacterAppearanceAnalyzer:
         print(f"{'='*70}\n")
         print(f"Image: {image_path.name}")
 
+        # Load template fresh (picks up any edits immediately)
+        prompt_template = self._load_template()
+
         # Use the template (no call_structured, just call with response_format)
         result = await self.router.acall_structured(
-            prompt=self.prompt_template,
+            prompt=prompt_template,
             response_model=CharacterAppearanceSpec,
             images=[image_path],
             temperature=self.temperature
         )
 
         print(f"\n✅ Analysis complete")
-        print(f"\n📝 Overall Description:")
-        print(f"   {result.overall_description}")
+        print(f"\n📝 Summary:")
+        print(f"   Age: {result.age}")
+        print(f"   Hair: {result.hair_description}")
+        print(f"   Skin: {result.skin_tone}")
 
         return result
 
@@ -158,18 +177,11 @@ def main():
         print(f"\n{'='*70}")
         print("DETAILED ANALYSIS")
         print(f"{'='*70}\n")
-        print(f"Age: {result.age_appearance}")
-        print(f"Gender: {result.gender_presentation}")
-        if result.ethnicity:
-            print(f"Ethnicity: {result.ethnicity}")
+        print(f"Age: {result.age}")
         print(f"Skin Tone: {result.skin_tone}")
-        print(f"Face Shape: {result.face_shape}")
-        print(f"Hair: {result.hair_description}")
-        print(f"Eyes: {result.eye_description}")
-        print(f"Build: {result.build}")
-        print(f"Height: {result.height_appearance}")
-        if result.distinctive_features:
-            print(f"Distinctive Features: {result.distinctive_features}")
+        print(f"\nFace: {result.face_description}")
+        print(f"\nHair: {result.hair_description}")
+        print(f"\nBody: {result.body_description}")
         print(f"\n{'='*70}\n")
 
     except Exception as e:

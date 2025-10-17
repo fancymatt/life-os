@@ -221,7 +221,6 @@ class CharacterAppearanceSpec(BaseModel):
     face_description: str = Field(..., description="Complete facial description including shape, eyes, distinctive features, gender presentation, and ethnic features")
     hair_description: str = Field(..., description="Complete hair description including color, style, length, and texture")
     body_description: str = Field(..., description="Body description including build, height appearance, and physique (e.g., 'tall and athletic', 'petite and slender', 'average height with stocky build')")
-    overall_description: str = Field(..., description="A complete, natural-language description combining all features")
 
 
 class ComprehensiveSpec(BaseModel):

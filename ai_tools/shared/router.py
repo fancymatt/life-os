@@ -276,12 +276,49 @@ class LLMRouter:
         Returns:
             Parsed Pydantic model instance
         """
-        # Instruct model to return JSON
-        json_instruction = f"\n\nRespond with valid JSON matching this schema:\n{response_model.model_json_schema()}"
+        # Instruct model to return JSON (with clearer instructions)
+        schema = response_model.model_json_schema()
+        required_fields = schema.get('required', [])
+        properties = schema.get('properties', {})
+
+        # Build a simple field list
+        field_descriptions = []
+        for field in required_fields:
+            if field.startswith('_'):
+                continue
+            field_info = properties.get(field, {})
+            field_desc = field_info.get('description', '')
+            field_descriptions.append(f'  "{field}": "{field_desc}"')
+
+        field_list = ',\n'.join(field_descriptions)
+
+        json_instruction = f"""
+
+IMPORTANT: Respond with a JSON object containing actual data values (NOT the schema definition).
+
+Required fields:
+{{
+{field_list}
+}}
+
+Example format:
+{{
+  "age": "young adult",
+  "skin_tone": "fair",
+  "face_description": "Oval face with...",
+  "hair_description": "Long brown hair...",
+  "body_description": "Athletic build..."
+}}
+
+Your response must be ONLY the JSON object with real data values - no schema, no explanations."""
+
         full_prompt = prompt + json_instruction
 
-        # Request JSON format
-        response_format = {"type": "json_object"}
+        # Request JSON format (but skip for Ollama - it doesn't support this parameter)
+        model_name = model or self.model
+        call_kwargs = {}
+        if not model_name.startswith('ollama/'):
+            call_kwargs['response_format'] = {"type": "json_object"}
 
         # Call the model
         response_text = self.call(
@@ -291,25 +328,82 @@ class LLMRouter:
             system=system,
             temperature=temperature,
             max_tokens=max_tokens,
-            response_format=response_format,
+            **call_kwargs,
             **kwargs
         )
 
-        # Parse JSON response
+        # Parse JSON response with robust extraction
         try:
             # Try to parse directly
             response_data = json.loads(response_text)
         except json.JSONDecodeError:
-            # Try to extract JSON from markdown code blocks
+            # Try multiple extraction strategies
             response_text = response_text.strip()
+
+            # Strategy 1: Remove markdown code blocks
             if response_text.startswith("```json"):
                 response_text = response_text[7:]
             if response_text.startswith("```"):
                 response_text = response_text[3:]
             if response_text.endswith("```"):
                 response_text = response_text[:-3]
+            response_text = response_text.strip()
 
-            response_data = json.loads(response_text.strip())
+            # Strategy 2: Extract JSON object from text (handles "Thinking..." prefix)
+            # Find first { and last }
+            try:
+                start_idx = response_text.find('{')
+                end_idx = response_text.rfind('}')
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    json_text = response_text[start_idx:end_idx + 1]
+                    response_data = json.loads(json_text)
+                else:
+                    # No JSON object found
+                    raise json.JSONDecodeError(f"No JSON object found in response", response_text, 0)
+            except json.JSONDecodeError:
+                # Strategy 3: Try to find JSON array
+                start_idx = response_text.find('[')
+                end_idx = response_text.rfind(']')
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    json_text = response_text[start_idx:end_idx + 1]
+                    response_data = json.loads(json_text)
+                else:
+                    # Strategy 4: Parse markdown-style key-value format
+                    # Example: **age:** young adult **skin_tone:** fair
+                    import re
+
+                    # Get expected fields from schema
+                    schema = response_model.model_json_schema()
+                    expected_fields = set(schema.get('properties', {}).keys())
+
+                    # Try to extract field-value pairs
+                    response_data = {}
+                    for field in expected_fields:
+                        if field.startswith('_'):
+                            continue  # Skip private fields like _metadata
+
+                        # Look for patterns like: **field:** value or field: value
+                        patterns = [
+                            rf'\*\*{field}\*\*:\s*([^\*]+?)(?=\s*\*\*|\s*$)',  # **field:** value
+                            rf'{field}:\s*([^\n]+?)(?=\n|$)',  # field: value
+                            rf'"{field}":\s*"([^"]+)"',  # "field": "value"
+                        ]
+
+                        for pattern in patterns:
+                            match = re.search(pattern, response_text, re.IGNORECASE | re.DOTALL)
+                            if match:
+                                value = match.group(1).strip()
+                                # Clean up common artifacts
+                                value = value.replace('...', '').strip()
+                                value = re.sub(r'\s+', ' ', value)  # Normalize whitespace
+                                if value and len(value) > 2:  # Only accept non-trivial values
+                                    response_data[field] = value
+                                    break
+
+                    # Only accept if we got at least half the required fields
+                    if len(response_data) < len(expected_fields) / 2:
+                        # Give up and show what we got
+                        raise ValueError(f"Could not extract valid JSON from response. Response text: {response_text[:500]}")
 
         # Parse into Pydantic model
         return response_model.model_validate(response_data)
@@ -403,12 +497,49 @@ class LLMRouter:
         Returns:
             Parsed Pydantic model instance
         """
-        # Instruct model to return JSON
-        json_instruction = f"\n\nRespond with valid JSON matching this schema:\n{response_model.model_json_schema()}"
+        # Instruct model to return JSON (with clearer instructions)
+        schema = response_model.model_json_schema()
+        required_fields = schema.get('required', [])
+        properties = schema.get('properties', {})
+
+        # Build a simple field list
+        field_descriptions = []
+        for field in required_fields:
+            if field.startswith('_'):
+                continue
+            field_info = properties.get(field, {})
+            field_desc = field_info.get('description', '')
+            field_descriptions.append(f'  "{field}": "{field_desc}"')
+
+        field_list = ',\n'.join(field_descriptions)
+
+        json_instruction = f"""
+
+IMPORTANT: Respond with a JSON object containing actual data values (NOT the schema definition).
+
+Required fields:
+{{
+{field_list}
+}}
+
+Example format:
+{{
+  "age": "young adult",
+  "skin_tone": "fair",
+  "face_description": "Oval face with...",
+  "hair_description": "Long brown hair...",
+  "body_description": "Athletic build..."
+}}
+
+Your response must be ONLY the JSON object with real data values - no schema, no explanations."""
+
         full_prompt = prompt + json_instruction
 
-        # Request JSON format
-        response_format = {"type": "json_object"}
+        # Request JSON format (but skip for Ollama - it doesn't support this parameter)
+        model_name = model or self.model
+        call_kwargs = {}
+        if not model_name.startswith('ollama/'):
+            call_kwargs['response_format'] = {"type": "json_object"}
 
         # Call the model asynchronously
         response_text = await self.acall(
@@ -418,25 +549,85 @@ class LLMRouter:
             system=system,
             temperature=temperature,
             max_tokens=max_tokens,
-            response_format=response_format,
+            **call_kwargs,
             **kwargs
         )
 
-        # Parse JSON response
+        # Debug: Log raw response
+        print(f"\n🔍 RAW MODEL RESPONSE (first 1000 chars):\n{response_text[:1000]}\n")
+
+        # Parse JSON response with robust extraction
         try:
             # Try to parse directly
             response_data = json.loads(response_text)
         except json.JSONDecodeError:
-            # Try to extract JSON from markdown code blocks
+            # Try multiple extraction strategies
             response_text = response_text.strip()
+
+            # Strategy 1: Remove markdown code blocks
             if response_text.startswith("```json"):
                 response_text = response_text[7:]
             if response_text.startswith("```"):
                 response_text = response_text[3:]
             if response_text.endswith("```"):
                 response_text = response_text[:-3]
+            response_text = response_text.strip()
 
-            response_data = json.loads(response_text.strip())
+            # Strategy 2: Extract JSON object from text (handles "Thinking..." prefix)
+            # Find first { and last }
+            try:
+                start_idx = response_text.find('{')
+                end_idx = response_text.rfind('}')
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    json_text = response_text[start_idx:end_idx + 1]
+                    response_data = json.loads(json_text)
+                else:
+                    # No JSON object found
+                    raise json.JSONDecodeError(f"No JSON object found in response", response_text, 0)
+            except json.JSONDecodeError:
+                # Strategy 3: Try to find JSON array
+                start_idx = response_text.find('[')
+                end_idx = response_text.rfind(']')
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    json_text = response_text[start_idx:end_idx + 1]
+                    response_data = json.loads(json_text)
+                else:
+                    # Strategy 4: Parse markdown-style key-value format
+                    # Example: **age:** young adult **skin_tone:** fair
+                    import re
+
+                    # Get expected fields from schema
+                    schema = response_model.model_json_schema()
+                    expected_fields = set(schema.get('properties', {}).keys())
+
+                    # Try to extract field-value pairs
+                    response_data = {}
+                    for field in expected_fields:
+                        if field.startswith('_'):
+                            continue  # Skip private fields like _metadata
+
+                        # Look for patterns like: **field:** value or field: value
+                        patterns = [
+                            rf'\*\*{field}\*\*:\s*([^\*]+?)(?=\s*\*\*|\s*$)',  # **field:** value
+                            rf'{field}:\s*([^\n]+?)(?=\n|$)',  # field: value
+                            rf'"{field}":\s*"([^"]+)"',  # "field": "value"
+                        ]
+
+                        for pattern in patterns:
+                            match = re.search(pattern, response_text, re.IGNORECASE | re.DOTALL)
+                            if match:
+                                value = match.group(1).strip()
+                                # Clean up common artifacts
+                                value = value.replace('...', '').strip()
+                                value = re.sub(r'\s+', ' ', value)  # Normalize whitespace
+                                if value and len(value) > 2:  # Only accept non-trivial values
+                                    response_data[field] = value
+                                    break
+
+                    # Only accept if we got at least half the required fields
+                    if len(response_data) < len(expected_fields) / 2:
+                        # Give up and show what we got
+                        raise ValueError(f"Could not extract valid JSON from response. Response text: {response_text[:500]}")
 
         # Parse into Pydantic model
         return response_model.model_validate(response_data)
