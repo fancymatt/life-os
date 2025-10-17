@@ -54,6 +54,11 @@ services:
       # Mount configs (read-only)
       - ./configs:/app/configs:ro
 
+      # Development volumes (for testing and live code updates)
+      - ./api:/app/api                   # API source code
+      - ./ai_tools:/app/ai_tools         # AI tools source code
+      - ./tests:/app/tests               # Test files
+
     restart: unless-stopped
 
     healthcheck:
