@@ -18,6 +18,7 @@ from api.models.responses import (
 )
 from api.services.board_game_service import BoardGameService
 from api.services.document_service import DocumentService
+from api.services.qa_service import QAService
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 from ai_tools.board_game_rules_gatherer.tool import BoardGameRulesGatherer
@@ -258,6 +259,45 @@ async def list_game_documents(
         count=len(document_infos),
         documents=document_infos
     )
+
+
+@router.get("/{game_id}/qa")
+async def list_game_qas(
+    game_id: str,
+    context_type: Optional[str] = None,
+    is_favorite: Optional[bool] = None,
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    List Q&As for a board game
+
+    Returns all questions and answers associated with this game.
+    Useful for browsing previous rules questions.
+
+    Filters:
+    - context_type: Filter by context (document, general, image, comparison)
+    - is_favorite: Show only favorites
+    """
+    # Verify game exists
+    game_service = BoardGameService()
+    game_data = game_service.get_board_game(game_id)
+    if not game_data:
+        raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
+
+    # Get Q&As
+    qa_service = QAService()
+    qas = await qa_service.list_qas(
+        game_id=game_id,
+        context_type=context_type,
+        is_favorite=is_favorite
+    )
+
+    return {
+        "game_id": game_id,
+        "game_name": game_data.get("name"),
+        "count": len(qas),
+        "qas": qas
+    }
 
 
 # ============================================================================

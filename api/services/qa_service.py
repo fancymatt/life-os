@@ -7,6 +7,7 @@ Q&As can be document-grounded, general knowledge, image-based, or comparison.
 
 import json
 import uuid
+import aiofiles
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -26,7 +27,7 @@ class QAService:
         """Get path to Q&A JSON file"""
         return self.qas_dir / f"{qa_id}.json"
 
-    def create_qa(
+    async def create_qa(
         self,
         question: str,
         answer: str,
@@ -35,6 +36,7 @@ class QAService:
         document_ids: Optional[List[str]] = None,
         image_url: Optional[str] = None,
         citations: Optional[List[Dict[str, Any]]] = None,
+        confidence: float = 0.0,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
@@ -48,6 +50,7 @@ class QAService:
             document_ids: List of document IDs used for context (optional)
             image_url: URL of image for image-based Q&A (optional)
             citations: List of citations with document_id, page, excerpt (optional)
+            confidence: Confidence score (0.0 - 1.0)
             metadata: Additional metadata
 
         Returns:
@@ -64,6 +67,7 @@ class QAService:
             "document_ids": document_ids or [],
             "image_url": image_url,
             "citations": citations or [],
+            "confidence": confidence,
             "is_favorite": False,
             "was_helpful": None,
             "user_notes": None,
@@ -73,14 +77,14 @@ class QAService:
             "metadata": metadata or {}
         }
 
-        # Save Q&A data
+        # Save Q&A data (async)
         qa_file = self._get_qa_path(qa_id)
-        with open(qa_file, 'w') as f:
-            json.dump(qa_data, f, indent=2)
+        async with aiofiles.open(qa_file, 'w') as f:
+            await f.write(json.dumps(qa_data, indent=2))
 
         return qa_data
 
-    def get_qa(self, qa_id: str) -> Optional[Dict[str, Any]]:
+    async def get_qa(self, qa_id: str) -> Optional[Dict[str, Any]]:
         """
         Get a Q&A by ID
 
@@ -95,10 +99,11 @@ class QAService:
         if not qa_file.exists():
             return None
 
-        with open(qa_file, 'r') as f:
-            return json.load(f)
+        async with aiofiles.open(qa_file, 'r') as f:
+            content = await f.read()
+            return json.loads(content)
 
-    def list_qas(
+    async def list_qas(
         self,
         game_id: Optional[str] = None,
         context_type: Optional[str] = None,
@@ -119,8 +124,9 @@ class QAService:
 
         for file_path in self.qas_dir.glob("*.json"):
             try:
-                with open(file_path, 'r') as f:
-                    qa_data = json.load(f)
+                async with aiofiles.open(file_path, 'r') as f:
+                    content = await f.read()
+                    qa_data = json.loads(content)
 
                     # Apply filters
                     if game_id and qa_data.get('game_id') != game_id:
@@ -143,7 +149,7 @@ class QAService:
 
         return qas
 
-    def update_qa(
+    async def update_qa(
         self,
         qa_id: str,
         is_favorite: Optional[bool] = None,
@@ -166,7 +172,7 @@ class QAService:
         Returns:
             Updated Q&A data dict or None if not found
         """
-        qa_data = self.get_qa(qa_id)
+        qa_data = await self.get_qa(qa_id)
 
         if not qa_data:
             return None
@@ -185,10 +191,10 @@ class QAService:
 
         qa_data['updated_at'] = datetime.utcnow().isoformat()
 
-        # Save updated data
+        # Save updated data (async)
         qa_file = self._get_qa_path(qa_id)
-        with open(qa_file, 'w') as f:
-            json.dump(qa_data, f, indent=2)
+        async with aiofiles.open(qa_file, 'w') as f:
+            await f.write(json.dumps(qa_data, indent=2))
 
         return qa_data
 
@@ -212,7 +218,7 @@ class QAService:
 
         return True
 
-    def search_qas(self, query: str, game_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def search_qas(self, query: str, game_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Search Q&As by question or answer content
 
@@ -228,8 +234,9 @@ class QAService:
 
         for file_path in self.qas_dir.glob("*.json"):
             try:
-                with open(file_path, 'r') as f:
-                    qa_data = json.load(f)
+                async with aiofiles.open(file_path, 'r') as f:
+                    content = await f.read()
+                    qa_data = json.loads(content)
 
                     # Filter by game_id if provided
                     if game_id and qa_data.get('game_id') != game_id:

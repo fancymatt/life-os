@@ -15,7 +15,7 @@ from api.config import settings
 from api.logging_config import setup_logging
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters, configs, tool_configs, local_models, board_games, documents
+from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters, configs, tool_configs, local_models, board_games, documents, qa
 
 # Initialize logging
 setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
@@ -94,6 +94,7 @@ app.include_router(local_models.router, prefix="/local-models", tags=["local-mod
 app.include_router(characters.router, prefix="/characters", tags=["characters"])
 app.include_router(board_games.router, prefix="/board-games", tags=["board-games"])
 app.include_router(documents.router, prefix="/documents", tags=["documents"])
+app.include_router(qa.router, prefix="/qa", tags=["qa"])
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(favorites.router, prefix="/favorites", tags=["favorites"])
 app.include_router(compositions.router, prefix="/compositions", tags=["compositions"])
