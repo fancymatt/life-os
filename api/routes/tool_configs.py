@@ -266,26 +266,57 @@ async def test_tool(
         await f.write(content)
 
     try:
-        # Import and run the tool
+        # Load current config
+        models_config = await load_models_config()
+        model = models_config.get('defaults', {}).get(tool_name, 'gemini/gemini-2.0-flash-exp')
+
+        # Import and run the tool based on tool_name
         if tool_name == "character_appearance_analyzer":
             from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
-
-            # Load current config
-            models_config = await load_models_config()
-            model = models_config.get('defaults', {}).get(tool_name, 'gemini/gemini-2.0-flash-exp')
-
             analyzer = CharacterAppearanceAnalyzer(model=model)
             result = await analyzer.aanalyze(temp_path)
-
-            # Convert to dict
-            result_dict = result.model_dump()
-
-            return {
-                "status": "success",
-                "result": result_dict
-            }
+        elif tool_name == "outfit_analyzer":
+            from ai_tools.outfit_analyzer.tool import OutfitAnalyzer
+            analyzer = OutfitAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "accessories_analyzer":
+            from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
+            analyzer = AccessoriesAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "art_style_analyzer":
+            from ai_tools.art_style_analyzer.tool import ArtStyleAnalyzer
+            analyzer = ArtStyleAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "expression_analyzer":
+            from ai_tools.expression_analyzer.tool import ExpressionAnalyzer
+            analyzer = ExpressionAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "hair_color_analyzer":
+            from ai_tools.hair_color_analyzer.tool import HairColorAnalyzer
+            analyzer = HairColorAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "hair_style_analyzer":
+            from ai_tools.hair_style_analyzer.tool import HairStyleAnalyzer
+            analyzer = HairStyleAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "makeup_analyzer":
+            from ai_tools.makeup_analyzer.tool import MakeupAnalyzer
+            analyzer = MakeupAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "visual_style_analyzer":
+            from ai_tools.visual_style_analyzer.tool import VisualStyleAnalyzer
+            analyzer = VisualStyleAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
         else:
             raise HTTPException(status_code=400, detail=f"Testing not yet implemented for {tool_name}")
+
+        # Convert to dict
+        result_dict = result.model_dump()
+
+        return {
+            "status": "success",
+            "result": result_dict
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tool execution failed: {str(e)}")

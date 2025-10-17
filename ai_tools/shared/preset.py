@@ -76,7 +76,7 @@ class PresetManager:
     def save(
         self,
         tool_type: str,
-        data: BaseModel,
+        data,  # Union[BaseModel, Dict[str, Any]]
         preset_id: Optional[str] = None,
         display_name: Optional[str] = None,
         notes: Optional[str] = None
@@ -86,7 +86,7 @@ class PresetManager:
 
         Args:
             tool_type: Type of tool (e.g., "outfits", "visual-styles")
-            data: Pydantic model to save
+            data: Pydantic model or dict to save
             preset_id: Optional preset ID (generates UUID if not provided)
             display_name: Optional display name
             notes: Optional user notes to add to metadata
@@ -100,8 +100,12 @@ class PresetManager:
 
         preset_path = self._get_preset_path(tool_type, preset_id)
 
-        # Convert to dict
-        preset_dict = data.model_dump(mode='json')
+        # Convert to dict (handle both Pydantic models and plain dicts)
+        if isinstance(data, dict):
+            preset_dict = data.copy()
+        else:
+            # Assume it's a Pydantic model
+            preset_dict = data.model_dump(mode='json')
 
         # Ensure metadata exists
         if "_metadata" not in preset_dict or preset_dict["_metadata"] is None:

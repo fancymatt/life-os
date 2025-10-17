@@ -88,7 +88,7 @@ async def get_preset(category: str, preset_id: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.post("/{category}", response_model=dict)
+@router.post("/{category}/", response_model=dict)
 async def create_preset(category: str, request: PresetCreate, background_tasks: BackgroundTasks):
     """
     Create a new preset

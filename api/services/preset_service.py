@@ -222,7 +222,7 @@ class PresetService:
             if preset.get("display_name") == name:
                 raise FileExistsError(f"Preset with display name '{name}' already exists in {category}")
 
-        # Get the appropriate spec class
+        # Get the appropriate spec class for categories that have them
         spec_class_map = {
             "outfits": OutfitSpec,
             "visual_styles": VisualStyleSpec,
@@ -235,17 +235,21 @@ class PresetService:
             "character_appearance": CharacterAppearanceSpec
         }
 
-        if category not in spec_class_map:
-            raise ValueError(f"Unknown category: {category}")
-
-        # Convert dict to spec instance
-        spec_class = spec_class_map[category]
-        spec = spec_class(**data)
+        # For categories with spec classes, validate with Pydantic
+        # For story presets (themes, audiences, prose_styles), save as raw JSON
+        if category in spec_class_map:
+            # Convert dict to spec instance for validation
+            spec_class = spec_class_map[category]
+            spec = spec_class(**data)
+            data_to_save = spec
+        else:
+            # Story presets don't have spec classes - save raw data
+            data_to_save = data
 
         # Save preset with generated UUID, using name as display_name
         preset_path, preset_id = self.preset_manager.save(
             tool_type=category,
-            data=spec,
+            data=data_to_save,
             preset_id=None,  # Generate new UUID
             display_name=name,
             notes=notes

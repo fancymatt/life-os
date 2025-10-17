@@ -11,6 +11,7 @@ Usage:
 import sys
 from pathlib import Path
 from typing import Optional, Union, List
+import asyncio
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -19,6 +20,7 @@ from ai_capabilities.specs import MakeupSpec, SpecMetadata
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.preset import PresetManager
 from ai_tools.shared.cache import CacheManager
+from api.config import settings
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,12 +55,22 @@ class MakeupAnalyzer:
         self.cache_manager = CacheManager(default_ttl=cache_ttl) if cache_ttl else CacheManager()
         self.preset_manager = PresetManager()
 
-        # Load prompt template
-        template_path = Path(__file__).parent / "template.md"
-        with open(template_path) as f:
-            self.prompt_template = f.read()
+    def _load_template(self) -> str:
+        """
+        Load template with override support.
 
-    def analyze(
+        Checks for custom template first, then falls back to base template.
+        """
+        # Check for custom template override
+        custom_template_path = settings.base_dir / "data" / "tool_configs" / "makeup_analyzer_template.md"
+        if custom_template_path.exists():
+            return custom_template_path.read_text()
+
+        # Fall back to base template
+        base_template_path = Path(__file__).parent / "template.md"
+        return base_template_path.read_text()
+
+    async def aanalyze(
         self,
         image_path: Union[Path, str],
         skip_cache: bool = False,
@@ -66,7 +78,7 @@ class MakeupAnalyzer:
         preset_notes: Optional[str] = None
     ) -> MakeupSpec:
         """
-        Analyze makeup
+        Analyze makeup (async version)
 
         Args:
             image_path: Path to image file
@@ -107,12 +119,15 @@ class MakeupAnalyzer:
 
                 return cached
 
+        # Load template (supports custom overrides)
+        prompt_template = self._load_template()
+
         # Perform analysis
         print(f"🔍 Analyzing makeup in {image_path.name}...")
 
         try:
-            result = self.router.call_structured(
-                prompt=self.prompt_template,
+            result = await self.router.acall_structured(
+                prompt=prompt_template,
                 response_model=MakeupSpec,
                 images=[image_path],
                 temperature=0.3
@@ -163,6 +178,32 @@ class MakeupAnalyzer:
 
         except Exception as e:
             raise Exception(f"Failed to analyze makeup: {e}")
+
+    def analyze(
+        self,
+        image_path: Union[Path, str],
+        skip_cache: bool = False,
+        save_as_preset: Optional[Union[str, bool]] = None,
+        preset_notes: Optional[str] = None
+    ) -> MakeupSpec:
+        """
+        Analyze makeup (synchronous wrapper)
+
+        Args:
+            image_path: Path to image file
+            skip_cache: Skip cache lookup (default: False)
+            save_as_preset: Save result as preset with this name, or True to use suggested_name
+            preset_notes: Optional notes for the preset
+
+        Returns:
+            MakeupSpec with analysis results
+        """
+        return asyncio.run(self.aanalyze(
+            image_path=image_path,
+            skip_cache=skip_cache,
+            save_as_preset=save_as_preset,
+            preset_notes=preset_notes
+        ))
 
     def analyze_from_preset(self, preset_name: str) -> MakeupSpec:
         """Load analysis from a preset"""

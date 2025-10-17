@@ -120,10 +120,16 @@ function App() {
           {/* Analyzers */}
           <Route path="analyzers">
             <Route index element={<Dashboard />} />
-            <Route path="outfit" element={<OutfitAnalyzer />} />
-            <Route path="comprehensive" element={<ComprehensiveAnalyzer />} />
             <Route path="character-appearance" element={<ToolConfigPage />} />
-            <Route path=":type" element={<GenericAnalyzer />} />
+            <Route path="outfit" element={<ToolConfigPage />} />
+            <Route path="accessories" element={<ToolConfigPage />} />
+            <Route path="art-style" element={<ToolConfigPage />} />
+            <Route path="expression" element={<ToolConfigPage />} />
+            <Route path="hair-color" element={<ToolConfigPage />} />
+            <Route path="hair-style" element={<ToolConfigPage />} />
+            <Route path="makeup" element={<ToolConfigPage />} />
+            <Route path="visual-style" element={<ToolConfigPage />} />
+            <Route path="comprehensive" element={<ComprehensiveAnalyzer />} />
           </Route>
 
           {/* Story Tools */}

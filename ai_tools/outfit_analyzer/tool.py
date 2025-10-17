@@ -12,6 +12,7 @@ Supports cache and preset workflows.
 from pathlib import Path
 from typing import Optional, Union, List
 import sys
+import asyncio
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -21,6 +22,7 @@ from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.cache import CacheManager
 from ai_tools.shared.preset import PresetManager
 from ai_tools.outfit_visualizer.tool import OutfitVisualizer
+from api.config import settings
 
 
 class OutfitAnalyzer:
@@ -62,12 +64,22 @@ class OutfitAnalyzer:
         self.auto_visualize = auto_visualize
         self.visualizer = OutfitVisualizer() if auto_visualize else None
 
-        # Load prompt template
-        self.template_path = Path(__file__).parent / "template.md"
-        with open(self.template_path, 'r') as f:
-            self.prompt_template = f.read()
+    def _load_template(self) -> str:
+        """
+        Load template with override support.
 
-    def analyze(
+        Checks for custom template first, then falls back to base template.
+        """
+        # Check for custom template override
+        custom_template_path = settings.base_dir / "data" / "tool_configs" / "outfit_analyzer_template.md"
+        if custom_template_path.exists():
+            return custom_template_path.read_text()
+
+        # Fall back to base template
+        base_template_path = Path(__file__).parent / "template.md"
+        return base_template_path.read_text()
+
+    async def aanalyze(
         self,
         image_path: Union[Path, str],
         skip_cache: bool = False,
@@ -75,7 +87,7 @@ class OutfitAnalyzer:
         preset_notes: Optional[str] = None
     ) -> OutfitSpec:
         """
-        Analyze an outfit image
+        Analyze an outfit image (async version)
 
         Args:
             image_path: Path to image file
@@ -102,16 +114,13 @@ class OutfitAnalyzer:
                 print(f"✅ Using cached analysis for {image_path.name}")
                 # Save as preset if requested (even for cached results)
                 if save_as_preset:
-                    # If save_as_preset is True (boolean), use the AI-generated suggested_name
                     preset_name = cached.suggested_name if save_as_preset is True else save_as_preset
-
                     preset_path, preset_id = self.preset_manager.save(
                         "outfits",
                         cached,
                         display_name=preset_name,
                         notes=preset_notes
                     )
-                    # Ensure metadata exists and update with preset info
                     if not cached._metadata:
                         cached._metadata = SpecMetadata(
                             tool="outfit-analyzer",
@@ -123,10 +132,8 @@ class OutfitAnalyzer:
                     cached._metadata.preset_id = preset_id
                     cached._metadata.display_name = preset_name
                     print(f"⭐ Saved as preset: {preset_name}")
-                    print(f"   ID: {preset_id}")
-                    print(f"   Location: {preset_path}")
 
-                    # Generate preview visualization if enabled
+                    # Generate preview if enabled
                     if self.auto_visualize and self.visualizer:
                         try:
                             print(f"\n🎨 Generating preview visualization...")
@@ -141,12 +148,15 @@ class OutfitAnalyzer:
 
                 return cached
 
+        # Load template (supports custom overrides)
+        prompt_template = self._load_template()
+
         # Perform analysis
         print(f"🔍 Analyzing outfit in {image_path.name}...")
 
         try:
-            outfit = self.router.call_structured(
-                prompt=self.prompt_template,
+            outfit = await self.router.acall_structured(
+                prompt=prompt_template,
                 response_model=OutfitSpec,
                 images=[image_path],
                 temperature=0.3
@@ -172,24 +182,19 @@ class OutfitAnalyzer:
 
             # Save as preset if requested
             if save_as_preset:
-                # If save_as_preset is True (boolean), use the AI-generated suggested_name
                 preset_name = outfit.suggested_name if save_as_preset is True else save_as_preset
-
                 preset_path, preset_id = self.preset_manager.save(
                     "outfits",
                     outfit,
                     display_name=preset_name,
                     notes=preset_notes
                 )
-                # Update metadata with preset info
                 if outfit._metadata:
                     outfit._metadata.preset_id = preset_id
                     outfit._metadata.display_name = preset_name
                 print(f"⭐ Saved as preset: {preset_name}")
-                print(f"   ID: {preset_id}")
-                print(f"   Location: {preset_path}")
 
-                # Generate preview visualization if enabled
+                # Generate preview if enabled
                 if self.auto_visualize and self.visualizer:
                     try:
                         print(f"\n🎨 Generating preview visualization...")
@@ -206,6 +211,32 @@ class OutfitAnalyzer:
 
         except Exception as e:
             raise Exception(f"Failed to analyze outfit: {e}")
+
+    def analyze(
+        self,
+        image_path: Union[Path, str],
+        skip_cache: bool = False,
+        save_as_preset: Optional[str] = None,
+        preset_notes: Optional[str] = None
+    ) -> OutfitSpec:
+        """
+        Analyze an outfit image (synchronous wrapper)
+
+        Args:
+            image_path: Path to image file
+            skip_cache: Skip cache lookup (default: False)
+            save_as_preset: Save result as preset with this name
+            preset_notes: Optional notes for the preset
+
+        Returns:
+            OutfitSpec with analyzed outfit data
+        """
+        return asyncio.run(self.aanalyze(
+            image_path=image_path,
+            skip_cache=skip_cache,
+            save_as_preset=save_as_preset,
+            preset_notes=preset_notes
+        ))
 
     def analyze_from_preset(self, preset_id: str) -> OutfitSpec:
         """
