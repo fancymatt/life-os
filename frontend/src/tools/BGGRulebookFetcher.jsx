@@ -318,11 +318,13 @@ function BGGRulebookFetcher() {
         </div>
       )}
 
-      {/* Success Result */}
+      {/* Result */}
       {result && (
-        <div className="result-success">
-          <div className="success-icon">✓</div>
-          <h2>Success!</h2>
+        <div className={`result-success ${!result.document_id ? 'result-warning' : ''}`}>
+          <div className={`success-icon ${!result.document_id ? 'warning-icon' : ''}`}>
+            {result.document_id ? '✓' : '⚠'}
+          </div>
+          <h2>{result.document_id ? 'Success!' : 'Completed'}</h2>
           <h3>{result.gameName}</h3>
 
           <div className="result-details">
