@@ -24,12 +24,20 @@ import StoryProseStylesEntity from './pages/entities/StoryProseStylesEntity'
 import StoryPlannerConfigsEntity from './pages/entities/StoryPlannerConfigsEntity'
 import StoryWriterConfigsEntity from './pages/entities/StoryWriterConfigsEntity'
 import StoryIllustratorConfigsEntity from './pages/entities/StoryIllustratorConfigsEntity'
+import BoardGamesEntity from './pages/entities/BoardGamesEntity'
+import DocumentsEntity from './pages/entities/DocumentsEntity'
+import QAsEntity from './pages/entities/QAsEntity'
 import ToolConfigPage from './pages/ToolConfigPage'
 
 // Tool Pages - Analyzers
 import OutfitAnalyzer from './OutfitAnalyzer'
 import ComprehensiveAnalyzer from './ComprehensiveAnalyzer'
 import GenericAnalyzer from './GenericAnalyzer'
+
+// Tool Pages - Board Game Tools
+import BGGRulebookFetcher from './tools/BGGRulebookFetcher'
+import DocumentProcessor from './tools/DocumentProcessor'
+import DocumentQuestionAsker from './tools/DocumentQuestionAsker'
 
 // Tool Pages - Story Tools
 import StoryPlannerPage from './pages/StoryPlannerPage'
@@ -44,10 +52,6 @@ import StoryWorkflowPage from './pages/StoryWorkflowPage'
 
 // Application Pages
 import ComposerPage from './pages/ComposerPage'
-
-// Board Game Pages
-import BoardGames from './pages/BoardGames'
-import GameDetail from './pages/GameDetail'
 
 function App() {
   const { loading: authLoading, isAuthenticated } = useAuth()
@@ -115,6 +119,12 @@ function App() {
           <Route path="story-writer-configs/:id" element={<StoryWriterConfigsEntity />} />
           <Route path="story-illustrator-configs" element={<StoryIllustratorConfigsEntity />} />
           <Route path="story-illustrator-configs/:id" element={<StoryIllustratorConfigsEntity />} />
+          <Route path="board-games" element={<BoardGamesEntity />} />
+          <Route path="board-games/:id" element={<BoardGamesEntity />} />
+          <Route path="documents" element={<DocumentsEntity />} />
+          <Route path="documents/:id" element={<DocumentsEntity />} />
+          <Route path="qas" element={<QAsEntity />} />
+          <Route path="qas/:id" element={<QAsEntity />} />
         </Route>
 
         {/* Tools */}
@@ -149,6 +159,11 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="modular" element={<ModularGenerator />} />
           </Route>
+
+          {/* Board Game Tools */}
+          <Route path="bgg-rulebook-fetcher" element={<BGGRulebookFetcher />} />
+          <Route path="document-processor" element={<DocumentProcessor />} />
+          <Route path="document-question-asker" element={<DocumentQuestionAsker />} />
         </Route>
 
         {/* Workflows */}
@@ -165,12 +180,6 @@ function App() {
 
         {/* System */}
         <Route path="jobs" element={<JobsPage />} />
-
-        {/* Board Games */}
-        <Route path="board-games">
-          <Route index element={<BoardGames />} />
-          <Route path=":gameId" element={<GameDetail />} />
-        </Route>
 
         {/* Legacy routes for backwards compatibility */}
         <Route path="composer" element={<Navigate to="/apps/composer" replace />} />

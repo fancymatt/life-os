@@ -76,9 +76,17 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">🎨</span>
                   <span className="nav-label">Art Styles</span>
                 </NavLink>
+                <NavLink to="/entities/board-games" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎲</span>
+                  <span className="nav-label">Board Games</span>
+                </NavLink>
                 <NavLink to="/entities/characters" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">👤</span>
                   <span className="nav-label">Characters</span>
+                </NavLink>
+                <NavLink to="/entities/documents" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📄</span>
+                  <span className="nav-label">Documents</span>
                 </NavLink>
                 <NavLink to="/entities/expressions" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">😊</span>
@@ -107,6 +115,10 @@ function Sidebar({ isOpen, onClose }) {
                 <NavLink to="/entities/outfits" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">👔</span>
                   <span className="nav-label">Outfits</span>
+                </NavLink>
+                <NavLink to="/entities/qas" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">💬</span>
+                  <span className="nav-label">Q&As</span>
                 </NavLink>
                 <NavLink to="/entities/story-planner-configs" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">📋</span>
@@ -164,6 +176,10 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">🎨</span>
                   <span className="nav-label">Art Style Analyzer</span>
                 </NavLink>
+                <NavLink to="/tools/bgg-rulebook-fetcher" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎲</span>
+                  <span className="nav-label">BGG Rulebook Fetcher</span>
+                </NavLink>
                 <NavLink to="/tools/analyzers/character-appearance" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">👤</span>
                   <span className="nav-label">Character Appearance Analyzer</span>
@@ -171,6 +187,14 @@ function Sidebar({ isOpen, onClose }) {
                 <NavLink to="/tools/analyzers/comprehensive" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">📊</span>
                   <span className="nav-label">Comprehensive Analyzer</span>
+                </NavLink>
+                <NavLink to="/tools/document-processor" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">📄</span>
+                  <span className="nav-label">Document Processor</span>
+                </NavLink>
+                <NavLink to="/tools/document-question-asker" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">💬</span>
+                  <span className="nav-label">Document Question Asker</span>
                 </NavLink>
                 <NavLink to="/tools/analyzers/expression" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">😊</span>
@@ -232,10 +256,6 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.applications && (
               <div className="nav-section-content">
-                <NavLink to="/board-games" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">🎲</span>
-                  <span className="nav-label">Board Games</span>
-                </NavLink>
                 <NavLink to="/apps/composer" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">🎭</span>
                   <span className="nav-label">Image Composer</span>

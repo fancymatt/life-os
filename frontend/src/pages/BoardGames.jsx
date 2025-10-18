@@ -165,13 +165,13 @@ function AddGameModal({ onClose, onGameAdded }) {
         }
       });
 
-      if (response.data.status === 'success') {
+      if (response.data.status === 'completed') {
         setSuccess(`${result.name} added successfully!`);
         setTimeout(() => {
           onGameAdded();
           onClose();
         }, 1500);
-      } else {
+      } else if (response.data.status === 'failed') {
         setError(response.data.error || 'Failed to add game');
       }
     } catch (err) {
