@@ -45,6 +45,10 @@ import StoryWorkflowPage from './pages/StoryWorkflowPage'
 // Application Pages
 import ComposerPage from './pages/ComposerPage'
 
+// Board Game Pages
+import BoardGames from './pages/BoardGames'
+import GameDetail from './pages/GameDetail'
+
 function App() {
   const { loading: authLoading, isAuthenticated } = useAuth()
 
@@ -161,6 +165,12 @@ function App() {
 
         {/* System */}
         <Route path="jobs" element={<JobsPage />} />
+
+        {/* Board Games */}
+        <Route path="board-games">
+          <Route index element={<BoardGames />} />
+          <Route path=":gameId" element={<GameDetail />} />
+        </Route>
 
         {/* Legacy routes for backwards compatibility */}
         <Route path="composer" element={<Navigate to="/apps/composer" replace />} />
