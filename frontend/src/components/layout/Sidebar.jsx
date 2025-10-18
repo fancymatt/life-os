@@ -232,6 +232,10 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.applications && (
               <div className="nav-section-content">
+                <NavLink to="/board-games" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎲</span>
+                  <span className="nav-label">Board Games</span>
+                </NavLink>
                 <NavLink to="/apps/composer" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">🎭</span>
                   <span className="nav-label">Image Composer</span>

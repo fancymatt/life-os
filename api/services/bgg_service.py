@@ -23,7 +23,7 @@ class BGGService:
         """Initialize BGG service"""
         self.api_base = "https://boardgamegeek.com/xmlapi2"
         self.site_base = "https://boardgamegeek.com"
-        self.downloads_dir = Path(settings.data_dir) / "downloads" / "pdfs"
+        self.downloads_dir = Path(settings.base_dir) / "data" / "downloads" / "pdfs"
         self.downloads_dir.mkdir(parents=True, exist_ok=True)
 
         # User agent to avoid being blocked

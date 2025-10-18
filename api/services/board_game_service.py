@@ -18,7 +18,7 @@ class BoardGameService:
 
     def __init__(self):
         """Initialize board game service"""
-        self.games_dir = Path(settings.data_dir) / "board_games"
+        self.games_dir = Path(settings.base_dir) / "data" / "board_games"
         self.games_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_game_path(self, game_id: str) -> Path:

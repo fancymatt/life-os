@@ -20,7 +20,7 @@ class QAService:
 
     def __init__(self):
         """Initialize Q&A service"""
-        self.qas_dir = Path(settings.data_dir) / "qas"
+        self.qas_dir = Path(settings.base_dir) / "data" / "qas"
         self.qas_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_qa_path(self, qa_id: str) -> Path:

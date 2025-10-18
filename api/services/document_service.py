@@ -19,7 +19,7 @@ class DocumentService:
 
     def __init__(self):
         """Initialize document service"""
-        self.documents_dir = Path(settings.data_dir) / "documents"
+        self.documents_dir = Path(settings.base_dir) / "data" / "documents"
         self.documents_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_document_path(self, document_id: str) -> Path:
