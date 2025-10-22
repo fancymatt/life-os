@@ -240,6 +240,10 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">📸</span>
                   <span className="nav-label">Visual Style Analyzer</span>
                 </NavLink>
+                <NavLink to="/tools/visualization-config" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">🎨</span>
+                  <span className="nav-label">Visualization Config</span>
+                </NavLink>
               </div>
             )}
           </section>
