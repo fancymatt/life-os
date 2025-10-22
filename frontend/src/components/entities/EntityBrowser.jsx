@@ -422,8 +422,26 @@ function EntityBrowser({ config }) {
     }))
   }
 
-  const handleAction = (action) => {
-    if (action.onClick) {
+  const handleAction = async (action, entity = null) => {
+    if (action.handler) {
+      // Handler-based action (async function)
+      setSaving(true)
+      setError(null)
+      try {
+        const result = await action.handler(entity || selectedEntity)
+        if (result && result.message) {
+          // Show success message
+          alert(result.message)
+        }
+        // Refresh data after action
+        fetchData()
+      } catch (err) {
+        console.error('Action failed:', err)
+        setError(err.response?.data?.detail || err.message || 'Action failed')
+      } finally {
+        setSaving(false)
+      }
+    } else if (action.onClick) {
       action.onClick()
     } else if (action.path) {
       navigate(action.path)
@@ -610,13 +628,25 @@ function EntityBrowser({ config }) {
                     })}
 
                     <div className="entity-detail-actions">
-                      <button
-                        onClick={handleDelete}
-                        disabled={saving}
-                        className="delete-button"
-                      >
-                        Delete
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {config.actions?.map((action, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleAction(action, selectedEntity)}
+                            disabled={saving}
+                            className="secondary-action-button"
+                          >
+                            {action.icon} {action.label}
+                          </button>
+                        ))}
+                        <button
+                          onClick={handleDelete}
+                          disabled={saving}
+                          className="delete-button"
+                        >
+                          Delete
+                        </button>
+                      </div>
                       <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
                         <button
                           onClick={handleResetChanges}
@@ -665,13 +695,25 @@ function EntityBrowser({ config }) {
                       })}
 
                       <div className="entity-detail-actions">
-                        <button
-                          onClick={handleDelete}
-                          disabled={saving}
-                          className="delete-button"
-                        >
-                          Delete
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {config.actions?.map((action, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleAction(action, selectedEntity)}
+                              disabled={saving}
+                              className="secondary-action-button"
+                            >
+                              {action.icon} {action.label}
+                            </button>
+                          ))}
+                          <button
+                            onClick={handleDelete}
+                            disabled={saving}
+                            className="delete-button"
+                          >
+                            Delete
+                          </button>
+                        </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
                           <button
                             onClick={handleResetChanges}
