@@ -23,6 +23,7 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     """User model as stored in database"""
+    id: Optional[int] = None  # Database ID
     hashed_password: str
     created_at: datetime
     last_login: Optional[datetime] = None

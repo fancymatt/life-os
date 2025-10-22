@@ -8,8 +8,10 @@ Outfits are compositions of clothing item IDs that can be mixed and matched.
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional, List
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.services.outfits_service import OutfitsService
+from api.services.outfit_service_db import OutfitServiceDB
+from api.database import get_db
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 
@@ -62,6 +64,7 @@ class RemoveItemRequest(BaseModel):
 async def list_outfits(
     limit: Optional[int] = Query(None, description="Maximum number of outfits to return"),
     offset: int = Query(0, description="Number of outfits to skip"),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -69,15 +72,15 @@ async def list_outfits(
 
     Returns outfits sorted by updated_at (most recently updated first).
     """
-    service = OutfitsService()
-    outfits = service.list_outfits(limit=limit, offset=offset)
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
+    outfits = await service.list_outfits(limit=limit, offset=offset)
 
     outfit_infos = [
         OutfitInfo(
             outfit_id=outfit['outfit_id'],
             name=outfit['name'],
             clothing_item_ids=outfit['clothing_item_ids'],
-            notes=outfit.get('notes'),
+            notes=outfit.get('description'),  # Database uses 'description', API uses 'notes'
             created_at=outfit.get('created_at', ''),
             updated_at=outfit.get('updated_at', '')
         )
@@ -93,6 +96,7 @@ async def list_outfits(
 @router.get("/{outfit_id}", response_model=OutfitInfo)
 async def get_outfit(
     outfit_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -100,8 +104,8 @@ async def get_outfit(
 
     Returns full outfit data including all clothing item IDs.
     """
-    service = OutfitsService()
-    outfit = service.get_outfit(outfit_id)
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
+    outfit = await service.get_outfit(outfit_id)
 
     if not outfit:
         raise HTTPException(status_code=404, detail=f"Outfit {outfit_id} not found")
@@ -110,7 +114,7 @@ async def get_outfit(
         outfit_id=outfit['outfit_id'],
         name=outfit['name'],
         clothing_item_ids=outfit['clothing_item_ids'],
-        notes=outfit.get('notes'),
+        notes=outfit.get('description'),  # Database uses 'description', API uses 'notes'
         created_at=outfit.get('created_at', ''),
         updated_at=outfit.get('updated_at', '')
     )
@@ -119,6 +123,7 @@ async def get_outfit(
 @router.post("/", response_model=OutfitInfo)
 async def create_outfit(
     request: OutfitCreate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -126,19 +131,19 @@ async def create_outfit(
 
     Create an outfit by specifying a name and a list of clothing item IDs.
     """
-    service = OutfitsService()
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
-    outfit = service.create_outfit(
+    outfit = await service.create_outfit(
         name=request.name,
         clothing_item_ids=request.clothing_item_ids,
-        notes=request.notes
+        description=request.notes  # API uses 'notes', database uses 'description'
     )
 
     return OutfitInfo(
         outfit_id=outfit['outfit_id'],
         name=outfit['name'],
         clothing_item_ids=outfit['clothing_item_ids'],
-        notes=outfit.get('notes'),
+        notes=outfit.get('description'),  # Database uses 'description', API uses 'notes'
         created_at=outfit.get('created_at', ''),
         updated_at=outfit.get('updated_at', '')
     )
@@ -148,6 +153,7 @@ async def create_outfit(
 async def update_outfit(
     outfit_id: str,
     request: OutfitUpdate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -155,13 +161,13 @@ async def update_outfit(
 
     Updates outfit fields. Only provided fields will be updated.
     """
-    service = OutfitsService()
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
-    outfit = service.update_outfit(
+    outfit = await service.update_outfit(
         outfit_id=outfit_id,
         name=request.name,
         clothing_item_ids=request.clothing_item_ids,
-        notes=request.notes
+        description=request.notes  # API uses 'notes', database uses 'description'
     )
 
     if not outfit:
@@ -171,7 +177,7 @@ async def update_outfit(
         outfit_id=outfit['outfit_id'],
         name=outfit['name'],
         clothing_item_ids=outfit['clothing_item_ids'],
-        notes=outfit.get('notes'),
+        notes=outfit.get('description'),  # Database uses 'description', API uses 'notes'
         created_at=outfit.get('created_at', ''),
         updated_at=outfit.get('updated_at', '')
     )
@@ -180,6 +186,7 @@ async def update_outfit(
 @router.delete("/{outfit_id}")
 async def delete_outfit(
     outfit_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -187,8 +194,8 @@ async def delete_outfit(
 
     Removes the outfit composition. Does NOT delete the clothing items themselves.
     """
-    service = OutfitsService()
-    success = service.delete_outfit(outfit_id)
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.delete_outfit(outfit_id)
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Outfit {outfit_id} not found")
@@ -200,6 +207,7 @@ async def delete_outfit(
 async def add_item_to_outfit(
     outfit_id: str,
     request: AddItemRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -208,9 +216,9 @@ async def add_item_to_outfit(
     Adds a clothing item ID to the outfit's item list.
     If the item is already in the outfit, this is a no-op.
     """
-    service = OutfitsService()
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
-    outfit = service.add_item_to_outfit(outfit_id, request.item_id)
+    outfit = await service.add_item_to_outfit(outfit_id, request.item_id)
 
     if not outfit:
         raise HTTPException(status_code=404, detail=f"Outfit {outfit_id} not found")
@@ -219,7 +227,7 @@ async def add_item_to_outfit(
         outfit_id=outfit['outfit_id'],
         name=outfit['name'],
         clothing_item_ids=outfit['clothing_item_ids'],
-        notes=outfit.get('notes'),
+        notes=outfit.get('description'),  # Database uses 'description', API uses 'notes'
         created_at=outfit.get('created_at', ''),
         updated_at=outfit.get('updated_at', '')
     )
@@ -229,6 +237,7 @@ async def add_item_to_outfit(
 async def remove_item_from_outfit(
     outfit_id: str,
     item_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -237,9 +246,9 @@ async def remove_item_from_outfit(
     Removes a clothing item ID from the outfit's item list.
     If the item is not in the outfit, this is a no-op.
     """
-    service = OutfitsService()
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
-    outfit = service.remove_item_from_outfit(outfit_id, item_id)
+    outfit = await service.remove_item_from_outfit(outfit_id, item_id)
 
     if not outfit:
         raise HTTPException(status_code=404, detail=f"Outfit {outfit_id} not found")
@@ -248,7 +257,7 @@ async def remove_item_from_outfit(
         outfit_id=outfit['outfit_id'],
         name=outfit['name'],
         clothing_item_ids=outfit['clothing_item_ids'],
-        notes=outfit.get('notes'),
+        notes=outfit.get('description'),  # Database uses 'description', API uses 'notes'
         created_at=outfit.get('created_at', ''),
         updated_at=outfit.get('updated_at', '')
     )
