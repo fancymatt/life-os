@@ -337,6 +337,132 @@ class StyleTransferRequest(BaseModel):
 
 
 # ==============================================================================
+# VISUALIZATION CONFIGURATION SPECS
+# ==============================================================================
+
+class CompositionStyle(str, Enum):
+    """Visual composition styles for entity visualization"""
+    MANNEQUIN = "mannequin"           # Display on mannequin (clothing items)
+    FLAT_LAY = "flat_lay"             # Styled flat lay (accessories)
+    SCENE = "scene"                   # In contextual scene
+    PORTRAIT = "portrait"             # Portrait-style (characters)
+    PRODUCT = "product"               # Product photography style
+    LIFESTYLE = "lifestyle"           # Lifestyle/in-use photography
+    TECHNICAL = "technical"           # Technical/diagram style
+
+
+class Framing(str, Enum):
+    """Camera framing options"""
+    EXTREME_CLOSEUP = "extreme_closeup"  # Very tight on subject
+    CLOSEUP = "closeup"                   # Close detail view
+    MEDIUM = "medium"                     # Medium shot
+    FULL = "full"                         # Full view of subject
+    WIDE = "wide"                         # Wide environmental shot
+
+
+class CameraAngle(str, Enum):
+    """Camera angle options"""
+    FRONT = "front"                   # Straight-on front view
+    THREE_QUARTER = "three_quarter"   # 3/4 angle view
+    SIDE = "side"                     # Side profile view
+    TOP_DOWN = "top_down"             # Overhead/bird's eye view
+    LOW_ANGLE = "low_angle"           # Looking up at subject
+    HIGH_ANGLE = "high_angle"         # Looking down at subject
+    EYE_LEVEL = "eye_level"           # At eye level
+
+
+class BackgroundStyle(str, Enum):
+    """Background style options"""
+    WHITE = "white"                   # Pure white background
+    BLACK = "black"                   # Pure black background
+    TRANSPARENT = "transparent"       # Transparent/isolated
+    GRADIENT = "gradient"             # Gradient background
+    SIMPLE_SCENE = "simple_scene"     # Minimal contextual scene
+    DETAILED_SCENE = "detailed_scene" # Rich environmental scene
+
+
+class LightingStyle(str, Enum):
+    """Lighting style options"""
+    SOFT_EVEN = "soft_even"           # Soft, even studio lighting
+    DRAMATIC = "dramatic"             # High contrast dramatic lighting
+    NATURAL = "natural"               # Natural daylight
+    GOLDEN_HOUR = "golden_hour"       # Warm golden hour light
+    STUDIO = "studio"                 # Professional studio setup
+    AMBIENT = "ambient"               # Soft ambient lighting
+
+
+class VisualizationConfigEntity(BaseModel):
+    """
+    Configuration for how to visualize an entity type.
+
+    This allows users to control how different entity types are rendered
+    as preview images. Users can upload reference images, select art styles,
+    and configure composition preferences.
+    """
+    config_id: str = Field(..., description="Unique config ID (UUID)")
+    entity_type: str = Field(..., description="Entity type this config applies to (e.g., 'clothing_item', 'character', 'outfit')")
+    display_name: str = Field(..., description="User-friendly name for this config")
+
+    # Composition settings
+    composition_style: CompositionStyle = Field(
+        CompositionStyle.PRODUCT,
+        description="Visual composition style"
+    )
+    framing: Framing = Field(
+        Framing.MEDIUM,
+        description="Camera framing"
+    )
+    angle: CameraAngle = Field(
+        CameraAngle.FRONT,
+        description="Camera angle"
+    )
+    background: BackgroundStyle = Field(
+        BackgroundStyle.WHITE,
+        description="Background style"
+    )
+
+    # Visual style
+    art_style_id: Optional[str] = Field(
+        None,
+        description="Link to ArtStyleSpec preset ID for consistent artistic style"
+    )
+    lighting: LightingStyle = Field(
+        LightingStyle.SOFT_EVEN,
+        description="Lighting style"
+    )
+
+    # Reference guidance
+    reference_image_path: Optional[str] = Field(
+        None,
+        description="Optional reference image showing desired composition"
+    )
+    additional_instructions: str = Field(
+        "",
+        description="Free-form additional instructions for visualization"
+    )
+
+    # Technical settings
+    image_size: str = Field(
+        "1024x1024",
+        description="Output image dimensions (e.g., '1024x1024', '1024x768')"
+    )
+    model: str = Field(
+        "gemini/gemini-2.5-flash-image",
+        description="Image generation model to use"
+    )
+
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    is_default: bool = Field(False, description="Whether this is the default config for this entity type")
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+# ==============================================================================
 # VIDEO SPECS
 # ==============================================================================
 

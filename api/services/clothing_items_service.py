@@ -12,11 +12,11 @@ import uuid
 import sys
 
 from api.config import settings
-from ai_capabilities.specs import ClothingItemEntity, ClothingCategory
+from ai_capabilities.specs import ClothingItemEntity, ClothingCategory, VisualizationConfigEntity
 
-# Add project to path for importing ClothingItemVisualizer
+# Add project to path for importing ItemVisualizer
 sys.path.insert(0, str(settings.base_dir))
-from ai_tools.clothing_item_visualizer.tool import ClothingItemVisualizer
+from ai_tools.item_visualizer.tool import ItemVisualizer
 
 
 class ClothingItemsService:
@@ -25,7 +25,7 @@ class ClothingItemsService:
     def __init__(self):
         self.clothing_items_dir = settings.base_dir / "data" / "clothing_items"
         self.clothing_items_dir.mkdir(parents=True, exist_ok=True)
-        self.visualizer = ClothingItemVisualizer()
+        self.visualizer = ItemVisualizer()
 
     def list_clothing_items(
         self,
@@ -264,7 +264,7 @@ class ClothingItemsService:
 
     def generate_preview(self, item_id: str) -> Optional[Dict[str, Any]]:
         """
-        Generate a preview image for a clothing item
+        Generate a preview image for a clothing item using configured visualization settings
 
         Args:
             item_id: UUID of the clothing item
@@ -283,11 +283,26 @@ class ClothingItemsService:
         print(f"🎨 Generating preview for clothing item: {item_entity.item} ({item_entity.category})")
 
         try:
-            # Generate preview using visualizer
+            # Load default visualization config for clothing items
+            from api.services.visualization_config_service import VisualizationConfigService
+            config_service = VisualizationConfigService()
+            config_dict = config_service.get_default_config("clothing_item")
+
+            if config_dict:
+                config = VisualizationConfigEntity(**config_dict)
+                print(f"   Using config: {config.display_name}")
+            else:
+                # Fallback to None if no config exists (visualizer will use defaults)
+                config = None
+                print(f"   Using default visualization settings (no config found)")
+
+            # Generate preview using ItemVisualizer
             preview_path = self.visualizer.visualize(
-                item=item_entity,
+                entity=item_entity,
+                entity_type="clothing_item",
+                config=config,
                 output_dir=self.clothing_items_dir,
-                item_id=item_id
+                filename=f"{item_id}_preview"
             )
 
             # Convert absolute path to relative path for storage
