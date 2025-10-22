@@ -15,6 +15,8 @@ function VisualizationConfig() {
   const [entityTypeFilter, setEntityTypeFilter] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingConfig, setEditingConfig] = useState(null)
+  const [referenceImageFile, setReferenceImageFile] = useState(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Art styles for dropdown
   const [artStyles, setArtStyles] = useState([])
@@ -150,7 +152,42 @@ function VisualizationConfig() {
   const handleCancelEdit = () => {
     setEditingConfig(null)
     setShowCreateForm(false)
+    setReferenceImageFile(null)
     resetForm()
+  }
+
+  const handleReferenceImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setReferenceImageFile(file)
+    }
+  }
+
+  const handleUploadReferenceImage = async () => {
+    if (!referenceImageFile) return
+
+    setUploadingImage(true)
+    setError(null)
+
+    try {
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', referenceImageFile)
+
+      const response = await api.post('/analyze/upload', uploadFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      // Update form data with the uploaded file path
+      setFormData({ ...formData, reference_image_path: response.data.url })
+      setReferenceImageFile(null)
+    } catch (err) {
+      console.error('Failed to upload image:', err)
+      setError(err.response?.data?.detail || 'Failed to upload image')
+    } finally {
+      setUploadingImage(false)
+    }
   }
 
   if (loading && configs.length === 0) {
@@ -331,15 +368,47 @@ function VisualizationConfig() {
             </div>
 
             <div className="form-group">
-              <label>Reference Image Path (Optional)</label>
+              <label>Reference Image (Optional)</label>
               <input
-                type="text"
-                value={formData.reference_image_path}
-                onChange={(e) => setFormData({ ...formData, reference_image_path: e.target.value })}
-                placeholder="e.g., uploads/reference/example.jpg"
+                type="file"
+                accept="image/*"
+                onChange={handleReferenceImageChange}
+                disabled={uploadingImage}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'white',
+                  border: '2px solid #ccc',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  cursor: 'pointer'
+                }}
               />
-              <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
-                Path to a reference image for Gemini image generation. Leave empty to use entity's source image.
+              {referenceImageFile && (
+                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', flex: 1 }}>
+                    Selected: {referenceImageFile.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleUploadReferenceImage}
+                    disabled={uploadingImage}
+                    className="secondary-button"
+                    style={{ padding: '0.5rem 1rem' }}
+                  >
+                    {uploadingImage ? 'Uploading...' : 'Upload'}
+                  </button>
+                </div>
+              )}
+              {formData.reference_image_path && (
+                <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#e8f5e9', borderRadius: '4px', border: '1px solid #4caf50' }}>
+                  <span style={{ color: '#2e7d32', fontSize: '0.85rem' }}>
+                    ✓ Reference image set: {formData.reference_image_path}
+                  </span>
+                </div>
+              )}
+              <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
+                Upload a reference image for Gemini image generation. Leave empty to use entity's source image.
               </small>
             </div>
 
