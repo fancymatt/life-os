@@ -58,9 +58,12 @@ function VisualizationConfig() {
   const fetchArtStyles = async () => {
     try {
       const response = await api.get('/presets/art_styles')
-      setArtStyles(response.data)
+      // Ensure we always have an array
+      setArtStyles(Array.isArray(response.data) ? response.data : [])
     } catch (err) {
       console.error('Failed to fetch art styles:', err)
+      // Set empty array on error to prevent crashes
+      setArtStyles([])
     }
   }
 
@@ -310,11 +313,15 @@ function VisualizationConfig() {
                   onChange={(e) => setFormData({ ...formData, art_style_id: e.target.value })}
                 >
                   <option value="">None</option>
-                  {artStyles.map(style => (
-                    <option key={style.preset_id} value={style.preset_id}>
-                      {style.display_name || style.preset_id}
-                    </option>
-                  ))}
+                  {artStyles && artStyles.length > 0 ? (
+                    artStyles.map(style => (
+                      <option key={style.preset_id || style._id} value={style.preset_id || style._id}>
+                        {style.display_name || style.preset_id || 'Unnamed Style'}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>No art styles available</option>
+                  )}
                 </select>
               </div>
             </div>
