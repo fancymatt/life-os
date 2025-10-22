@@ -294,3 +294,33 @@ class StoryScene(Base):
 
     def __repr__(self):
         return f"<StoryScene(story_id='{self.story_id}', scene_number={self.scene_number}, title='{self.title}')>"
+
+
+# ============================================================================
+# Favorite Entity
+# ============================================================================
+
+class Favorite(Base):
+    """User favorite preset"""
+    __tablename__ = "favorites"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # User relationship
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+
+    # Favorite details
+    category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    preset_id: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    # Timestamp
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Indexes and constraints
+    __table_args__ = (
+        Index("ix_favorite_user_category", "user_id", "category"),
+        Index("ix_favorite_unique", "user_id", "category", "preset_id", unique=True),
+    )
+
+    def __repr__(self):
+        return f"<Favorite(user_id={self.user_id}, category='{self.category}', preset_id='{self.preset_id}')>"

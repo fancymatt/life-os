@@ -7,8 +7,11 @@ Endpoints for managing user favorite presets.
 from fastapi import APIRouter, Depends
 from typing import List
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.services.favorites_service import favorites_service
+from api.services.favorites_service_db import FavoritesServiceDB
+from api.database import get_db
+from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 
 router = APIRouter()
@@ -28,31 +31,35 @@ class FavoriteResponse(BaseModel):
 
 
 @router.get("/", response_model=List[str])
-async def get_favorites(current_user = Depends(get_current_active_user)):
+async def get_favorites(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Get all favorites for current user"""
-    return favorites_service.get_user_favorites(current_user.username)
+    service = FavoritesServiceDB(db, user_id=current_user.id)
+    return await service.get_user_favorites()
 
 
 @router.get("/{category}", response_model=List[str])
 async def get_category_favorites(
     category: str,
-    current_user = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Get favorites for a specific category"""
-    return favorites_service.get_favorites_by_category(
-        current_user.username,
-        category
-    )
+    service = FavoritesServiceDB(db, user_id=current_user.id)
+    return await service.get_favorites_by_category(category)
 
 
 @router.post("/add", response_model=FavoriteResponse)
 async def add_favorite(
     request: FavoriteRequest,
-    current_user = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Add a preset to favorites"""
-    added = favorites_service.add_favorite(
-        current_user.username,
+    service = FavoritesServiceDB(db, user_id=current_user.id)
+    added = await service.add_favorite(
         request.preset_id,
         request.category
     )
@@ -60,18 +67,19 @@ async def add_favorite(
     return FavoriteResponse(
         success=added,
         message="Added to favorites" if added else "Already in favorites",
-        favorites=favorites_service.get_user_favorites(current_user.username)
+        favorites=await service.get_user_favorites()
     )
 
 
 @router.post("/remove", response_model=FavoriteResponse)
 async def remove_favorite(
     request: FavoriteRequest,
-    current_user = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Remove a preset from favorites"""
-    removed = favorites_service.remove_favorite(
-        current_user.username,
+    service = FavoritesServiceDB(db, user_id=current_user.id)
+    removed = await service.remove_favorite(
         request.preset_id,
         request.category
     )
@@ -79,7 +87,7 @@ async def remove_favorite(
     return FavoriteResponse(
         success=removed,
         message="Removed from favorites" if removed else "Not in favorites",
-        favorites=favorites_service.get_user_favorites(current_user.username)
+        favorites=await service.get_user_favorites()
     )
 
 
@@ -87,13 +95,11 @@ async def remove_favorite(
 async def check_favorite(
     category: str,
     preset_id: str,
-    current_user = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     """Check if a preset is favorited"""
-    is_fav = favorites_service.is_favorite(
-        current_user.username,
-        preset_id,
-        category
-    )
+    service = FavoritesServiceDB(db, user_id=current_user.id)
+    is_fav = await service.is_favorite(preset_id, category)
 
     return {"is_favorite": is_fav}
