@@ -10,6 +10,7 @@ import JobsPage from './pages/JobsPage'
 import StoriesEntity from './pages/entities/StoriesEntity'
 import ImagesEntity from './pages/entities/ImagesEntity'
 import CharactersEntity from './pages/entities/CharactersEntity'
+import ClothingItemsEntity from './pages/entities/ClothingItemsEntity'
 import OutfitsEntity from './pages/entities/OutfitsEntity'
 import ExpressionsEntity from './pages/entities/ExpressionsEntity'
 import MakeupsEntity from './pages/entities/MakeupsEntity'
@@ -91,6 +92,8 @@ function App() {
           <Route path="images/:id" element={<ImagesEntity />} />
           <Route path="characters" element={<CharactersEntity />} />
           <Route path="characters/:id" element={<CharactersEntity />} />
+          <Route path="clothing-items" element={<ClothingItemsEntity />} />
+          <Route path="clothing-items/:id" element={<ClothingItemsEntity />} />
           <Route path="outfits" element={<OutfitsEntity />} />
           <Route path="outfits/:id" element={<OutfitsEntity />} />
           <Route path="expressions" element={<ExpressionsEntity />} />

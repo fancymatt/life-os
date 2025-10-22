@@ -17,6 +17,7 @@ export {
   accessoriesConfig
 } from './presetsConfig'
 export { charactersConfig } from './charactersConfig'
+export { clothingItemsConfig } from './clothingItemsConfig'
 export {
   storyThemesConfig,
   storyAudiencesConfig,

@@ -84,6 +84,10 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">👤</span>
                   <span className="nav-label">Characters</span>
                 </NavLink>
+                <NavLink to="/entities/clothing-items" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">👕</span>
+                  <span className="nav-label">Clothing Items</span>
+                </NavLink>
                 <NavLink to="/entities/documents" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">📄</span>
                   <span className="nav-label">Documents</span>
