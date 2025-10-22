@@ -273,6 +273,26 @@ Generate a single, high-quality preview image that clearly shows the item."""
         if config.reference_image_path:
             reference_image_b64 = self._load_reference_image(config.reference_image_path)
 
+        # Determine reference image path for Gemini generation
+        # Priority: 1) config.reference_image_path, 2) entity.source_image, 3) entity.reference_image_path
+        reference_image_path = None
+        if config.reference_image_path:
+            from api.config import settings
+            reference_image_path = settings.base_dir / config.reference_image_path
+        elif hasattr(entity, 'source_image') and entity.source_image:
+            from api.config import settings
+            reference_image_path = settings.base_dir / entity.source_image
+        elif hasattr(entity, 'reference_image_path') and entity.reference_image_path:
+            from api.config import settings
+            reference_image_path = settings.base_dir / entity.reference_image_path
+        elif isinstance(entity, dict):
+            # Handle dict entities
+            from api.config import settings
+            if entity.get('reference_image_path'):
+                reference_image_path = settings.base_dir / entity['reference_image_path']
+            elif entity.get('source_image'):
+                reference_image_path = settings.base_dir / entity['source_image']
+
         # Construct prompt
         prompt = self._construct_prompt(
             entity=entity,
@@ -286,6 +306,8 @@ Generate a single, high-quality preview image that clearly shows the item."""
         print(f"   Config: {config.display_name}")
         if art_style:
             print(f"   Art Style: {art_style.suggested_name}")
+        if reference_image_path:
+            print(f"   Reference Image: {reference_image_path}")
 
         try:
             # Truncate prompt if too long
@@ -295,6 +317,7 @@ Generate a single, high-quality preview image that clearly shows the item."""
             # Generate image
             image_bytes = self.router.generate_image(
                 prompt=prompt,
+                image_path=reference_image_path,  # Pass reference image for Gemini
                 model=config.model,
                 provider="gemini",  # Extract provider from model string if needed
                 size=config.image_size
