@@ -80,7 +80,7 @@ async def list_clothing_items(
     Optionally filter by category and paginate results.
     Returns items sorted by created_at (newest first).
     """
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
     items = await service.list_clothing_items(category=category, limit=limit, offset=offset)
 
     item_infos = [
@@ -116,7 +116,7 @@ async def get_categories_summary(
     Returns a dict mapping each category to the number of items in that category.
     Useful for showing category counts in the UI.
     """
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
     summary = await service.get_categories_summary()
 
     return CategoriesSummaryResponse(
@@ -136,7 +136,7 @@ async def get_clothing_item(
 
     Returns full clothing item data including all details.
     """
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
     item = await service.get_clothing_item(item_id)
 
     if not item:
@@ -172,7 +172,7 @@ async def create_clothing_item(
     By default, a preview image is generated automatically in the background.
     Set generate_preview=false to skip preview generation (faster for bulk operations).
     """
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     item = await service.create_clothing_item(
         category=request.category,
@@ -210,7 +210,7 @@ async def update_clothing_item(
 
     Updates clothing item fields. Only provided fields will be updated.
     """
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     item = await service.update_clothing_item(
         item_id=item_id,
@@ -250,7 +250,7 @@ async def delete_clothing_item(
     Removes the clothing item permanently.
     Note: This will NOT remove the item from any outfits that reference it.
     """
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
     success = await service.delete_clothing_item(item_id)
 
     if not success:
@@ -329,7 +329,7 @@ async def batch_generate_previews_by_ids(
     from api.logging_config import get_logger
 
     logger = get_logger(__name__)
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     if not request.item_ids:
         return {
@@ -421,7 +421,7 @@ async def batch_generate_previews(
     from api.logging_config import get_logger
 
     logger = get_logger(__name__)
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     # Get all clothing items
     all_items = await service.list_clothing_items(category=category)
@@ -542,7 +542,7 @@ async def generate_clothing_item_preview(
         }
 
     # Synchronous mode: Run generation and return result
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     try:
         item = await service.generate_preview(item_id)

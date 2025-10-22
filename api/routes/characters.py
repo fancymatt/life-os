@@ -38,7 +38,7 @@ async def list_characters(
 
     Returns a list of all character entities with their metadata.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
     characters = await service.list_characters()
 
     character_infos = []
@@ -88,7 +88,7 @@ async def create_character_multipart(
     Physical appearance is automatically analyzed from the image in the background.
     Returns immediately without waiting for analysis to complete.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     # Parse tags from JSON string
     tag_list = json.loads(tags) if tags else []
@@ -124,7 +124,7 @@ async def create_character_multipart(
                 }})
                 from api.database import get_session
                 async with get_session() as session:
-                    service = CharacterServiceDB(session, user_id=current_user.id if current_user else None)
+                    service = CharacterServiceDB(session, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
                     analyzer = CharacterAppearanceAnalyzer()
                     appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
 
@@ -189,7 +189,7 @@ async def create_character(
 
     Note: For file uploads, use the /multipart endpoint instead.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     # Handle reference image if provided
     reference_image_path = None
@@ -290,7 +290,7 @@ async def upload_character_image(
     Accepts an image file upload and sets it as the character's reference image.
     Automatically analyzes the image to extract physical appearance.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     # Verify character exists
     character_data = await service.get_character(character_id)
@@ -369,7 +369,7 @@ async def get_character(
 
     Returns full character data including visual description, personality, etc.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
     character_data = await service.get_character(character_id)
 
     if not character_data:
@@ -410,7 +410,7 @@ async def update_character(
 
     Updates character fields. Only provided fields will be updated.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     # Handle reference image update if provided
     reference_image_path = None
@@ -469,7 +469,7 @@ async def delete_character(
 
     Removes the character and its associated reference image.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
     success = await service.delete_character(character_id)
 
     if not success:
@@ -490,7 +490,7 @@ async def re_analyze_character_appearance(
     Forces re-analysis of the character's reference image, updating all appearance fields.
     Returns updated character info immediately.
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     # Get character
     character_data = await service.get_character(character_id)
@@ -565,7 +565,7 @@ async def analyze_character_appearances(
     Returns:
         Dict with job_id for tracking progress via /api/jobs/{job_id}
     """
-    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    service = CharacterServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
 
     # Get all characters
     characters = await service.list_characters()
@@ -631,7 +631,7 @@ async def analyze_character_appearances(
 
                     # Update character with all appearance fields
                     async with get_session() as session:
-                        service = CharacterServiceDB(session, user_id=current_user.id if current_user else None)
+                        service = CharacterServiceDB(session, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
                         await service.update_character(
                             character_id,
                             physical_description=appearance_spec.overall_description,
