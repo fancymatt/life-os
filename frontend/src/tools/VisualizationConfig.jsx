@@ -58,8 +58,9 @@ function VisualizationConfig() {
   const fetchArtStyles = async () => {
     try {
       const response = await api.get('/presets/art_styles')
-      // Ensure we always have an array
-      setArtStyles(Array.isArray(response.data) ? response.data : [])
+      // API returns { presets: [...] }, extract the array
+      const presets = response.data.presets || response.data || []
+      setArtStyles(Array.isArray(presets) ? presets : [])
     } catch (err) {
       console.error('Failed to fetch art styles:', err)
       // Set empty array on error to prevent crashes
