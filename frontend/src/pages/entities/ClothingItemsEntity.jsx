@@ -24,8 +24,7 @@ function ClothingItemsEntity() {
   // Create a modified config with category filtering
   const config = useMemo(() => ({
     ...clothingItemsConfig,
-    fetchEntities: () => clothingItemsConfig.fetchEntities(selectedCategory),
-    actions: []
+    fetchEntities: () => clothingItemsConfig.fetchEntities(selectedCategory)
   }), [selectedCategory])
 
   // Categories for filtering
