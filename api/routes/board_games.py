@@ -38,7 +38,7 @@ async def list_board_games(
 
     Returns a list of all board game entities with their metadata.
     """
-    service = BoardGameServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
     games = await service.list_board_games()
 
     game_infos = [
@@ -80,7 +80,7 @@ async def create_board_game(
     Creates a board game entity with name, designer, publisher, etc.
     For automatic import from BoardGameGeek, use /search or /gather endpoints.
     """
-    service = BoardGameServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
 
     game_data = await service.create_board_game(
         name=request.name,
@@ -126,7 +126,7 @@ async def get_board_game(
 
     Returns full game data including name, designer, complexity, etc.
     """
-    service = BoardGameServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
     game_data = await service.get_board_game(game_id)
 
     if not game_data:
@@ -163,7 +163,7 @@ async def update_board_game(
 
     Updates game fields. Only provided fields will be updated.
     """
-    service = BoardGameServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
 
     game_data = await service.update_board_game(
         game_id=game_id,
@@ -213,7 +213,7 @@ async def delete_board_game(
     Removes the board game entity.
     Note: Does not delete associated documents.
     """
-    service = BoardGameServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
     success = await service.delete_board_game(game_id)
 
     if not success:
@@ -234,7 +234,7 @@ async def list_game_documents(
     Returns all documents (rulebooks, references, etc.) associated with this game.
     """
     # Verify game exists
-    game_service = BoardGameServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
+    game_service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
     game_data = await game_service.get_board_game(game_id)
     if not game_data:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
@@ -288,7 +288,7 @@ async def list_game_qas(
     - is_favorite: Show only favorites
     """
     # Verify game exists
-    game_service = BoardGameServiceDB(db, user_id=None)  # TODO: Use current_user.id when auth is migrated to PostgreSQL
+    game_service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
     game_data = await game_service.get_board_game(game_id)
     if not game_data:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")

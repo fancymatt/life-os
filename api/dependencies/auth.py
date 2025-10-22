@@ -6,8 +6,10 @@ FastAPI dependencies for route protection and user authentication.
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.services.auth_service import auth_service
+from api.services.auth_service_db import AuthServiceDB
+from api.database import get_db
 from api.models.auth import User, TokenData
 from api.config import settings
 
@@ -17,13 +19,15 @@ security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db)
 ) -> Optional[User]:
     """
     Get current authenticated user from JWT token
 
     Args:
         credentials: HTTP Authorization credentials
+        db: Database session
 
     Returns:
         User object if authenticated
@@ -43,6 +47,7 @@ async def get_current_user(
         )
 
     token = credentials.credentials
+    auth_service = AuthServiceDB(db)
     token_data = auth_service.verify_token(token, token_type="access")
 
     if token_data is None or token_data.username is None:
@@ -52,7 +57,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = auth_service.get_user(username=token_data.username)
+    user = await auth_service.get_user(username=token_data.username)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -68,6 +73,7 @@ async def get_current_user(
 
     # Convert UserInDB to User (remove hashed_password)
     return User(
+        id=user.id,
         username=user.username,
         email=user.email,
         full_name=user.full_name,
@@ -98,8 +104,9 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 
-def optional_authentication(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+async def optional_authentication(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db)
 ) -> Optional[User]:
     """
     Optional authentication - returns user if authenticated, None otherwise
@@ -107,6 +114,7 @@ def optional_authentication(
 
     Args:
         credentials: HTTP Authorization credentials
+        db: Database session
 
     Returns:
         User object if authenticated, None otherwise
@@ -118,16 +126,18 @@ def optional_authentication(
         return None
 
     token = credentials.credentials
+    auth_service = AuthServiceDB(db)
     token_data = auth_service.verify_token(token, token_type="access")
 
     if token_data is None or token_data.username is None:
         return None
 
-    user = auth_service.get_user(username=token_data.username)
+    user = await auth_service.get_user(username=token_data.username)
     if user is None or user.disabled:
         return None
 
     return User(
+        id=user.id,
         username=user.username,
         email=user.email,
         full_name=user.full_name,

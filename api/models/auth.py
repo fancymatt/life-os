@@ -30,6 +30,7 @@ class UserInDB(UserBase):
 
 class User(UserBase):
     """User model for responses (no password)"""
+    id: Optional[int] = None  # Database ID (optional for backwards compatibility)
     created_at: datetime
     last_login: Optional[datetime] = None
 
