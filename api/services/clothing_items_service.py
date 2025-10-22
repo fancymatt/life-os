@@ -9,9 +9,14 @@ from typing import List, Dict, Any, Optional
 import json
 from datetime import datetime
 import uuid
+import sys
 
 from api.config import settings
 from ai_capabilities.specs import ClothingItemEntity, ClothingCategory
+
+# Add project to path for importing ClothingItemVisualizer
+sys.path.insert(0, str(settings.base_dir))
+from ai_tools.clothing_item_visualizer.tool import ClothingItemVisualizer
 
 
 class ClothingItemsService:
@@ -20,6 +25,7 @@ class ClothingItemsService:
     def __init__(self):
         self.clothing_items_dir = settings.base_dir / "data" / "clothing_items"
         self.clothing_items_dir.mkdir(parents=True, exist_ok=True)
+        self.visualizer = ClothingItemVisualizer()
 
     def list_clothing_items(
         self,
@@ -95,7 +101,9 @@ class ClothingItemsService:
         fabric: str,
         color: str,
         details: str,
-        source_image: Optional[str] = None
+        source_image: Optional[str] = None,
+        generate_preview: bool = False,
+        background_tasks = None
     ) -> Dict[str, Any]:
         """
         Create a new clothing item
@@ -107,6 +115,8 @@ class ClothingItemsService:
             color: Color description
             details: Construction details
             source_image: Optional source image path
+            generate_preview: Whether to generate preview image
+            background_tasks: Optional FastAPI BackgroundTasks for async preview generation
 
         Returns:
             Created clothing item dict
@@ -132,6 +142,22 @@ class ClothingItemsService:
             json.dump(item_entity.dict(), f, indent=2, default=str)
 
         print(f"✅ Created clothing item: {item} ({category})")
+
+        # Generate preview if requested
+        if generate_preview:
+            if background_tasks is not None:
+                # Run preview generation in background
+                background_tasks.add_task(
+                    self._generate_preview_safe,
+                    item_id
+                )
+                print(f"🎨 Queued preview generation for new clothing item {item_id}")
+            else:
+                # Fallback to synchronous generation
+                try:
+                    self.generate_preview(item_id)
+                except Exception as e:
+                    print(f"⚠️  Preview generation failed: {e}")
 
         return item_entity.dict()
 
@@ -223,3 +249,62 @@ class ClothingItemsService:
             summary[category] = summary.get(category, 0) + 1
 
         return summary
+
+    def _generate_preview_safe(self, item_id: str):
+        """
+        Safe wrapper for preview generation with error logging
+
+        Args:
+            item_id: UUID of the clothing item
+        """
+        try:
+            self.generate_preview(item_id)
+        except Exception as e:
+            print(f"⚠️  Background preview generation failed for {item_id}: {e}")
+
+    def generate_preview(self, item_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Generate a preview image for a clothing item
+
+        Args:
+            item_id: UUID of the clothing item
+
+        Returns:
+            Updated clothing item dict with preview_image_path, or None if not found
+        """
+        # Load existing item
+        existing_item = self.get_clothing_item(item_id)
+        if not existing_item:
+            return None
+
+        # Create ClothingItemEntity from dict
+        item_entity = ClothingItemEntity(**existing_item)
+
+        print(f"🎨 Generating preview for clothing item: {item_entity.item} ({item_entity.category})")
+
+        try:
+            # Generate preview using visualizer
+            preview_path = self.visualizer.visualize(
+                item=item_entity,
+                output_dir=self.clothing_items_dir,
+                item_id=item_id
+            )
+
+            # Convert absolute path to relative path for storage
+            relative_preview_path = str(preview_path.relative_to(settings.base_dir))
+
+            # Update item with preview path
+            existing_item['preview_image_path'] = relative_preview_path
+
+            # Save updated item
+            item_path = self.clothing_items_dir / f"{item_id}.json"
+            with open(item_path, 'w') as f:
+                json.dump(existing_item, f, indent=2, default=str)
+
+            print(f"✅ Preview generated: {relative_preview_path}")
+
+            return existing_item
+
+        except Exception as e:
+            print(f"⚠️  Failed to generate preview for {item_id}: {e}")
+            raise

@@ -65,6 +65,7 @@ class ClothingItemEntity(BaseModel):
     color: str = Field(..., description="Precise color description")
     details: str = Field(..., description="Comprehensive construction, fit, and styling details")
     source_image: Optional[str] = Field(None, description="Source image path")
+    preview_image_path: Optional[str] = Field(None, description="Generated preview image path")
     created_at: datetime = Field(default_factory=datetime.now)
 
     class Config:

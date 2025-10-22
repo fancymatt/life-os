@@ -5,7 +5,7 @@ Endpoints for managing clothing item entities.
 Clothing items are extracted from outfit images and can be composed into outfits.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from typing import Optional, List
 from pydantic import BaseModel
 
@@ -46,6 +46,7 @@ class ClothingItemInfo(BaseModel):
     color: str
     details: str
     source_image: Optional[str] = None
+    preview_image_path: Optional[str] = None
     created_at: str
 
 
@@ -88,6 +89,7 @@ async def list_clothing_items(
             color=item['color'],
             details=item['details'],
             source_image=item.get('source_image'),
+            preview_image_path=item.get('preview_image_path'),
             created_at=item.get('created_at', '')
         )
         for item in items
@@ -143,6 +145,7 @@ async def get_clothing_item(
         color=item['color'],
         details=item['details'],
         source_image=item.get('source_image'),
+        preview_image_path=item.get('preview_image_path'),
         created_at=item.get('created_at', '')
     )
 
@@ -150,6 +153,8 @@ async def get_clothing_item(
 @router.post("/", response_model=ClothingItemInfo)
 async def create_clothing_item(
     request: ClothingItemCreate,
+    background_tasks: BackgroundTasks,
+    generate_preview: bool = Query(True, description="Generate preview image automatically"),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -157,6 +162,9 @@ async def create_clothing_item(
 
     Manually create a clothing item. Typically, items are created automatically
     by the outfit analyzer, but this endpoint allows manual creation.
+
+    By default, a preview image is generated automatically in the background.
+    Set generate_preview=false to skip preview generation (faster for bulk operations).
     """
     service = ClothingItemsService()
 
@@ -166,7 +174,9 @@ async def create_clothing_item(
         fabric=request.fabric,
         color=request.color,
         details=request.details,
-        source_image=request.source_image
+        source_image=request.source_image,
+        generate_preview=generate_preview,
+        background_tasks=background_tasks if generate_preview else None
     )
 
     return ClothingItemInfo(
@@ -177,6 +187,7 @@ async def create_clothing_item(
         color=item['color'],
         details=item['details'],
         source_image=item.get('source_image'),
+        preview_image_path=item.get('preview_image_path'),
         created_at=item.get('created_at', '')
     )
 
@@ -215,6 +226,7 @@ async def update_clothing_item(
         color=item['color'],
         details=item['details'],
         source_image=item.get('source_image'),
+        preview_image_path=item.get('preview_image_path'),
         created_at=item.get('created_at', '')
     )
 
@@ -237,3 +249,37 @@ async def delete_clothing_item(
         raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
 
     return {"message": f"Clothing item {item_id} deleted successfully"}
+
+
+@router.post("/{item_id}/generate-preview", response_model=ClothingItemInfo)
+async def generate_clothing_item_preview(
+    item_id: str,
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Generate or regenerate a preview image for a clothing item
+
+    Creates a visualization of the clothing item using AI image generation.
+    The preview shows the item on a mannequin (for worn items) or as a flat lay (for accessories).
+    """
+    service = ClothingItemsService()
+
+    try:
+        item = service.generate_preview(item_id)
+
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+
+        return ClothingItemInfo(
+            item_id=item['item_id'],
+            category=item['category'],
+            item=item['item'],
+            fabric=item['fabric'],
+            color=item['color'],
+            details=item['details'],
+            source_image=item.get('source_image'),
+            preview_image_path=item.get('preview_image_path'),
+            created_at=item.get('created_at', '')
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate preview: {str(e)}")
