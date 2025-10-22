@@ -16,7 +16,16 @@ export const clothingItemsConfig = {
   defaultSort: 'newest',
   searchFields: ['item', 'category', 'fabric', 'color', 'details'],
 
-  actions: [],
+  actions: [
+    {
+      label: 'Generate Preview',
+      icon: '🎨',
+      handler: async (item) => {
+        const response = await api.post(`/clothing-items/${item.itemId}/generate-preview`)
+        return { success: true, message: 'Preview generation started!' }
+      }
+    }
+  ],
 
   fetchEntities: async (filterCategory = null) => {
     const url = filterCategory ? `/clothing-items/?category=${filterCategory}` : '/clothing-items/'
