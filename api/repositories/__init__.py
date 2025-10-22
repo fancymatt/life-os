@@ -10,6 +10,7 @@ from api.repositories.clothing_item_repository import ClothingItemRepository
 from api.repositories.board_game_repository import BoardGameRepository
 from api.repositories.outfit_repository import OutfitRepository
 from api.repositories.favorite_repository import FavoriteRepository
+from api.repositories.composition_repository import CompositionRepository
 
 __all__ = [
     'UserRepository',
@@ -18,4 +19,5 @@ __all__ = [
     'BoardGameRepository',
     'OutfitRepository',
     'FavoriteRepository',
+    'CompositionRepository',
 ]

@@ -324,3 +324,36 @@ class Favorite(Base):
 
     def __repr__(self):
         return f"<Favorite(user_id={self.user_id}, category='{self.category}', preset_id='{self.preset_id}')>"
+
+
+# ============================================================================
+# Composition Entity
+# ============================================================================
+
+class Composition(Base):
+    """Saved preset composition"""
+    __tablename__ = "compositions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    composition_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+
+    # Composition details
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    subject: Mapped[str] = mapped_column(String(500), nullable=False)
+    presets: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # User relationship
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+
+    # Indexes
+    __table_args__ = (
+        Index("ix_composition_user_id", "user_id"),
+        Index("ix_composition_name", "name"),
+    )
+
+    def __repr__(self):
+        return f"<Composition(id='{self.composition_id}', name='{self.name}')>"
