@@ -185,12 +185,18 @@ class VisualizationConfigService:
 
         # Save to file
         config_path = self.configs_dir / f"{config_id}.json"
+        config_dict = config_entity.dict()
+
+        # Convert datetime objects to strings for JSON serialization
+        config_dict['created_at'] = config_dict['created_at'].isoformat()
+        config_dict['updated_at'] = config_dict['updated_at'].isoformat()
+
         with open(config_path, 'w') as f:
-            json.dump(config_entity.dict(), f, indent=2, default=str)
+            json.dump(config_dict, f, indent=2)
 
         print(f"✅ Created visualization config: {display_name} ({entity_type})")
 
-        return config_entity.dict()
+        return config_dict
 
     def update_config(
         self,
