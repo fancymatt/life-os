@@ -12,13 +12,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
 from api.config import settings
-from api.logging_config import setup_logging
+from api.logging_config import setup_logging, get_logger
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
 from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters, configs, tool_configs, local_models, board_games, documents, qa, clothing_items, outfits, visualization_configs
+from api.middleware.request_id import RequestIDMiddleware
 
 # Initialize logging
 setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
+
+# Get logger for main module
+logger = get_logger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -41,19 +45,22 @@ app.add_middleware(
     allow_headers=settings.cors_allow_headers,
 )
 
+# Request ID middleware for log correlation
+app.add_middleware(RequestIDMiddleware)
+
 # GZIP compression middleware (60-80% bandwidth reduction)
 # TODO: Add GZIP middleware with correct import
 # app.add_middleware(GZIPMiddleware, minimum_size=1000)
 
 # Log CORS configuration on startup
-print(f"✅ CORS configured for origins: {settings.cors_origins}")
-# print(f"✅ GZIP compression enabled (min size: 1KB)")
+logger.info(f"CORS configured for origins: {settings.cors_origins}")
+# logger.info("GZIP compression enabled (min size: 1KB)")
 
 # Log authentication status
 if settings.require_authentication:
-    print(f"🔒 Authentication: REQUIRED (JWT)")
+    logger.info("Authentication: REQUIRED (JWT)")
 else:
-    print(f"⚠️  Authentication: DISABLED (development mode)")
+    logger.warning("Authentication: DISABLED (development mode)")
 
 
 # Custom StaticFiles class with Cache-Control headers
@@ -77,10 +84,10 @@ try:
     app.mount("/output", CachedStaticFiles(directory=str(settings.output_dir), max_age=3600), name="output")
     # Uploads: 30 minute cache (temporary files)
     app.mount("/uploads", CachedStaticFiles(directory=str(settings.upload_dir), max_age=1800), name="uploads")
-    print(f"✅ Static file caching enabled (Cache-Control headers)")
-except RuntimeError:
+    logger.info("Static file caching enabled (Cache-Control headers)")
+except RuntimeError as e:
     # Directories might not exist yet
-    pass
+    logger.warning(f"Could not mount static files: {e}")
 
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["authentication"])
@@ -183,6 +190,70 @@ async def exists_handler(request, exc):
     return JSONResponse(
         status_code=409,
         content={"detail": str(exc)}
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Global exception handler to catch and log all unhandled errors"""
+    logger.error(
+        f"Unhandled exception: {type(exc).__name__}: {exc}",
+        exc_info=exc,
+        extra={'extra_fields': {
+            'method': request.method,
+            'url': str(request.url),
+            'error_type': type(exc).__name__,
+        }}
+    )
+
+    # Return 500 error to client
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"{type(exc).__name__}: {str(exc)}"}
+    )
+
+
+# Handle FastAPI validation errors
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    """Handle validation errors with detailed logging"""
+    errors = exc.errors()
+
+    # Sanitize errors for logging (remove large byte fields)
+    sanitized_errors = []
+    for error in errors:
+        if 'input' in error and isinstance(error['input'], bytes):
+            error_copy = error.copy()
+            error_copy['input'] = f"<bytes: {len(error['input'])} bytes>"
+            sanitized_errors.append(error_copy)
+        else:
+            sanitized_errors.append(error)
+
+    logger.warning(
+        f"Validation error: {request.method} {request.url}",
+        extra={'extra_fields': {
+            'method': request.method,
+            'url': str(request.url),
+            'content_type': request.headers.get('content-type'),
+            'errors': sanitized_errors[:5],  # Limit to first 5 errors
+        }}
+    )
+
+    # Return simplified error to client (without raw bytes in errors)
+    safe_errors = []
+    for error in errors:
+        safe_error = {k: v for k, v in error.items() if k != 'input'}
+        safe_error['msg'] = error.get('msg', 'Validation error')
+        safe_errors.append(safe_error)
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error - check server logs",
+            "errors": safe_errors
+        }
     )
 
 

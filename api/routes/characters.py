@@ -20,8 +20,10 @@ from api.config import settings
 from api.services.job_queue import get_job_queue_manager
 from api.models.jobs import JobType
 from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
+from api.logging_config import get_logger
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 @router.get("/", response_model=CharacterListResponse)
@@ -112,7 +114,10 @@ async def create_character_multipart(
         async def analyze_appearance():
             """Background task to analyze character appearance"""
             try:
-                print(f"🔍 Analyzing character appearance for {name}...")
+                logger.info(f"Analyzing character appearance for {name}", extra={'extra_fields': {
+                    'character_id': character_id,
+                    'character_name': name
+                }})
                 service = CharacterService()
                 analyzer = CharacterAppearanceAnalyzer()
                 appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
@@ -127,9 +132,16 @@ async def create_character_multipart(
                     hair_description=appearance_spec.hair_description,
                     body_description=appearance_spec.body_description
                 )
-                print(f"✅ Physical description analyzed and saved for {name}")
+                logger.info(f"Physical description analyzed and saved for {name}", extra={'extra_fields': {
+                    'character_id': character_id,
+                    'character_name': name
+                }})
             except Exception as e:
-                print(f"⚠️  Appearance analysis failed for {name}: {e}")
+                logger.warning(f"Appearance analysis failed for {name}: {e}", extra={'extra_fields': {
+                    'character_id': character_id,
+                    'character_name': name,
+                    'error': str(e)
+                }})
                 # Non-critical failure - character already created
 
         background_tasks.add_task(analyze_appearance)
@@ -289,7 +301,10 @@ async def upload_character_image(
     # Analyze appearance from image (only if physical_description not already set)
     if not character_data.get('physical_description'):
         try:
-            print(f"🔍 Analyzing character appearance for {character_data['name']}...")
+            logger.info(f"Analyzing character appearance for {character_data['name']}", extra={'extra_fields': {
+                'character_id': character_id,
+                'character_name': character_data['name']
+            }})
             analyzer = CharacterAppearanceAnalyzer()
             appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
 
@@ -303,9 +318,14 @@ async def upload_character_image(
                 hair_description=appearance_spec.hair_description,
                 body_description=appearance_spec.body_description
             )
-            print(f"✅ Physical description analyzed and saved")
+            logger.info(f"Physical description analyzed and saved", extra={'extra_fields': {
+                'character_id': character_id
+            }})
         except Exception as e:
-            print(f"⚠️  Appearance analysis failed: {e}")
+            logger.warning(f"Appearance analysis failed: {e}", extra={'extra_fields': {
+                'character_id': character_id,
+                'error': str(e)
+            }})
             # Continue without analysis - not critical
 
     # Build reference image URL
@@ -469,7 +489,10 @@ async def re_analyze_character_appearance(
         raise HTTPException(status_code=400, detail=f"Character {character_id} has no reference image")
 
     try:
-        print(f"🔍 Re-analyzing character appearance for {character_data['name']}...")
+        logger.info(f"Re-analyzing character appearance for {character_data['name']}", extra={'extra_fields': {
+            'character_id': character_id,
+            'character_name': character_data['name']
+        }})
         analyzer = CharacterAppearanceAnalyzer()
         appearance_spec = await analyzer.aanalyze(Path(character_data['reference_image_path']))
 
@@ -483,9 +506,14 @@ async def re_analyze_character_appearance(
             hair_description=appearance_spec.hair_description,
             body_description=appearance_spec.body_description
         )
-        print(f"✅ Physical description re-analyzed and saved")
+        logger.info(f"Physical description re-analyzed and saved", extra={'extra_fields': {
+            'character_id': character_id
+        }})
 
     except Exception as e:
+        logger.error(f"Appearance analysis failed: {str(e)}", exc_info=e, extra={'extra_fields': {
+            'character_id': character_id
+        }})
         raise HTTPException(status_code=500, detail=f"Appearance analysis failed: {str(e)}")
 
     # Build reference image URL
@@ -577,7 +605,11 @@ async def analyze_character_appearances(
                     progress = (idx - 1) / len(chars_to_analyze)
                     job_manager.update_progress(job_id, progress, f"Analyzing {name}...")
 
-                    print(f"🔍 Analyzing appearance for {name}...")
+                    logger.info(f"Analyzing appearance for {name}", extra={'extra_fields': {
+                        'character_id': character_id,
+                        'character_name': name,
+                        'progress': f"{idx}/{len(chars_to_analyze)}"
+                    }})
 
                     # Run appearance analyzer
                     appearance_spec = await analyzer.aanalyze(image_path)
@@ -600,7 +632,10 @@ async def analyze_character_appearances(
                     })
 
                     success_count += 1
-                    print(f"✅ Successfully analyzed {name}")
+                    logger.info(f"Successfully analyzed {name}", extra={'extra_fields': {
+                        'character_id': character_id,
+                        'character_name': name
+                    }})
 
                 except Exception as e:
                     error_message = str(e)
@@ -610,7 +645,11 @@ async def analyze_character_appearances(
                         "status": "failed",
                         "error": error_message
                     })
-                    print(f"❌ Failed to analyze {name}: {error_message}")
+                    logger.error(f"Failed to analyze {name}: {error_message}", extra={'extra_fields': {
+                        'character_id': character_id,
+                        'character_name': name,
+                        'error': error_message
+                    }})
 
             # Mark job as complete
             job_manager.update_progress(job_id, 1.0, f"Completed: {success_count} of {len(chars_to_analyze)} analyzed successfully")
@@ -624,7 +663,10 @@ async def analyze_character_appearances(
             )
 
         except Exception as e:
-            print(f"❌ Character appearance analysis failed: {e}")
+            logger.error(f"Character appearance analysis failed: {e}", exc_info=e, extra={'extra_fields': {
+                'job_id': job_id,
+                'error': str(e)
+            }})
             job_manager.fail_job(job_id, str(e))
 
     # Queue the background task
