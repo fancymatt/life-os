@@ -47,8 +47,7 @@ export const clothingItemsConfig = {
         item: item.item,
         fabric: item.fabric,
         color: item.color,
-        details: item.details,
-        reference_image_path: item.reference_image_path
+        details: item.details
       }
     }))
   },
@@ -311,31 +310,6 @@ export const clothingItemsConfig = {
           }}
         />
       </div>
-
-      {/* Reference Image Path */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <label style={{ display: 'block', color: 'rgba(255, 255, 255, 0.9)', marginBottom: '0.5rem', fontWeight: 500 }}>
-          Reference Image for Visualization (Optional)
-        </label>
-        <input
-          type="text"
-          value={editedData.reference_image_path || ''}
-          onChange={(e) => handlers.updateField('reference_image_path', e.target.value)}
-          placeholder="e.g., uploads/reference/example.jpg"
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '8px',
-            color: 'white',
-            fontSize: '0.95rem'
-          }}
-        />
-        <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.85rem', marginTop: '0.5rem', marginBottom: 0 }}>
-          Image path for generating visualizations. Leave empty to use the source image.
-        </p>
-      </div>
     </div>
   ),
 
@@ -347,8 +321,7 @@ export const clothingItemsConfig = {
         category: updates.data.category,
         fabric: updates.data.fabric,
         color: updates.data.color,
-        details: updates.data.details,
-        reference_image_path: updates.data.reference_image_path
+        details: updates.data.details
       }
     )
     return response.data

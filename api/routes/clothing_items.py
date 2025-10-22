@@ -35,7 +35,6 @@ class ClothingItemUpdate(BaseModel):
     color: Optional[str] = None
     details: Optional[str] = None
     source_image: Optional[str] = None
-    reference_image_path: Optional[str] = None
 
 
 class ClothingItemInfo(BaseModel):
@@ -47,7 +46,6 @@ class ClothingItemInfo(BaseModel):
     color: str
     details: str
     source_image: Optional[str] = None
-    reference_image_path: Optional[str] = None
     preview_image_path: Optional[str] = None
     created_at: str
 
@@ -91,7 +89,6 @@ async def list_clothing_items(
             color=item['color'],
             details=item['details'],
             source_image=item.get('source_image'),
-            reference_image_path=item.get('reference_image_path'),
             preview_image_path=item.get('preview_image_path'),
             created_at=item.get('created_at', '')
         )
@@ -148,7 +145,6 @@ async def get_clothing_item(
         color=item['color'],
         details=item['details'],
         source_image=item.get('source_image'),
-        reference_image_path=item.get('reference_image_path'),
         preview_image_path=item.get('preview_image_path'),
         created_at=item.get('created_at', '')
     )
@@ -191,7 +187,6 @@ async def create_clothing_item(
         color=item['color'],
         details=item['details'],
         source_image=item.get('source_image'),
-        reference_image_path=item.get('reference_image_path'),
         preview_image_path=item.get('preview_image_path'),
         created_at=item.get('created_at', '')
     )
@@ -217,8 +212,7 @@ async def update_clothing_item(
         fabric=request.fabric,
         color=request.color,
         details=request.details,
-        source_image=request.source_image,
-        reference_image_path=request.reference_image_path
+        source_image=request.source_image
     )
 
     if not item:
@@ -232,7 +226,6 @@ async def update_clothing_item(
         color=item['color'],
         details=item['details'],
         source_image=item.get('source_image'),
-        reference_image_path=item.get('reference_image_path'),
         preview_image_path=item.get('preview_image_path'),
         created_at=item.get('created_at', '')
     )

@@ -274,7 +274,7 @@ Generate a single, high-quality preview image that clearly shows the item."""
             reference_image_b64 = self._load_reference_image(config.reference_image_path)
 
         # Determine reference image path for Gemini generation
-        # Priority: 1) config.reference_image_path, 2) entity.source_image, 3) entity.reference_image_path
+        # Priority: 1) config.reference_image_path, 2) entity.source_image
         reference_image_path = None
         if config.reference_image_path:
             from api.config import settings
@@ -282,16 +282,10 @@ Generate a single, high-quality preview image that clearly shows the item."""
         elif hasattr(entity, 'source_image') and entity.source_image:
             from api.config import settings
             reference_image_path = settings.base_dir / entity.source_image
-        elif hasattr(entity, 'reference_image_path') and entity.reference_image_path:
-            from api.config import settings
-            reference_image_path = settings.base_dir / entity.reference_image_path
-        elif isinstance(entity, dict):
+        elif isinstance(entity, dict) and entity.get('source_image'):
             # Handle dict entities
             from api.config import settings
-            if entity.get('reference_image_path'):
-                reference_image_path = settings.base_dir / entity['reference_image_path']
-            elif entity.get('source_image'):
-                reference_image_path = settings.base_dir / entity['source_image']
+            reference_image_path = settings.base_dir / entity['source_image']
 
         # Construct prompt
         prompt = self._construct_prompt(

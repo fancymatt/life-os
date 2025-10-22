@@ -102,7 +102,6 @@ class ClothingItemsService:
         color: str,
         details: str,
         source_image: Optional[str] = None,
-        reference_image_path: Optional[str] = None,
         generate_preview: bool = False,
         background_tasks = None
     ) -> Dict[str, Any]:
@@ -116,7 +115,6 @@ class ClothingItemsService:
             color: Color description
             details: Construction details
             source_image: Optional source image path (original image item was extracted from)
-            reference_image_path: Optional reference image for visualization generation
             generate_preview: Whether to generate preview image
             background_tasks: Optional FastAPI BackgroundTasks for async preview generation
 
@@ -135,7 +133,6 @@ class ClothingItemsService:
             color=color,
             details=details,
             source_image=source_image,
-            reference_image_path=reference_image_path,
             created_at=datetime.now()
         )
 
@@ -172,8 +169,7 @@ class ClothingItemsService:
         fabric: Optional[str] = None,
         color: Optional[str] = None,
         details: Optional[str] = None,
-        source_image: Optional[str] = None,
-        reference_image_path: Optional[str] = None
+        source_image: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Update a clothing item
@@ -186,7 +182,6 @@ class ClothingItemsService:
             color: Optional new color
             details: Optional new details
             source_image: Optional new source image
-            reference_image_path: Optional new reference image for visualization
 
         Returns:
             Updated clothing item dict or None if not found
@@ -209,8 +204,6 @@ class ClothingItemsService:
             existing_item['details'] = details
         if source_image is not None:
             existing_item['source_image'] = source_image
-        if reference_image_path is not None:
-            existing_item['reference_image_path'] = reference_image_path
 
         # Save updated item
         item_path = self.clothing_items_dir / f"{item_id}.json"

@@ -29,6 +29,7 @@ function VisualizationConfig() {
     background: 'white',
     lighting: 'soft_even',
     art_style_id: '',
+    reference_image_path: '',
     additional_instructions: '',
     image_size: '1024x1024',
     model: 'gemini/gemini-2.5-flash-image',
@@ -119,6 +120,7 @@ function VisualizationConfig() {
       background: config.background,
       lighting: config.lighting,
       art_style_id: config.art_style_id || '',
+      reference_image_path: config.reference_image_path || '',
       additional_instructions: config.additional_instructions || '',
       image_size: config.image_size,
       model: config.model,
@@ -137,6 +139,7 @@ function VisualizationConfig() {
       background: 'white',
       lighting: 'soft_even',
       art_style_id: '',
+      reference_image_path: '',
       additional_instructions: '',
       image_size: '1024x1024',
       model: 'gemini/gemini-2.5-flash-image',
@@ -325,6 +328,19 @@ function VisualizationConfig() {
                   )}
                 </select>
               </div>
+            </div>
+
+            <div className="form-group">
+              <label>Reference Image Path (Optional)</label>
+              <input
+                type="text"
+                value={formData.reference_image_path}
+                onChange={(e) => setFormData({ ...formData, reference_image_path: e.target.value })}
+                placeholder="e.g., uploads/reference/example.jpg"
+              />
+              <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+                Path to a reference image for Gemini image generation. Leave empty to use entity's source image.
+              </small>
             </div>
 
             <div className="form-group">
