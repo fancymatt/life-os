@@ -12,8 +12,10 @@ from pydantic import BaseModel
 from api.services.visualization_config_service import VisualizationConfigService
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
+from api.logging_config import get_logger
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 # Request/Response Models
@@ -281,6 +283,13 @@ async def update_visualization_config(
 
     Updates config fields. Only provided fields will be updated.
     """
+    # Debug logging
+    logger.debug(f"Update request for config {config_id}", extra={'extra_fields': {
+        'config_id': config_id,
+        'reference_image_path': request.reference_image_path,
+        'display_name': request.display_name
+    }})
+
     service = VisualizationConfigService()
 
     config = service.update_config(

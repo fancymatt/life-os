@@ -16,10 +16,12 @@ from api.services.job_queue import get_job_queue_manager
 from api.models.jobs import JobType
 from api.config import settings
 from api.routes.analyzers import download_or_decode_image
+from api.logging_config import get_logger
 
 router = APIRouter()
 generator_service = GeneratorService()
 preset_service = PresetService()
+logger = get_logger(__name__)
 
 
 @router.get("/", response_model=List[ToolInfo])
@@ -135,11 +137,19 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
                         message=f"Generating variation {i + 1}/{request.variations}...",
                         current_step=i
                     )
-                    print(f"🎨 Generating variation {i + 1}/{request.variations}...")
+                    logger.info(f"Generating variation {i + 1}/{request.variations}", extra={'extra_fields': {
+                        'job_id': job_id,
+                        'variation': i + 1,
+                        'total_variations': request.variations
+                    }})
 
                     result = await generator.agenerate(**kwargs)
                     successful_paths.append(str(result.file_path))
-                    print(f"✅ Variation {i + 1} complete: {result.file_path}")
+                    logger.info(f"Variation {i + 1} complete", extra={'extra_fields': {
+                        'job_id': job_id,
+                        'variation': i + 1,
+                        'file_path': str(result.file_path)
+                    }})
 
                 except Exception as e:
                     # Log the error but continue with remaining variations
@@ -148,22 +158,32 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
                         "variation": i + 1,
                         "error": error_msg
                     })
-                    print(f"⚠️ Variation {i + 1} failed: {error_msg}")
-                    print(f"   Continuing with remaining variations...")
+                    logger.warning(f"Variation {i + 1} failed, continuing with remaining", extra={'extra_fields': {
+                        'job_id': job_id,
+                        'variation': i + 1,
+                        'error': error_msg
+                    }})
 
             # Determine final status
             if len(successful_paths) == 0:
                 # All variations failed
                 error_summary = f"All {request.variations} variations failed. Errors: " + "; ".join([f"Variation {item['variation']}: {item['error']}" for item in failed_items])
                 job_manager.fail_job(job_id, error_summary)
-                print(f"❌ All variations failed")
+                logger.error(f"All variations failed", extra={'extra_fields': {
+                    'job_id': job_id,
+                    'total_variations': request.variations,
+                    'failed_count': len(failed_items)
+                }})
             elif len(failed_items) == 0:
                 # All variations succeeded
                 job_manager.complete_job(
                     job_id,
                     result={"file_paths": successful_paths}
                 )
-                print(f"🎉 All {request.variations} variation(s) generated successfully!")
+                logger.info(f"All variations generated successfully", extra={'extra_fields': {
+                    'job_id': job_id,
+                    'variations_count': request.variations
+                }})
             else:
                 # Partial success
                 job_manager.complete_job(
@@ -174,12 +194,20 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
                         "summary": f"{len(successful_paths)}/{request.variations} succeeded, {len(failed_items)} failed"
                     }
                 )
-                print(f"⚠️ Partial success: {len(successful_paths)} succeeded, {len(failed_items)} failed")
+                logger.warning(f"Partial success", extra={'extra_fields': {
+                    'job_id': job_id,
+                    'succeeded': len(successful_paths),
+                    'failed': len(failed_items),
+                    'total': request.variations
+                }})
 
         except Exception as e:
             # Unexpected error in the generation loop itself
             job_manager.fail_job(job_id, f"Generation failed: {str(e)}")
-            print(f"❌ Generation failed with unexpected error: {e}")
+            logger.error(f"Generation failed with unexpected error", exc_info=e, extra={'extra_fields': {
+                'job_id': job_id,
+                'error': str(e)
+            }})
 
     # Start generation in background
     background_tasks.add_task(generate_variations)

@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from typing import List
 from pathlib import Path
 
+from api.logging_config import get_logger
 from api.models.requests import PresetCreate, PresetUpdate
 from api.models.responses import PresetListResponse, PresetInfo
 from api.services import PresetService
@@ -37,7 +38,7 @@ async def get_all_presets():
                 result[category] = [PresetInfo(**p).dict() for p in presets]
             except Exception as e:
                 # If one category fails, continue with others
-                print(f"Warning: Failed to load category {category}: {e}")
+                logger.warning(f"Failed to load category {category}: {e}")
                 result[category] = []
 
         return result
@@ -281,10 +282,10 @@ async def generate_test_image(category: str, preset_id: str, background_tasks: B
                 }
 
                 result = await generator.agenerate(**kwargs)
-                print(f"✅ Test image generated: {result.file_path}")
+                logger.info(f"Test image generated: {result.file_path}")
 
             except Exception as e:
-                print(f"⚠️ Test generation failed: {e}")
+                logger.warning(f"Test generation failed: {e}")
 
         background_tasks.add_task(generate_image)
 

@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 import aiofiles
 
+from api.logging_config import get_logger
 from api.models.auth import User
 from api.models.jobs import JobType
 from api.dependencies.auth import get_current_active_user
@@ -319,7 +320,7 @@ async def run_tool_test_job(
         if tool_name == "outfit_analyzer" and isinstance(result_dict, dict):
             clothing_items = result_dict.get("clothing_items", [])
             if clothing_items:
-                print(f"\n🎨 Auto-generating previews for {len(clothing_items)} clothing items...")
+                logger.info("Auto-generating previews for clothing items", extra={'extra_fields': {'item_count': len(clothing_items)}})
 
                 # Import here to avoid circular dependency
                 from api.routes.clothing_items import run_preview_generation_job
@@ -543,7 +544,7 @@ async def list_available_models(
                                 available_models[provider] = models
                 except Exception as e:
                     # If Ollama is unavailable, skip it
-                    print(f"Warning: Could not fetch Ollama models: {e}")
+                    logger.warning(f"Could not fetch Ollama models: {e}")
             else:
                 # For other providers, show all models from registry
                 models = []

@@ -10,8 +10,10 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
+from api.logging_config import get_logger
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 class ConfigItem(BaseModel):
@@ -58,7 +60,11 @@ async def get_agent_configs(agent_type: str):
                     description=data.get('description', '')
                 ))
         except Exception as e:
-            print(f"Error reading config {config_file}: {e}")
+            logger.warning(f"Error reading config", extra={'extra_fields': {
+                'config_file': str(config_file),
+                'agent_type': agent_type,
+                'error': str(e)
+            }})
             continue
 
     # Sort by config_id

@@ -14,8 +14,10 @@ from api.agents.story_writer import StoryWriterAgent
 from api.agents.story_illustrator import StoryIllustratorAgent
 from api.services.job_queue import get_job_queue_manager
 from api.models.jobs import JobType
+from api.logging_config import get_logger
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 class TransformationParams(BaseModel):
@@ -28,7 +30,7 @@ class StoryGenerationRequest(BaseModel):
     """Request to generate a story"""
     character: Dict[str, Any]
     character_id: Optional[str] = None  # Character ID for fetching reference image
-    story_type: str = "normal"  # 'normal' or 'transformation'
+    story_type: str = "normal"  # 'normal', 'transformation', or 'outfit'
     # Story parameter preset IDs
     theme_id: str = "adventure"  # Preset ID from story_themes
     audience_id: str = "adult"  # Preset ID from story_audiences
@@ -42,6 +44,7 @@ class StoryGenerationRequest(BaseModel):
     art_style: str = "realistic"
     max_illustrations: int = 5
     transformation: Optional[TransformationParams] = None  # Only for transformation stories
+    outfit_story_outfit_ids: Optional[List[str]] = None  # Outfits to combine and put on (only for outfit stories)
     # Appearance overrides
     outfit_id: Optional[str] = None  # Override outfit with preset
     hair_style_id: Optional[str] = None  # Override hair style with preset
@@ -91,7 +94,7 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
                         step_id="plan_story",
                         agent_id="story_planner",
                         description="Generate story outline",
-                        inputs=["character", "story_type", "theme_id", "audience_id", "target_scenes", "transformation", "planner_config_id"],
+                        inputs=["character", "story_type", "theme_id", "audience_id", "target_scenes", "transformation", "outfit_story_outfit_ids", "planner_config_id"],
                         outputs=["outline"]
                     ),
                     WorkflowStep(
@@ -168,6 +171,7 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
                 "max_illustrations": request.max_illustrations,
                 "character_appearance": character_appearance,
                 "transformation": request.transformation.dict() if request.transformation else None,
+                "outfit_story_outfit_ids": request.outfit_story_outfit_ids,
                 # Appearance overrides
                 "outfit_id": request.outfit_id,
                 "hair_style_id": request.hair_style_id,
@@ -180,14 +184,14 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
             # Check execution status
             if execution.status == "completed":
                 job_manager.complete_job(job_id, result=execution.result)
-                print(f"✅ Story generation completed: {execution.result.get('title', 'Untitled')}")
+                logger.info(f"Story generation completed: {execution.result.get('title', 'Untitled')}")
             else:
                 job_manager.fail_job(job_id, execution.error or "Workflow failed")
-                print(f"❌ Story generation failed: {execution.error}")
+                logger.error(f"Story generation failed: {execution.error}")
 
         except Exception as e:
             job_manager.fail_job(job_id, f"Story generation failed: {str(e)}")
-            print(f"❌ Story generation failed with unexpected error: {e}")
+            logger.error(f"Story generation failed with unexpected error: {e}")
 
     # Start workflow in background
     background_tasks.add_task(execute_workflow)
@@ -287,3 +291,4 @@ async def get_story_generation_info():
         "estimated_cost": "$0.05-$0.30 depending on complexity",
         "estimated_time": "60-120 seconds total"
     }
+

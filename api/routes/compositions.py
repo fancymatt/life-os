@@ -15,8 +15,10 @@ import aiofiles
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 from api.config import settings
+from api.logging_config import get_logger
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 def get_compositions_dir(user: Optional[User] = None) -> Path:
@@ -104,7 +106,10 @@ async def list_compositions(
                 composition_data = json.loads(content)
                 compositions.append(composition_data)
         except Exception as e:
-            print(f"Error loading composition {composition_file}: {e}")
+            logger.warning(f"Error loading composition", extra={'extra_fields': {
+                'composition_file': str(composition_file),
+                'error': str(e)
+            }})
 
     # Sort by updated_at (most recent first)
     compositions.sort(key=lambda x: x.get("updated_at", ""), reverse=True)

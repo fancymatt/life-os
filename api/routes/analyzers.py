@@ -20,9 +20,11 @@ from api.services import AnalyzerService
 from api.services.job_queue import get_job_queue_manager
 from api.dependencies.auth import get_current_active_user
 from api.config import settings
+from api.logging_config import get_logger
 
 router = APIRouter()
 analyzer_service = AnalyzerService()
+logger = get_logger(__name__)
 
 
 async def download_or_decode_image(image_input) -> Path:
@@ -72,13 +74,17 @@ async def upload_image(request: ImageUploadRequest):
     Accepts JSON with filename and base64-encoded image data.
     Returns a temporary URL that can be used for references.
     """
-    print(f"📤 Upload handler REACHED!")
-    print(f"   Filename: {request.filename}")
+    logger.info(f"Image upload requested", extra={'extra_fields': {
+        'filename': request.filename
+    }})
 
     try:
         # Validate file type
         if not any(request.filename.lower().endswith(ext) for ext in settings.allowed_extensions):
-            print(f"❌ Invalid file type: {request.filename}")
+            logger.warning(f"Invalid file type: {request.filename}", extra={'extra_fields': {
+                'filename': request.filename,
+                'allowed_extensions': list(settings.allowed_extensions)
+            }})
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid file type. Allowed: {', '.join(settings.allowed_extensions)}"
@@ -87,16 +93,22 @@ async def upload_image(request: ImageUploadRequest):
         # Decode base64 data
         import base64
         image_bytes = base64.b64decode(request.image_data)
-        print(f"   Decoded {len(image_bytes)} bytes")
+        logger.debug(f"Decoded image data", extra={'extra_fields': {
+            'filename': request.filename,
+            'size_bytes': len(image_bytes)
+        }})
 
         # Save file
         file_path = settings.upload_dir / request.filename
-        print(f"   Saving to: {file_path}")
 
         async with aiofiles.open(file_path, 'wb') as f:
             await f.write(image_bytes)
 
-        print(f"✅ File saved: {file_path}")
+        logger.info(f"File saved successfully", extra={'extra_fields': {
+            'filename': request.filename,
+            'path': str(file_path),
+            'size_bytes': len(image_bytes)
+        }})
 
         return {
             "filename": request.filename,
@@ -107,9 +119,10 @@ async def upload_image(request: ImageUploadRequest):
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        print(f"❌ Upload error: {type(e).__name__}: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Upload failed: {type(e).__name__}: {e}", exc_info=e, extra={'extra_fields': {
+            'filename': request.filename,
+            'error_type': type(e).__name__
+        }})
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -143,7 +156,10 @@ def run_analyzer_job(
         if analyzer_name == "outfit" and isinstance(result, dict):
             clothing_items = result.get("clothing_items", [])
             if clothing_items:
-                print(f"\n🎨 Auto-generating previews for {len(clothing_items)} clothing items...")
+                logger.info(f"Auto-generating previews for clothing items", extra={'extra_fields': {
+                    'item_count': len(clothing_items),
+                    'job_id': job_id
+                }})
 
                 # Import here to avoid circular dependency
                 from api.routes.clothing_items import run_preview_generation_job
@@ -167,7 +183,11 @@ def run_analyzer_job(
                         thread.daemon = True
                         thread.start()
 
-                        print(f"   ✅ Queued preview for {item.get('item')} (job: {preview_job_id[:8]}...)")
+                        logger.info(f"Queued preview generation", extra={'extra_fields': {
+                            'item_name': item.get('item'),
+                            'item_id': item_id,
+                            'preview_job_id': preview_job_id
+                        }})
 
     except Exception as e:
         get_job_queue_manager().fail_job(job_id, str(e))
