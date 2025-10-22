@@ -291,6 +291,99 @@ def run_preview_generation_job(job_id: str, item_id: str):
         get_job_queue_manager().fail_job(job_id, str(e))
 
 
+class BatchGenerateRequest(BaseModel):
+    """Request to batch generate previews for specific items"""
+    item_ids: List[str]
+
+
+@router.post("/batch-generate-previews-by-ids")
+async def batch_generate_previews_by_ids(
+    request: BatchGenerateRequest,
+    background_tasks: BackgroundTasks,
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Batch generate previews for specific clothing items by ID
+
+    Useful after outfit analysis to generate previews for all items
+    that were just created.
+
+    Request Body:
+    - item_ids: List of clothing item UUIDs to generate previews for
+
+    Returns summary of queued jobs.
+    """
+    from api.services.job_queue import get_job_queue_manager
+    from api.models.jobs import JobType
+    from api.logging_config import get_logger
+
+    logger = get_logger(__name__)
+    service = ClothingItemsService()
+
+    if not request.item_ids:
+        return {
+            "message": "No item IDs provided",
+            "jobs_queued": 0,
+            "job_ids": []
+        }
+
+    logger.info(
+        f"Batch generating previews for {len(request.item_ids)} specific clothing items",
+        extra={'extra_fields': {
+            'item_count': len(request.item_ids),
+            'item_ids': request.item_ids[:5]  # Log first 5 for debugging
+        }}
+    )
+
+    # Queue preview generation jobs
+    job_ids = []
+    not_found = []
+
+    for item_id in request.item_ids:
+        # Verify item exists
+        item = service.get_clothing_item(item_id)
+        if not item:
+            not_found.append(item_id)
+            continue
+
+        # Create job
+        job_id = get_job_queue_manager().create_job(
+            job_type=JobType.GENERATE_IMAGE,
+            title=f"Generate preview: {item['item']}",
+            description=f"{item['category']} - {item['color']} {item['fabric']}"
+        )
+
+        # Queue background task
+        background_tasks.add_task(
+            run_preview_generation_job,
+            job_id,
+            item_id
+        )
+
+        job_ids.append({
+            "job_id": job_id,
+            "item_id": item_id,
+            "item_name": item['item'],
+            "category": item['category']
+        })
+
+    logger.info(
+        f"Queued {len(job_ids)} preview generation jobs",
+        extra={'extra_fields': {
+            'job_count': len(job_ids),
+            'not_found_count': len(not_found)
+        }}
+    )
+
+    return {
+        "message": f"Queued {len(job_ids)} preview generation jobs",
+        "jobs_queued": len(job_ids),
+        "job_ids": job_ids,
+        "not_found": not_found if not_found else None,
+        "note": "Use /jobs endpoint to monitor progress"
+    }
+
+
 @router.post("/batch-generate-previews")
 async def batch_generate_previews(
     background_tasks: BackgroundTasks,

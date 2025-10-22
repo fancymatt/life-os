@@ -30,6 +30,10 @@ function OutfitAnalyzer({ onClose }) {
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
 
+  // Preview generation state
+  const [generatingPreviews, setGeneratingPreviews] = useState(false)
+  const [previewsGenerated, setPreviewsGenerated] = useState(false)
+
   // Shared state
   const [error, setError] = useState(null)
   const [dragActive, setDragActive] = useState(false)
@@ -98,6 +102,8 @@ function OutfitAnalyzer({ onClose }) {
     setEditedData(null)
     setAnalysisResult(null)
     setNewPresetId(null)
+    setGeneratingPreviews(false)
+    setPreviewsGenerated(false)
     fetchPresets() // Refresh list
   }
 
@@ -317,6 +323,40 @@ function OutfitAnalyzer({ onClose }) {
     }
   }
 
+  const handleGeneratePreviews = async () => {
+    if (!analysisResult || !analysisResult.clothing_items) return
+
+    setGeneratingPreviews(true)
+    setError(null)
+
+    try {
+      // Extract item IDs from analysis result
+      const itemIds = analysisResult.clothing_items
+        .map(item => item.item_id)
+        .filter(id => id) // Filter out any undefined IDs
+
+      if (itemIds.length === 0) {
+        setError('No clothing items found to generate previews for')
+        setGeneratingPreviews(false)
+        return
+      }
+
+      // Call batch generation endpoint
+      const response = await api.post('/clothing-items/batch-generate-previews-by-ids', {
+        item_ids: itemIds
+      })
+
+      setPreviewsGenerated(true)
+      setGeneratingPreviews(false)
+
+      // Show success message
+      console.log(`Queued ${response.data.jobs_queued} preview generation jobs`)
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message)
+      setGeneratingPreviews(false)
+    }
+  }
+
   // Render views
   const renderListView = () => (
     <>
@@ -438,6 +478,28 @@ function OutfitAnalyzer({ onClose }) {
               </div>
             ))}
           </div>
+
+          {!previewsGenerated && (
+            <div className="preview-generation-section">
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                Generate preview images for all {analysisResult.clothing_items?.length || 0} clothing items
+              </p>
+              <button
+                className="analyze-button"
+                onClick={handleGeneratePreviews}
+                disabled={generatingPreviews}
+                style={{ marginBottom: '1rem' }}
+              >
+                {generatingPreviews ? 'Generating Previews...' : 'Generate Preview Images'}
+              </button>
+            </div>
+          )}
+
+          {previewsGenerated && (
+            <div className="success-message" style={{ marginBottom: '1rem' }}>
+              Preview generation jobs queued! Check the job queue to monitor progress.
+            </div>
+          )}
 
           <button className="done-button" onClick={handleBackToList}>
             Done
