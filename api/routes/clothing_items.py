@@ -291,6 +291,108 @@ def run_preview_generation_job(job_id: str, item_id: str):
         get_job_queue_manager().fail_job(job_id, str(e))
 
 
+@router.post("/batch-generate-previews")
+async def batch_generate_previews(
+    background_tasks: BackgroundTasks,
+    category: Optional[str] = Query(None, description="Only generate previews for items in this category"),
+    limit: Optional[int] = Query(None, description="Maximum number of previews to generate"),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Batch generate previews for all clothing items without preview images
+
+    Scans all clothing items and queues preview generation jobs for items
+    that don't have preview images. Useful for generating previews for items
+    created by the outfit analyzer.
+
+    Query Parameters:
+    - category: Optional filter to only generate previews for specific category
+    - limit: Maximum number of items to process (useful for testing)
+
+    Returns summary of queued jobs.
+    """
+    from api.services.job_queue import get_job_queue_manager
+    from api.models.jobs import JobType
+    from api.logging_config import get_logger
+
+    logger = get_logger(__name__)
+    service = ClothingItemsService()
+
+    # Get all clothing items
+    all_items = service.list_clothing_items(category=category)
+
+    # Filter to items without previews
+    items_without_previews = [
+        item for item in all_items
+        if not item.get('preview_image_path')
+    ]
+
+    # Apply limit if specified
+    if limit:
+        items_without_previews = items_without_previews[:limit]
+
+    if not items_without_previews:
+        return {
+            "message": "No items found without previews",
+            "total_items": len(all_items),
+            "items_without_previews": 0,
+            "jobs_queued": 0,
+            "job_ids": []
+        }
+
+    logger.info(
+        f"Batch generating previews for {len(items_without_previews)} clothing items",
+        extra={'extra_fields': {
+            'total_items': len(all_items),
+            'items_without_previews': len(items_without_previews),
+            'category_filter': category
+        }}
+    )
+
+    # Queue preview generation jobs
+    job_ids = []
+    for item in items_without_previews:
+        item_id = item['item_id']
+
+        # Create job
+        job_id = get_job_queue_manager().create_job(
+            job_type=JobType.GENERATE_IMAGE,
+            title=f"Generate preview: {item['item']}",
+            description=f"{item['category']} - {item['color']} {item['fabric']}"
+        )
+
+        # Queue background task
+        background_tasks.add_task(
+            run_preview_generation_job,
+            job_id,
+            item_id
+        )
+
+        job_ids.append({
+            "job_id": job_id,
+            "item_id": item_id,
+            "item_name": item['item'],
+            "category": item['category']
+        })
+
+    logger.info(
+        f"Queued {len(job_ids)} preview generation jobs",
+        extra={'extra_fields': {
+            'job_count': len(job_ids),
+            'first_job_id': job_ids[0]['job_id'] if job_ids else None
+        }}
+    )
+
+    return {
+        "message": f"Queued {len(job_ids)} preview generation jobs",
+        "total_items": len(all_items),
+        "items_without_previews": len(items_without_previews),
+        "jobs_queued": len(job_ids),
+        "job_ids": job_ids,
+        "note": "Use /jobs endpoint to monitor progress"
+    }
+
+
 @router.post("/{item_id}/generate-preview")
 async def generate_clothing_item_preview(
     item_id: str,

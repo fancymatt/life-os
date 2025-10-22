@@ -32,6 +32,7 @@ from ai_tools.shared.cache import CacheManager
 from ai_tools.shared.preset import PresetManager
 from ai_tools.outfit_visualizer.tool import OutfitVisualizer
 from api.config import settings
+from api.services.clothing_items_service import ClothingItemsService
 
 
 class OutfitAnalyzer:
@@ -72,6 +73,7 @@ class OutfitAnalyzer:
         self.preset_manager = PresetManager()
         self.auto_visualize = auto_visualize
         self.visualizer = OutfitVisualizer() if auto_visualize else None
+        self.clothing_service = ClothingItemsService()
 
     def _load_template(self) -> str:
         """
@@ -144,31 +146,27 @@ class OutfitAnalyzer:
                 )
                 if cached:
                     print(f"✅ CACHE HIT - Processing cached analysis for {image_path.name}")
-                    # Process cached result into clothing items (same as fresh analysis)
-                    clothing_items_dir = settings.base_dir / "data" / "clothing_items"
-                    clothing_items_dir.mkdir(parents=True, exist_ok=True)
-
+                    # Process cached result into clothing items using service
                     created_items = []
                     for item_data in cached.clothing_items:
-                        item_id = str(uuid.uuid4())
-                        item_entity = ClothingItemEntity(
-                            item_id=item_id,
-                            category=ClothingCategory(item_data["category"]),
+                        # Use service to create item WITHOUT preview generation
+                        # (previews can be batch-generated later via /clothing-items/batch-generate-previews)
+                        item_dict = self.clothing_service.create_clothing_item(
+                            category=item_data["category"],
                             item=item_data["item"],
                             fabric=item_data["fabric"],
                             color=item_data["color"],
                             details=item_data["details"],
                             source_image=str(image_path),
-                            created_at=datetime.now()
+                            generate_preview=False,  # Don't slow down outfit analysis
+                            background_tasks=None
                         )
-                        item_path = clothing_items_dir / f"{item_id}.json"
-                        item_path.write_text(json.dumps(item_entity.dict(), indent=2, default=str))
-                        created_items.append(item_entity)
-                        print(f"   ✅ Saved {item_entity.category.value}: {item_entity.item}")
+                        created_items.append(item_dict)
+                        print(f"   ✅ Saved {item_dict['category']}: {item_dict['item']}")
 
                     print(f"\n✨ Created {len(created_items)} clothing items from cache")
                     return {
-                        "clothing_items": [item.dict() for item in created_items],
+                        "clothing_items": created_items,  # Already dicts from service
                         "suggested_outfit_name": cached.suggested_outfit_name,
                         "item_count": len(created_items)
                     }
@@ -194,34 +192,23 @@ class OutfitAnalyzer:
                 temperature=temperature
             )
 
-            # Create clothing_items directory if it doesn't exist
-            clothing_items_dir = settings.base_dir / "data" / "clothing_items"
-            clothing_items_dir.mkdir(parents=True, exist_ok=True)
-
-            # Create and save individual ClothingItemEntity objects
+            # Create and save individual clothing items using service
             created_items = []
             for item_data in analysis.clothing_items:
-                # Generate unique ID
-                item_id = str(uuid.uuid4())
-
-                # Create ClothingItemEntity
-                item_entity = ClothingItemEntity(
-                    item_id=item_id,
-                    category=ClothingCategory(item_data["category"]),
+                # Use service to create item WITHOUT preview generation
+                # (previews can be batch-generated later via /clothing-items/batch-generate-previews)
+                item_dict = self.clothing_service.create_clothing_item(
+                    category=item_data["category"],
                     item=item_data["item"],
                     fabric=item_data["fabric"],
                     color=item_data["color"],
                     details=item_data["details"],
                     source_image=str(image_path),
-                    created_at=datetime.now()
+                    generate_preview=False,  # Don't slow down outfit analysis
+                    background_tasks=None
                 )
-
-                # Save to file
-                item_path = clothing_items_dir / f"{item_id}.json"
-                item_path.write_text(json.dumps(item_entity.dict(), indent=2, default=str))
-
-                created_items.append(item_entity)
-                print(f"   ✅ Saved {item_entity.category.value}: {item_entity.item}")
+                created_items.append(item_dict)
+                print(f"   ✅ Saved {item_dict['category']}: {item_dict['item']}")
 
             # Cache the result using combined key (image + template + model)
             if self.use_cache:
@@ -237,7 +224,7 @@ class OutfitAnalyzer:
 
             # Return the created items with suggested name
             return {
-                "clothing_items": [item.dict() for item in created_items],
+                "clothing_items": created_items,  # Already dicts from service
                 "suggested_outfit_name": analysis.suggested_outfit_name,
                 "item_count": len(created_items)
             }

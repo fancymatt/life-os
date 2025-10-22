@@ -12,11 +12,14 @@ import uuid
 import sys
 
 from api.config import settings
+from api.logging_config import get_logger
 from ai_capabilities.specs import ClothingItemEntity, ClothingCategory, VisualizationConfigEntity
 
 # Add project to path for importing ItemVisualizer
 sys.path.insert(0, str(settings.base_dir))
 from ai_tools.item_visualizer.tool import ItemVisualizer
+
+logger = get_logger(__name__)
 
 
 class ClothingItemsService:
@@ -58,7 +61,7 @@ class ClothingItemsService:
 
                     items.append(item_data)
             except Exception as e:
-                print(f"⚠️  Failed to load clothing item {item_path.name}: {e}")
+                logger.warning(f"Failed to load clothing item {item_path.name}: {e}")
                 continue
 
         # Sort by created_at (newest first)
@@ -91,7 +94,7 @@ class ClothingItemsService:
             with open(item_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"⚠️  Failed to load clothing item {item_id}: {e}")
+            logger.warning(f"Failed to load clothing item {item_id}: {e}")
             return None
 
     def create_clothing_item(
@@ -141,7 +144,11 @@ class ClothingItemsService:
         with open(item_path, 'w') as f:
             json.dump(item_entity.dict(), f, indent=2, default=str)
 
-        print(f"✅ Created clothing item: {item} ({category})")
+        logger.info(f"Created clothing item: {item} ({category})", extra={'extra_fields': {
+            'item_id': item_id,
+            'category': category,
+            'item': item
+        }})
 
         # Generate preview if requested
         if generate_preview:
@@ -151,13 +158,16 @@ class ClothingItemsService:
                     self._generate_preview_safe,
                     item_id
                 )
-                print(f"🎨 Queued preview generation for new clothing item {item_id}")
+                logger.info(f"Queued preview generation for new clothing item {item_id}")
             else:
                 # Fallback to synchronous generation
                 try:
                     self.generate_preview(item_id)
                 except Exception as e:
-                    print(f"⚠️  Preview generation failed: {e}")
+                    logger.warning(f"Preview generation failed: {e}", extra={'extra_fields': {
+                        'item_id': item_id,
+                        'error': str(e)
+                    }})
 
         return item_entity.dict()
 
@@ -210,7 +220,9 @@ class ClothingItemsService:
         with open(item_path, 'w') as f:
             json.dump(existing_item, f, indent=2, default=str)
 
-        print(f"✅ Updated clothing item: {item_id}")
+        logger.info(f"Updated clothing item: {item_id}", extra={'extra_fields': {
+            'item_id': item_id
+        }})
 
         return existing_item
 
@@ -230,7 +242,9 @@ class ClothingItemsService:
             return False
 
         item_path.unlink()
-        print(f"✅ Deleted clothing item: {item_id}")
+        logger.info(f"Deleted clothing item: {item_id}", extra={'extra_fields': {
+            'item_id': item_id
+        }})
 
         return True
 
@@ -260,7 +274,10 @@ class ClothingItemsService:
         try:
             self.generate_preview(item_id)
         except Exception as e:
-            print(f"⚠️  Background preview generation failed for {item_id}: {e}")
+            logger.warning(f"Background preview generation failed for {item_id}: {e}", extra={'extra_fields': {
+                'item_id': item_id,
+                'error': str(e)
+            }})
 
     def generate_preview(self, item_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -280,7 +297,11 @@ class ClothingItemsService:
         # Create ClothingItemEntity from dict
         item_entity = ClothingItemEntity(**existing_item)
 
-        print(f"🎨 Generating preview for clothing item: {item_entity.item} ({item_entity.category})")
+        logger.info(f"Generating preview for clothing item: {item_entity.item} ({item_entity.category})", extra={'extra_fields': {
+            'item_id': item_id,
+            'item': item_entity.item,
+            'category': item_entity.category.value
+        }})
 
         try:
             # Load default visualization config for clothing items
@@ -290,11 +311,11 @@ class ClothingItemsService:
 
             if config_dict:
                 config = VisualizationConfigEntity(**config_dict)
-                print(f"   Using config: {config.display_name}")
+                logger.debug(f"Using config: {config.display_name}")
             else:
                 # Fallback to None if no config exists (visualizer will use defaults)
                 config = None
-                print(f"   Using default visualization settings (no config found)")
+                logger.debug("Using default visualization settings (no config found)")
 
             # Generate preview using ItemVisualizer
             # Save to output directory so nginx can serve it
@@ -318,10 +339,16 @@ class ClothingItemsService:
             with open(item_path, 'w') as f:
                 json.dump(existing_item, f, indent=2, default=str)
 
-            print(f"✅ Preview generated: {web_path}")
+            logger.info(f"Preview generated: {web_path}", extra={'extra_fields': {
+                'item_id': item_id,
+                'preview_path': web_path
+            }})
 
             return existing_item
 
         except Exception as e:
-            print(f"⚠️  Failed to generate preview for {item_id}: {e}")
+            logger.error(f"Failed to generate preview for {item_id}: {e}", extra={'extra_fields': {
+                'item_id': item_id,
+                'error': str(e)
+            }})
             raise
