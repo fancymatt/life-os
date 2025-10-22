@@ -8,8 +8,10 @@ Clothing items are extracted from outfit images and can be composed into outfits
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from typing import Optional, List
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.services.clothing_items_service import ClothingItemsService
+from api.services.clothing_items_service_db import ClothingItemServiceDB
+from api.database import get_db
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 
@@ -69,6 +71,7 @@ async def list_clothing_items(
     category: Optional[str] = Query(None, description="Filter by category (e.g., 'tops', 'bottoms')"),
     limit: Optional[int] = Query(None, description="Maximum number of items to return"),
     offset: int = Query(0, description="Number of items to skip"),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -77,8 +80,8 @@ async def list_clothing_items(
     Optionally filter by category and paginate results.
     Returns items sorted by created_at (newest first).
     """
-    service = ClothingItemsService()
-    items = service.list_clothing_items(category=category, limit=limit, offset=offset)
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    items = await service.list_clothing_items(category=category, limit=limit, offset=offset)
 
     item_infos = [
         ClothingItemInfo(
@@ -104,6 +107,7 @@ async def list_clothing_items(
 
 @router.get("/categories", response_model=CategoriesSummaryResponse)
 async def get_categories_summary(
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -112,8 +116,8 @@ async def get_categories_summary(
     Returns a dict mapping each category to the number of items in that category.
     Useful for showing category counts in the UI.
     """
-    service = ClothingItemsService()
-    summary = service.get_categories_summary()
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    summary = await service.get_categories_summary()
 
     return CategoriesSummaryResponse(
         categories=summary,
@@ -124,6 +128,7 @@ async def get_categories_summary(
 @router.get("/{item_id}", response_model=ClothingItemInfo)
 async def get_clothing_item(
     item_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -131,8 +136,8 @@ async def get_clothing_item(
 
     Returns full clothing item data including all details.
     """
-    service = ClothingItemsService()
-    item = service.get_clothing_item(item_id)
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    item = await service.get_clothing_item(item_id)
 
     if not item:
         raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
@@ -155,6 +160,7 @@ async def create_clothing_item(
     request: ClothingItemCreate,
     background_tasks: BackgroundTasks,
     generate_preview: bool = Query(True, description="Generate preview image automatically"),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -166,9 +172,9 @@ async def create_clothing_item(
     By default, a preview image is generated automatically in the background.
     Set generate_preview=false to skip preview generation (faster for bulk operations).
     """
-    service = ClothingItemsService()
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
-    item = service.create_clothing_item(
+    item = await service.create_clothing_item(
         category=request.category,
         item=request.item,
         fabric=request.fabric,
@@ -196,6 +202,7 @@ async def create_clothing_item(
 async def update_clothing_item(
     item_id: str,
     request: ClothingItemUpdate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -203,9 +210,9 @@ async def update_clothing_item(
 
     Updates clothing item fields. Only provided fields will be updated.
     """
-    service = ClothingItemsService()
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
-    item = service.update_clothing_item(
+    item = await service.update_clothing_item(
         item_id=item_id,
         category=request.category,
         item=request.item,
@@ -234,6 +241,7 @@ async def update_clothing_item(
 @router.delete("/{item_id}")
 async def delete_clothing_item(
     item_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -242,8 +250,8 @@ async def delete_clothing_item(
     Removes the clothing item permanently.
     Note: This will NOT remove the item from any outfits that reference it.
     """
-    service = ClothingItemsService()
-    success = service.delete_clothing_item(item_id)
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.delete_clothing_item(item_id)
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
@@ -251,41 +259,43 @@ async def delete_clothing_item(
     return {"message": f"Clothing item {item_id} deleted successfully"}
 
 
-def run_preview_generation_job(job_id: str, item_id: str):
+async def run_preview_generation_job(job_id: str, item_id: str):
     """Background task to generate preview and update job"""
     from api.services.job_queue import get_job_queue_manager
+    from api.database import get_session
 
     try:
         get_job_queue_manager().start_job(job_id)
         get_job_queue_manager().update_progress(job_id, 0.1, "Loading clothing item...")
 
-        service = ClothingItemsService()
+        async with get_session() as session:
+            service = ClothingItemServiceDB(session, user_id=None)
 
-        get_job_queue_manager().update_progress(job_id, 0.3, "Generating preview image...")
+            get_job_queue_manager().update_progress(job_id, 0.3, "Generating preview image...")
 
-        # Generate preview
-        item = service.generate_preview(item_id)
+            # Generate preview
+            item = await service.generate_preview(item_id)
 
-        if not item:
-            get_job_queue_manager().fail_job(job_id, f"Clothing item {item_id} not found")
-            return
+            if not item:
+                get_job_queue_manager().fail_job(job_id, f"Clothing item {item_id} not found")
+                return
 
-        get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
+            get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
 
-        # Complete job with item data
-        result = {
-            'item_id': item['item_id'],
-            'category': item['category'],
-            'item': item['item'],
-            'fabric': item['fabric'],
-            'color': item['color'],
-            'details': item['details'],
-            'source_image': item.get('source_image'),
-            'preview_image_path': item.get('preview_image_path'),
-            'created_at': item.get('created_at', '')
-        }
+            # Complete job with item data
+            result = {
+                'item_id': item['item_id'],
+                'category': item['category'],
+                'item': item['item'],
+                'fabric': item['fabric'],
+                'color': item['color'],
+                'details': item['details'],
+                'source_image': item.get('source_image'),
+                'preview_image_path': item.get('preview_image_path'),
+                'created_at': item.get('created_at', '')
+            }
 
-        get_job_queue_manager().complete_job(job_id, result)
+            get_job_queue_manager().complete_job(job_id, result)
 
     except Exception as e:
         get_job_queue_manager().fail_job(job_id, str(e))
@@ -300,6 +310,7 @@ class BatchGenerateRequest(BaseModel):
 async def batch_generate_previews_by_ids(
     request: BatchGenerateRequest,
     background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -318,7 +329,7 @@ async def batch_generate_previews_by_ids(
     from api.logging_config import get_logger
 
     logger = get_logger(__name__)
-    service = ClothingItemsService()
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
     if not request.item_ids:
         return {
@@ -341,7 +352,7 @@ async def batch_generate_previews_by_ids(
 
     for item_id in request.item_ids:
         # Verify item exists
-        item = service.get_clothing_item(item_id)
+        item = await service.get_clothing_item(item_id)
         if not item:
             not_found.append(item_id)
             continue
@@ -389,6 +400,7 @@ async def batch_generate_previews(
     background_tasks: BackgroundTasks,
     category: Optional[str] = Query(None, description="Only generate previews for items in this category"),
     limit: Optional[int] = Query(None, description="Maximum number of previews to generate"),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -409,10 +421,10 @@ async def batch_generate_previews(
     from api.logging_config import get_logger
 
     logger = get_logger(__name__)
-    service = ClothingItemsService()
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Get all clothing items
-    all_items = service.list_clothing_items(category=category)
+    all_items = await service.list_clothing_items(category=category)
 
     # Filter to items without previews
     items_without_previews = [
@@ -491,6 +503,7 @@ async def generate_clothing_item_preview(
     item_id: str,
     background_tasks: BackgroundTasks,
     async_mode: bool = Query(True, description="Run generation in background and return job_id"),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -529,10 +542,10 @@ async def generate_clothing_item_preview(
         }
 
     # Synchronous mode: Run generation and return result
-    service = ClothingItemsService()
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
     try:
-        item = service.generate_preview(item_id)
+        item = await service.generate_preview(item_id)
 
         if not item:
             raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")

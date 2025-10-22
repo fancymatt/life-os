@@ -10,10 +10,12 @@ from typing import Optional, List
 import base64
 import json
 from pathlib import Path
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.requests import CharacterCreate, CharacterUpdate, CharacterFromSubject
 from api.models.responses import CharacterInfo, CharacterListResponse, CharacterFromSubjectResponse
-from api.services.character_service import CharacterService
+from api.services.character_service_db import CharacterServiceDB
+from api.database import get_db
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 from api.config import settings
@@ -28,6 +30,7 @@ logger = get_logger(__name__)
 
 @router.get("/", response_model=CharacterListResponse)
 async def list_characters(
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -35,8 +38,8 @@ async def list_characters(
 
     Returns a list of all character entities with their metadata.
     """
-    service = CharacterService()
-    characters = service.list_characters()
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    characters = await service.list_characters()
 
     character_infos = []
     for char in characters:
@@ -75,6 +78,7 @@ async def create_character_multipart(
     personality: str = Form(""),
     tags: str = Form("[]"),
     reference_image: Optional[UploadFile] = File(None),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -84,13 +88,13 @@ async def create_character_multipart(
     Physical appearance is automatically analyzed from the image in the background.
     Returns immediately without waiting for analysis to complete.
     """
-    service = CharacterService()
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Parse tags from JSON string
     tag_list = json.loads(tags) if tags else []
 
     # Create character
-    character_data = service.create_character(
+    character_data = await service.create_character(
         name=name,
         personality=personality if personality else None,
         tags=tag_list
@@ -105,7 +109,7 @@ async def create_character_multipart(
         reference_image_path = service.save_reference_image(character_id, image_data)
 
         # Update character with image path
-        character_data = service.update_character(
+        character_data = await service.update_character(
             character_id,
             reference_image_path=reference_image_path
         )
@@ -118,20 +122,22 @@ async def create_character_multipart(
                     'character_id': character_id,
                     'character_name': name
                 }})
-                service = CharacterService()
-                analyzer = CharacterAppearanceAnalyzer()
-                appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
+                from api.database import get_session
+                async with get_session() as session:
+                    service = CharacterServiceDB(session, user_id=current_user.id if current_user else None)
+                    analyzer = CharacterAppearanceAnalyzer()
+                    appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
 
-                # Save all appearance fields to character
-                service.update_character(
-                    character_id,
-                    physical_description=appearance_spec.overall_description,
-                    age=appearance_spec.age,
-                    skin_tone=appearance_spec.skin_tone,
-                    face_description=appearance_spec.face_description,
-                    hair_description=appearance_spec.hair_description,
-                    body_description=appearance_spec.body_description
-                )
+                    # Save all appearance fields to character
+                    await service.update_character(
+                        character_id,
+                        physical_description=appearance_spec.overall_description,
+                        age=appearance_spec.age,
+                        skin_tone=appearance_spec.skin_tone,
+                        face_description=appearance_spec.face_description,
+                        hair_description=appearance_spec.hair_description,
+                        body_description=appearance_spec.body_description
+                    )
                 logger.info(f"Physical description analyzed and saved for {name}", extra={'extra_fields': {
                     'character_id': character_id,
                     'character_name': name
@@ -172,6 +178,7 @@ async def create_character_multipart(
 @router.post("/", response_model=CharacterInfo)
 async def create_character(
     request: CharacterCreate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -182,7 +189,7 @@ async def create_character(
 
     Note: For file uploads, use the /multipart endpoint instead.
     """
-    service = CharacterService()
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Handle reference image if provided
     reference_image_path = None
@@ -194,7 +201,7 @@ async def create_character(
             image_data = base64.b64decode(request.reference_image.image_data.split(',')[-1])
 
             # Create character first to get ID
-            character_data = service.create_character(
+            character_data = await service.create_character(
                 name=request.name,
                 visual_description=request.visual_description,
                 personality=request.personality,
@@ -208,20 +215,20 @@ async def create_character(
             )
 
             # Update character with image path
-            character_data = service.update_character(
+            character_data = await service.update_character(
                 character_data['character_id'],
                 reference_image_path=reference_image_path
             )
         elif request.reference_image.image_url:
             # TODO: Download image from URL
-            character_data = service.create_character(
+            character_data = await service.create_character(
                 name=request.name,
                 visual_description=request.visual_description,
                 personality=request.personality,
                 tags=request.tags
             )
     else:
-        character_data = service.create_character(
+        character_data = await service.create_character(
             name=request.name,
             visual_description=request.visual_description,
             personality=request.personality,
@@ -253,14 +260,15 @@ async def create_character(
 
 @router.get("/{character_id}/image")
 async def get_character_image(
-    character_id: str
+    character_id: str,
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Get character reference image
 
     Returns the reference image file for the character.
     """
-    service = CharacterService()
+    service = CharacterServiceDB(db, user_id=None)
     image_path = service.get_reference_image_path(character_id)
 
     if not image_path:
@@ -273,6 +281,7 @@ async def get_character_image(
 async def upload_character_image(
     character_id: str,
     file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -281,10 +290,10 @@ async def upload_character_image(
     Accepts an image file upload and sets it as the character's reference image.
     Automatically analyzes the image to extract physical appearance.
     """
-    service = CharacterService()
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Verify character exists
-    character_data = service.get_character(character_id)
+    character_data = await service.get_character(character_id)
     if not character_data:
         raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
 
@@ -293,7 +302,7 @@ async def upload_character_image(
     reference_image_path = service.save_reference_image(character_id, image_data)
 
     # Update character with image path
-    character_data = service.update_character(
+    character_data = await service.update_character(
         character_id,
         reference_image_path=reference_image_path
     )
@@ -309,7 +318,7 @@ async def upload_character_image(
             appearance_spec = await analyzer.aanalyze(Path(reference_image_path))
 
             # Save all appearance fields to character
-            character_data = service.update_character(
+            character_data = await service.update_character(
                 character_id,
                 physical_description=appearance_spec.overall_description,
                 age=appearance_spec.age,
@@ -352,6 +361,7 @@ async def upload_character_image(
 @router.get("/{character_id}", response_model=CharacterInfo)
 async def get_character(
     character_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -359,8 +369,8 @@ async def get_character(
 
     Returns full character data including visual description, personality, etc.
     """
-    service = CharacterService()
-    character_data = service.get_character(character_id)
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    character_data = await service.get_character(character_id)
 
     if not character_data:
         raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
@@ -392,6 +402,7 @@ async def get_character(
 async def update_character(
     character_id: str,
     request: CharacterUpdate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -399,7 +410,7 @@ async def update_character(
 
     Updates character fields. Only provided fields will be updated.
     """
-    service = CharacterService()
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Handle reference image update if provided
     reference_image_path = None
@@ -412,7 +423,7 @@ async def update_character(
             # TODO: Download image from URL
             pass
 
-    character_data = service.update_character(
+    character_data = await service.update_character(
         character_id=character_id,
         name=request.name,
         visual_description=request.visual_description,
@@ -450,6 +461,7 @@ async def update_character(
 @router.delete("/{character_id}")
 async def delete_character(
     character_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -457,8 +469,8 @@ async def delete_character(
 
     Removes the character and its associated reference image.
     """
-    service = CharacterService()
-    success = service.delete_character(character_id)
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.delete_character(character_id)
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
@@ -469,6 +481,7 @@ async def delete_character(
 @router.post("/{character_id}/re-analyze-appearance", response_model=CharacterInfo)
 async def re_analyze_character_appearance(
     character_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -477,10 +490,10 @@ async def re_analyze_character_appearance(
     Forces re-analysis of the character's reference image, updating all appearance fields.
     Returns updated character info immediately.
     """
-    service = CharacterService()
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Get character
-    character_data = service.get_character(character_id)
+    character_data = await service.get_character(character_id)
     if not character_data:
         raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
 
@@ -497,7 +510,7 @@ async def re_analyze_character_appearance(
         appearance_spec = await analyzer.aanalyze(Path(character_data['reference_image_path']))
 
         # Update character with all appearance fields
-        character_data = service.update_character(
+        character_data = await service.update_character(
             character_id,
             physical_description=appearance_spec.overall_description,
             age=appearance_spec.age,
@@ -540,6 +553,7 @@ async def re_analyze_character_appearance(
 @router.post("/analyze-appearances", response_model=dict)
 async def analyze_character_appearances(
     background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -551,10 +565,10 @@ async def analyze_character_appearances(
     Returns:
         Dict with job_id for tracking progress via /api/jobs/{job_id}
     """
-    service = CharacterService()
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Get all characters
-    characters = service.list_characters()
+    characters = await service.list_characters()
 
     # Filter for characters with images but missing descriptions
     chars_to_analyze = []
@@ -585,8 +599,9 @@ async def analyze_character_appearances(
     # Define background task
     async def execute_analysis():
         """Execute the character appearance analysis"""
+        from api.database import get_session
+
         job_manager = get_job_queue_manager()
-        service = CharacterService()
         analyzer = CharacterAppearanceAnalyzer()
 
         try:
@@ -615,15 +630,17 @@ async def analyze_character_appearances(
                     appearance_spec = await analyzer.aanalyze(image_path)
 
                     # Update character with all appearance fields
-                    service.update_character(
-                        character_id,
-                        physical_description=appearance_spec.overall_description,
-                        age=appearance_spec.age,
-                        skin_tone=appearance_spec.skin_tone,
-                        face_description=appearance_spec.face_description,
-                        hair_description=appearance_spec.hair_description,
-                        body_description=appearance_spec.body_description
-                    )
+                    async with get_session() as session:
+                        service = CharacterServiceDB(session, user_id=current_user.id if current_user else None)
+                        await service.update_character(
+                            character_id,
+                            physical_description=appearance_spec.overall_description,
+                            age=appearance_spec.age,
+                            skin_tone=appearance_spec.skin_tone,
+                            face_description=appearance_spec.face_description,
+                            hair_description=appearance_spec.hair_description,
+                            body_description=appearance_spec.body_description
+                        )
 
                     results.append({
                         "character_id": character_id,

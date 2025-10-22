@@ -6,6 +6,7 @@ Endpoints for managing board game entities and integrating with BoardGameGeek.
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.requests import BoardGameCreate, BoardGameUpdate
 from api.models.responses import (
@@ -16,7 +17,8 @@ from api.models.responses import (
     DocumentInfo,
     DocumentListResponse
 )
-from api.services.board_game_service import BoardGameService
+from api.services.board_game_service_db import BoardGameServiceDB
+from api.database import get_db
 from api.services.document_service import DocumentService
 from api.services.qa_service import QAService
 from api.models.auth import User
@@ -28,6 +30,7 @@ router = APIRouter()
 
 @router.get("/", response_model=BoardGameListResponse)
 async def list_board_games(
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -35,8 +38,8 @@ async def list_board_games(
 
     Returns a list of all board game entities with their metadata.
     """
-    service = BoardGameService()
-    games = service.list_board_games()
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
+    games = await service.list_board_games()
 
     game_infos = [
         BoardGameInfo(
@@ -68,6 +71,7 @@ async def list_board_games(
 @router.post("/", response_model=BoardGameInfo)
 async def create_board_game(
     request: BoardGameCreate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -76,9 +80,9 @@ async def create_board_game(
     Creates a board game entity with name, designer, publisher, etc.
     For automatic import from BoardGameGeek, use /search or /gather endpoints.
     """
-    service = BoardGameService()
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
 
-    game_data = service.create_board_game(
+    game_data = await service.create_board_game(
         name=request.name,
         bgg_id=request.bgg_id,
         designer=request.designer,
@@ -114,6 +118,7 @@ async def create_board_game(
 @router.get("/{game_id}", response_model=BoardGameInfo)
 async def get_board_game(
     game_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -121,8 +126,8 @@ async def get_board_game(
 
     Returns full game data including name, designer, complexity, etc.
     """
-    service = BoardGameService()
-    game_data = service.get_board_game(game_id)
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
+    game_data = await service.get_board_game(game_id)
 
     if not game_data:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
@@ -150,6 +155,7 @@ async def get_board_game(
 async def update_board_game(
     game_id: str,
     request: BoardGameUpdate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -157,9 +163,9 @@ async def update_board_game(
 
     Updates game fields. Only provided fields will be updated.
     """
-    service = BoardGameService()
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
 
-    game_data = service.update_board_game(
+    game_data = await service.update_board_game(
         game_id=game_id,
         name=request.name,
         designer=request.designer,
@@ -198,6 +204,7 @@ async def update_board_game(
 @router.delete("/{game_id}")
 async def delete_board_game(
     game_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -206,8 +213,8 @@ async def delete_board_game(
     Removes the board game entity.
     Note: Does not delete associated documents.
     """
-    service = BoardGameService()
-    success = service.delete_board_game(game_id)
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.delete_board_game(game_id)
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
@@ -218,6 +225,7 @@ async def delete_board_game(
 @router.get("/{game_id}/documents", response_model=DocumentListResponse)
 async def list_game_documents(
     game_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -226,8 +234,8 @@ async def list_game_documents(
     Returns all documents (rulebooks, references, etc.) associated with this game.
     """
     # Verify game exists
-    game_service = BoardGameService()
-    game_data = game_service.get_board_game(game_id)
+    game_service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
+    game_data = await game_service.get_board_game(game_id)
     if not game_data:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
 
@@ -266,6 +274,7 @@ async def list_game_qas(
     game_id: str,
     context_type: Optional[str] = None,
     is_favorite: Optional[bool] = None,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -279,8 +288,8 @@ async def list_game_qas(
     - is_favorite: Show only favorites
     """
     # Verify game exists
-    game_service = BoardGameService()
-    game_data = game_service.get_board_game(game_id)
+    game_service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
+    game_data = await game_service.get_board_game(game_id)
     if not game_data:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
 
@@ -308,6 +317,7 @@ async def list_game_qas(
 async def search_bgg_games(
     query: str,
     exact: bool = False,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -346,6 +356,7 @@ async def gather_game_and_rules(
     bgg_id: int,
     create_entities: bool = True,
     background_tasks: BackgroundTasks = None,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -381,6 +392,7 @@ async def gather_from_search(
     exact: bool = False,
     auto_select_first: bool = True,
     create_entities: bool = True,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
