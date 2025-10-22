@@ -53,6 +53,7 @@ import StoryWorkflowPage from './pages/StoryWorkflowPage'
 
 // Application Pages
 import ComposerPage from './pages/ComposerPage'
+import OutfitComposerPage from './pages/OutfitComposerPage'
 
 function App() {
   const { loading: authLoading, isAuthenticated } = useAuth()
@@ -179,6 +180,7 @@ function App() {
         <Route path="apps">
           <Route index element={<Dashboard />} />
           <Route path="composer" element={<ComposerPage />} />
+          <Route path="outfit-composer" element={<OutfitComposerPage />} />
         </Route>
 
         {/* System */}

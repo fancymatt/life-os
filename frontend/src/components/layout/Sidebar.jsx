@@ -264,6 +264,10 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">🎭</span>
                   <span className="nav-label">Image Composer</span>
                 </NavLink>
+                <NavLink to="/apps/outfit-composer" className="nav-link" onClick={onClose}>
+                  <span className="nav-icon">👗</span>
+                  <span className="nav-label">Outfit Composer</span>
+                </NavLink>
                 <NavLink to="/workflows/story" className="nav-link" onClick={onClose}>
                   <span className="nav-icon">📖</span>
                   <span className="nav-label">Story Generator</span>
