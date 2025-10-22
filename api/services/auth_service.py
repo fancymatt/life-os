@@ -4,12 +4,12 @@ Handles user authentication, password hashing, and JWT token management.
 """
 
 import json
+import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 from pathlib import Path
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from api.config import settings
 from api.models.auth import UserInDB, TokenData, User
@@ -19,7 +19,7 @@ class AuthService:
     """Service for authentication and authorization"""
 
     def __init__(self):
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        # Use bcrypt directly instead of passlib to avoid version compatibility issues
         # Store users in persistent data directory
         data_dir = settings.base_dir / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
@@ -42,13 +42,61 @@ class AuthService:
         """Save users to file"""
         self.users_file.write_text(json.dumps(users, indent=2, default=str))
 
+    def _truncate_password(self, password: str) -> bytes:
+        """
+        Truncate password to 72 bytes for bcrypt compatibility
+
+        Bcrypt has a maximum password length of 72 bytes. This method
+        automatically truncates longer passwords to prevent errors.
+
+        Args:
+            password: Plain text password
+
+        Returns:
+            Password as bytes, truncated to 72 bytes if necessary
+        """
+        # Encode to bytes and truncate to 72 bytes
+        password_bytes = password.encode('utf-8')
+        if len(password_bytes) > 72:
+            password_bytes = password_bytes[:72]
+        return password_bytes
+
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Verify a password against its hash"""
-        return self.pwd_context.verify(plain_password, hashed_password)
+        """
+        Verify a password against its hash
+
+        Automatically handles bcrypt's 72-byte limit by truncating if necessary.
+
+        Args:
+            plain_password: Plain text password
+            hashed_password: Bcrypt hash string
+
+        Returns:
+            True if password matches, False otherwise
+        """
+        try:
+            password_bytes = self._truncate_password(plain_password)
+            hash_bytes = hashed_password.encode('utf-8')
+            return bcrypt.checkpw(password_bytes, hash_bytes)
+        except Exception:
+            return False
 
     def get_password_hash(self, password: str) -> str:
-        """Hash a password"""
-        return self.pwd_context.hash(password)
+        """
+        Hash a password using bcrypt
+
+        Automatically handles bcrypt's 72-byte limit by truncating if necessary.
+
+        Args:
+            password: Plain text password
+
+        Returns:
+            Bcrypt hash string
+        """
+        password_bytes = self._truncate_password(password)
+        salt = bcrypt.gensalt()
+        hash_bytes = bcrypt.hashpw(password_bytes, salt)
+        return hash_bytes.decode('utf-8')
 
     def get_user(self, username: str) -> Optional[UserInDB]:
         """Get user by username"""

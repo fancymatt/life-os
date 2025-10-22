@@ -91,6 +91,12 @@ class Settings(BaseSettings):
     job_storage_backend: str = os.getenv("JOB_STORAGE_BACKEND", "redis")  # "redis" or "memory"
     redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
+    # Database Configuration
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql+asyncpg://lifeos:lifeos_dev_password@localhost:5432/lifeos"
+    )
+
     # Authentication Configuration
     jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "CHANGE_THIS_IN_PRODUCTION_USE_STRONG_SECRET")
     jwt_algorithm: str = "HS256"

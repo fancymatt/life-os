@@ -16,7 +16,7 @@ defaults:
   accessories_analyzer: "gemini/gemini-2.0-flash-exp"
   comprehensive_analyzer: "gemini/gemini-2.0-flash-exp"
   style_guide_analyzer: "gemini/gemini-2.0-flash-exp"
-  character_appearance_analyzer: "gemini/gemini-2.0-flash-exp"
+  character_appearance_analyzer: "ollama/gpt-oss:120b"  # Local 120B model (FREE!)
 
   # Image Generation Tools (using Gemini 2.5 Flash Image - dedicated image generation model)
   outfit_generator: "gemini-2.5-flash-image"
@@ -81,6 +81,11 @@ aliases:
   gpt: "gpt-4o"
   claude: "claude-3-5-sonnet"
   sora: "sora-2-pro"
+  # Local models via Ollama (prefix with "ollama/")
+  llama: "ollama/llama3.2:3b"
+  mistral: "ollama/mistral:7b"
+  qwen: "ollama/qwen2.5:7b"
+  codellama: "ollama/codellama:7b"
 
 # Cost tracking (approximate USD per 1M tokens)
 cost_estimates:
@@ -107,6 +112,34 @@ image_costs:
 video_costs:
   sora-2: 0.125
   sora-2-pro: 0.50
+
+# Local models configuration
+local_models:
+  # Recommended models by size (download with: POST /local-models/pull)
+  small:  # 2-4GB, fast inference
+    - "llama3.2:3b"      # 3B params, ~2GB, good for testing
+    - "phi3:mini"        # 3.8B params, ~2.3GB, fast
+    - "gemma2:2b"        # 2B params, ~1.6GB, very fast
+
+  medium:  # 4-8GB, balanced performance
+    - "llama2:7b"        # 7B params, ~4GB, reliable
+    - "mistral:7b"       # 7B params, ~4GB, fast inference
+    - "qwen2.5:7b"       # 7B params, ~4.7GB, strong performance
+    - "codellama:7b"     # 7B params, ~4GB, code generation
+
+  large:  # 26-50GB, powerful but slow
+    - "mixtral:8x7b"     # 47B params, ~26GB, very powerful
+    - "qwen2.5:32b"      # 32B params, ~19GB, strong reasoning
+    - "llama3.1:70b"     # 70B params, ~40GB, very strong
+
+  xlarge:  # 40GB+, requires significant resources
+    - "qwen2.5:72b"      # 72B params, ~41GB, similar to GPT-4 class
+    - "llama3.1:405b"    # 405B params, ~231GB, cutting-edge (requires multiple GPUs)
+
+  # Cost per 1M tokens (all FREE for local models!)
+  cost:
+    input: 0.0
+    output: 0.0
 
 # Tool-specific settings (temperature, etc.)
 tool_settings:

@@ -5,8 +5,36 @@ Pytest configuration and shared fixtures
 import pytest
 import tempfile
 import shutil
+import os
 from pathlib import Path
 from datetime import datetime
+from fastapi.testclient import TestClient
+
+
+# Disable authentication for tests by default
+@pytest.fixture(scope="session", autouse=True)
+def disable_auth_for_tests():
+    """
+    Disable authentication for all tests by default.
+
+    This allows tests to run without needing JWT tokens.
+    Individual tests can override this by setting REQUIRE_AUTH=true.
+    """
+    os.environ["REQUIRE_AUTH"] = "false"
+    yield
+    # Restore after tests (though not strictly necessary)
+    os.environ.pop("REQUIRE_AUTH", None)
+
+
+@pytest.fixture
+def client():
+    """
+    Test client for API requests
+
+    Returns TestClient with authentication disabled.
+    """
+    from api.main import app
+    return TestClient(app)
 
 
 @pytest.fixture

@@ -7,7 +7,7 @@ function StoryWorkflowPage() {
     characterName: '',
     characterAppearance: '',
     characterPersonality: '',
-    storyType: 'transformation',  // 'normal' or 'transformation'
+    storyType: 'transformation',  // 'normal', 'transformation', or 'outfit'
     // Story parameter preset IDs
     themeId: 'modern_magic',
     audienceId: 'adult',
@@ -24,6 +24,7 @@ function StoryWorkflowPage() {
     transformationType: 'creature',  // 'alteration' or 'creature'
     transformationTarget: ''  // Description of alteration or creature name
   })
+  const [outfitStoryOutfitIds, setOutfitStoryOutfitIds] = useState([])  // Multiple outfits for outfit stories (required)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -220,6 +221,19 @@ function StoryWorkflowPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  // Handle outfit checkbox toggle
+  const handleOutfitToggle = (outfitId) => {
+    setOutfitStoryOutfitIds(prev => {
+      if (prev.includes(outfitId)) {
+        // Remove if already selected
+        return prev.filter(id => id !== outfitId)
+      } else {
+        // Add if not selected
+        return [...prev, outfitId]
+      }
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -237,6 +251,11 @@ function StoryWorkflowPage() {
 
     if (formData.storyType === 'transformation' && !formData.transformationTarget) {
       setError('Please enter a transformation target')
+      return
+    }
+
+    if (formData.storyType === 'outfit' && outfitStoryOutfitIds.length === 0) {
+      setError('Please select at least one outfit for the outfit story')
       return
     }
 
@@ -275,6 +294,11 @@ function StoryWorkflowPage() {
           type: formData.transformationType,
           target: formData.transformationTarget
         }
+      }
+
+      // Add outfit IDs if outfit story
+      if (formData.storyType === 'outfit') {
+        payload.outfit_story_outfit_ids = outfitStoryOutfitIds
       }
 
       const response = await api.post('/workflows/story-generation/execute', payload)
@@ -450,6 +474,7 @@ function StoryWorkflowPage() {
             >
               <option value="normal">Normal Story</option>
               <option value="transformation">Transformation Story</option>
+              <option value="outfit">Outfit Story</option>
             </select>
           </div>
 
@@ -487,6 +512,49 @@ function StoryWorkflowPage() {
                 />
               </div>
             </>
+          )}
+
+          {formData.storyType === 'outfit' && (
+            <div className="form-group">
+              <label>Outfits to Combine *</label>
+              <div style={{
+                maxHeight: '300px',
+                overflowY: 'auto',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '4px',
+                padding: '0.75rem',
+                backgroundColor: 'rgba(0, 0, 0, 0.2)'
+              }}>
+                {outfits.length === 0 ? (
+                  <small style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                    No outfits available. Create one in the Outfits section first.
+                  </small>
+                ) : (
+                  outfits.map(outfit => (
+                    <div key={outfit.preset_id} style={{ marginBottom: '0.5rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={outfitStoryOutfitIds.includes(outfit.preset_id)}
+                          onChange={() => handleOutfitToggle(outfit.preset_id)}
+                          disabled={submitting}
+                          style={{ marginRight: '0.5rem' }}
+                        />
+                        <span>{outfit.display_name || outfit.name || outfit.preset_id}</span>
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              <small style={{ color: 'rgba(255, 255, 255, 0.7)', display: 'block', marginTop: '0.25rem' }}>
+                Select multiple outfits to create a combination. The story will describe putting on clothing from all selected outfits.
+                {outfitStoryOutfitIds.length > 0 && (
+                  <span style={{ display: 'block', marginTop: '0.25rem', color: '#4CAF50' }}>
+                    ✓ {outfitStoryOutfitIds.length} outfit{outfitStoryOutfitIds.length !== 1 ? 's' : ''} selected
+                  </span>
+                )}
+              </small>
+            </div>
           )}
         </div>
 

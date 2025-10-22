@@ -13,11 +13,10 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance
+// NOTE: Don't set global Content-Type header - let axios automatically set it based on data type
+// (application/json for objects, multipart/form-data for FormData, etc.)
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Token storage helpers
@@ -45,6 +44,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Set Content-Type header based on data type
+    // IMPORTANT: For FormData, don't set Content-Type - browser will set it correctly with boundary
+    if (config.data && !(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
     return config;
   },
   (error) => {

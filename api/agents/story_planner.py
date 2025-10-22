@@ -66,11 +66,12 @@ class StoryPlannerAgent(Agent):
         Args:
             input_data: Must contain:
                 - character: Dict with name, appearance, personality
-                - story_type: str ('normal' or 'transformation')
+                - story_type: str ('normal', 'transformation', or 'outfit')
                 - theme_id: str (preset ID, e.g., 'modern_magic')
                 - audience_id: str (preset ID, e.g., 'adult')
                 - target_scenes: int (default: 5)
                 - transformation: Optional dict with 'type' and 'target' (for transformation stories)
+                - outfit_story_outfit_ids: Optional list of str (for outfit stories - multiple outfits to combine)
                 - planner_config_id: str (optional, default: 'default')
 
         Returns:
@@ -85,6 +86,7 @@ class StoryPlannerAgent(Agent):
         audience_id = input_data['audience_id']
         target_scenes = input_data.get('target_scenes', 5)
         transformation = input_data.get('transformation')
+        outfit_story_outfit_ids = input_data.get('outfit_story_outfit_ids')
         planner_config_id = input_data.get('planner_config_id', 'default')
 
         # Load configuration and presets
@@ -100,7 +102,8 @@ class StoryPlannerAgent(Agent):
             theme_preset=theme_preset,
             audience_preset=audience_preset,
             target_scenes=target_scenes,
-            transformation=transformation
+            transformation=transformation,
+            outfit_story_outfit_ids=outfit_story_outfit_ids
         )
 
         # Get model from config (with fallback)
@@ -170,11 +173,18 @@ class StoryPlannerAgent(Agent):
 - **Style**: {age_guidance}
 
 For each scene, provide:
-1. **Scene Title**: Concise title for the scene
-2. **Description**: What happens in this scene (2-3 sentences)
-3. **Action**: The key action or conflict in this scene
-4. **Illustration Prompt**: Detailed visual description for image generation (focus on {character['name']}'s appearance and the scene setting)
-5. **Estimated Words**: Approximate length of this scene when written (100-300 words)
+1. scene_number: Scene number (1, 2, 3, etc.) - number
+2. title: Concise title for the scene (MUST be in quotes)
+3. description: What happens in this scene (MUST be in quotes, 2-3 sentences)
+4. action: The key action or conflict in this scene (MUST be in quotes)
+5. illustration_prompt: Detailed visual description for image generation (MUST be in quotes, focus on {character['name']}'s appearance and the scene setting)
+6. estimated_words: Approximate length of this scene when written (number, 100-300)
+
+**CRITICAL JSON FORMAT REQUIREMENTS**:
+- ALL string values MUST be enclosed in double quotes
+- Example CORRECT: "action": "Luna discovers a hidden door in the library"
+- Example WRONG: "action": Luna discovers a hidden door... (missing quotes)
+- Numbers do NOT need quotes: "scene_number": 1, "estimated_words": 200
 
 **Story Structure**:
 - **Beginning** (Scene 1): Introduce {character['name']} and their world
@@ -236,11 +246,18 @@ Create a compelling {theme} story outline now."""
 - **Style**: {age_guidance}
 
 For each scene, provide:
-1. **Scene Title**: Concise title for the scene
-2. **Description**: What happens in this scene, INCLUDING DETAILED TRANSFORMATION PROGRESS (3-4 sentences)
-3. **Action**: The key action or conflict, AND what transformation changes occur
-4. **Illustration Prompt**: Detailed visual description showing the CURRENT STATE of transformation (e.g., "Scene 1: Normal appearance", "Scene 3: Hands becoming paws, fur appearing on arms", "Scene 5: Fully transformed into {transformation_target}")
-5. **Estimated Words**: Approximate length of this scene when written (150-300 words to accommodate transformation details)
+1. scene_number: Scene number (1, 2, 3, etc.) - number
+2. title: Concise title for the scene (MUST be in quotes)
+3. description: What happens in this scene, INCLUDING DETAILED TRANSFORMATION PROGRESS (MUST be in quotes, 3-4 sentences)
+4. action: The key action or conflict, AND what transformation changes occur (MUST be in quotes)
+5. illustration_prompt: Detailed visual description showing the CURRENT STATE of transformation (MUST be in quotes)
+6. estimated_words: Approximate length of this scene when written (number, 150-300)
+
+**CRITICAL JSON FORMAT REQUIREMENTS**:
+- ALL string values MUST be enclosed in double quotes
+- Example CORRECT: "action": "Lynelle feels a tingling sensation as her transformation begins"
+- Example WRONG: "action": Lynelle feels a tingling sensation... (missing quotes)
+- Numbers do NOT need quotes: "scene_number": 1, "estimated_words": 200
 
 **TRANSFORMATION STORY STRUCTURE** (CRITICAL):
 - **Scene 1**: {character['name']} is completely normal, no transformation yet. Show their original appearance clearly.
@@ -302,7 +319,8 @@ Create a compelling transformation story outline with VIVID, SPECIFIC transforma
         theme_preset: Dict[str, Any],
         audience_preset: Dict[str, Any],
         target_scenes: int,
-        transformation: Optional[Dict[str, Any]] = None
+        transformation: Optional[Dict[str, Any]] = None,
+        outfit_story_outfit_ids: Optional[list] = None
     ) -> str:
         """Build prompt dynamically from configuration and presets"""
 
@@ -393,13 +411,80 @@ Create a compelling transformation story outline with VIVID, SPECIFIC transforma
             prompt_parts.append(f"- Final scene: Fully transformed")
             prompt_parts.append(f"- Include SPECIFIC body part changes in each scene's illustration prompt")
 
-        # Output format
+        # Outfit story specific
+        elif story_type == 'outfit' and outfit_story_outfit_ids:
+            # Load all outfit presets and combine clothing items
+            all_clothing_items = []
+            outfit_names = []
+            all_styles = []
+            all_aesthetics = []
+
+            for outfit_id in outfit_story_outfit_ids:
+                outfit_preset = await self._load_preset('outfits', outfit_id)
+                if outfit_preset:
+                    outfit_names.append(outfit_preset.get('suggested_name', outfit_id))
+                    clothing_items = outfit_preset.get('clothing_items', [])
+                    all_clothing_items.extend(clothing_items)
+
+                    style = outfit_preset.get('style_genre')
+                    if style and style not in all_styles:
+                        all_styles.append(style)
+
+                    aesthetic = outfit_preset.get('aesthetic')
+                    if aesthetic and aesthetic not in all_aesthetics:
+                        all_aesthetics.append(aesthetic)
+
+            # Build combined outfit description
+            if len(outfit_names) == 1:
+                outfit_desc = outfit_names[0]
+            else:
+                outfit_desc = f"combination of {', '.join(outfit_names[:-1])} and {outfit_names[-1]}"
+
+            prompt_parts.append(f"\n**OUTFIT STORY**:")
+            prompt_parts.append(f"- Character puts on a new outfit: {outfit_desc}")
+            prompt_parts.append(f"- This is a COMBINATION outfit with clothing from {len(outfit_story_outfit_ids)} different outfits")
+            prompt_parts.append(f"- Show PROGRESSIVE dressing across scenes")
+            prompt_parts.append(f"- Scene 1: Character in current outfit, reason for changing is introduced")
+            prompt_parts.append(f"- Middle scenes: Putting on individual pieces progressively (mix items from all outfits)")
+            prompt_parts.append(f"- Final scene(s): Fully dressed in the complete combination, admiring the look and/or going out")
+
+            prompt_parts.append(f"\n**Combined Outfit Details**:")
+            if all_styles:
+                prompt_parts.append(f"- Styles: {', '.join(all_styles)}")
+            if all_aesthetics:
+                prompt_parts.append(f"- Aesthetics: {', '.join(all_aesthetics)}")
+
+            if all_clothing_items:
+                prompt_parts.append(f"- All clothing items to incorporate ({len(all_clothing_items)} total):")
+                # Show up to 10 items
+                for item in all_clothing_items[:10]:
+                    item_desc = f"  • {item.get('color', '')} {item.get('item', 'item')}"
+                    if item.get('fabric'):
+                        item_desc += f" ({item['fabric']})"
+                    if item.get('details'):
+                        item_desc += f" - {item['details'][:50]}..."
+                    prompt_parts.append(item_desc)
+                if len(all_clothing_items) > 10:
+                    prompt_parts.append(f"  • ... and {len(all_clothing_items) - 10} more items")
+
+            prompt_parts.append(f"- Make the dressing process thorough and detailed")
+            prompt_parts.append(f"- Include SPECIFIC clothing items being put on in each scene's description and illustration prompt")
+            prompt_parts.append(f"- Mix and match items from the different outfits creatively")
+
+        # Output format with explicit JSON instructions
         prompt_parts.append(f"\n**For Each Scene, Provide**:")
-        prompt_parts.append(f"1. **Scene Title**: Concise title")
-        prompt_parts.append(f"2. **Description**: What happens (2-4 sentences)")
-        prompt_parts.append(f"3. **Action**: Key action or conflict")
-        prompt_parts.append(f"4. **Illustration Prompt**: Detailed visual description for image generation")
-        prompt_parts.append(f"5. **Estimated Words**: Scene length (150-300 words)")
+        prompt_parts.append(f"1. scene_number: Scene number (1, 2, 3, etc.)")
+        prompt_parts.append(f"2. title: Concise scene title (MUST be in quotes)")
+        prompt_parts.append(f"3. description: What happens in this scene (MUST be in quotes, 2-4 sentences)")
+        prompt_parts.append(f"4. action: Key action or conflict in this scene (MUST be in quotes)")
+        prompt_parts.append(f"5. illustration_prompt: Detailed visual description for image generation (MUST be in quotes)")
+        prompt_parts.append(f"6. estimated_words: Scene length (number, 150-300)")
+
+        prompt_parts.append(f"\n**CRITICAL JSON FORMAT REQUIREMENTS**:")
+        prompt_parts.append(f"- ALL string values MUST be enclosed in double quotes")
+        prompt_parts.append(f"- Example CORRECT: \"action\": \"Lynelle decides to change outfits\"")
+        prompt_parts.append(f"- Example WRONG: \"action\": Lynelle decides to change outfits (missing quotes)")
+        prompt_parts.append(f"- Numbers do NOT need quotes: \"scene_number\": 1, \"estimated_words\": 200")
 
         prompt_parts.append(f"\nCreate a compelling story outline now.")
 

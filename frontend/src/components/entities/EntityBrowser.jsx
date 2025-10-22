@@ -428,11 +428,7 @@ function EntityBrowser({ config }) {
       setSaving(true)
       setError(null)
       try {
-        const result = await action.handler(entity || selectedEntity)
-        if (result && result.message) {
-          // Show success message
-          alert(result.message)
-        }
+        await action.handler(entity || selectedEntity)
         // Refresh data after action
         fetchData()
       } catch (err) {

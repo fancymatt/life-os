@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-studio-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=lifeos
+      - POSTGRES_USER=lifeos
+      - POSTGRES_PASSWORD=lifeos_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeos"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: ai-studio-redis
@@ -13,6 +31,30 @@ services:
       retries: 5
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-studio-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # Resource limits for Ollama (256GB unified memory system)
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 200G  # Increased for 120B models (256GB system)
+        reservations:
+          cpus: '8.0'
+          memory: 100G
+
   api:
     build: .
     container_name: ai-studio-api
@@ -23,6 +65,8 @@ services:
     environment:
       # Docker environment flag
       - DOCKER_ENV=1
+      # Database configuration
+      - DATABASE_URL=postgresql+asyncpg://lifeos:lifeos_dev_password@postgres:5432/lifeos
       # Redis configuration
       - REDIS_URL=redis://redis:6379/0
       - JOB_STORAGE_BACKEND=redis
@@ -34,9 +78,16 @@ services:
       # Authentication (set JWT_SECRET_KEY in .env for production!)
       - REQUIRE_AUTH=true
       # - JWT_SECRET_KEY=your-secret-key-here  # Set this in .env!
+      # Ollama configuration
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_BASE=http://ollama:11434  # LiteLLM uses this variable
 
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
 
     volumes:
@@ -57,6 +108,7 @@ services:
       # Development volumes (for testing and live code updates)
       - ./api:/app/api                   # API source code
       - ./ai_tools:/app/ai_tools         # AI tools source code
+      - ./ai_capabilities:/app/ai_capabilities  # Specs and schemas
       - ./tests:/app/tests               # Test files
 
     restart: unless-stopped
@@ -89,7 +141,11 @@ services:
 
 # Optional: Add volumes for named volumes instead of bind mounts
 volumes:
+  postgres_data:
+    driver: local
   redis_data:
+    driver: local
+  ollama_models:
     driver: local
   presets:
     driver: local
