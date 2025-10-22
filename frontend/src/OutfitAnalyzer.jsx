@@ -182,11 +182,15 @@ function OutfitAnalyzer({ onClose }) {
 
           const data = response.data
 
-          // Async mode: close modal immediately, job appears in TaskManager
+          // Async mode: job queued, stay on page and show success
           if (data.job_id) {
             console.log('Analysis queued:', data.job_id)
-            handleBackToList()  // Go back to list view
-            onClose()  // Close modal
+            setAnalyzing(false)
+            // Clear the image to allow another analysis
+            setImageFile(null)
+            setImagePreview(null)
+            // Show success message (you can monitor progress in job queue)
+            setError(null)
             return
           }
 

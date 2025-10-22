@@ -251,17 +251,89 @@ async def delete_clothing_item(
     return {"message": f"Clothing item {item_id} deleted successfully"}
 
 
-@router.post("/{item_id}/generate-preview", response_model=ClothingItemInfo)
+def run_preview_generation_job(job_id: str, item_id: str):
+    """Background task to generate preview and update job"""
+    from api.services.job_queue import get_job_queue_manager
+
+    try:
+        get_job_queue_manager().start_job(job_id)
+        get_job_queue_manager().update_progress(job_id, 0.1, "Loading clothing item...")
+
+        service = ClothingItemsService()
+
+        get_job_queue_manager().update_progress(job_id, 0.3, "Generating preview image...")
+
+        # Generate preview
+        item = service.generate_preview(item_id)
+
+        if not item:
+            get_job_queue_manager().fail_job(job_id, f"Clothing item {item_id} not found")
+            return
+
+        get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
+
+        # Complete job with item data
+        result = {
+            'item_id': item['item_id'],
+            'category': item['category'],
+            'item': item['item'],
+            'fabric': item['fabric'],
+            'color': item['color'],
+            'details': item['details'],
+            'source_image': item.get('source_image'),
+            'preview_image_path': item.get('preview_image_path'),
+            'created_at': item.get('created_at', '')
+        }
+
+        get_job_queue_manager().complete_job(job_id, result)
+
+    except Exception as e:
+        get_job_queue_manager().fail_job(job_id, str(e))
+
+
+@router.post("/{item_id}/generate-preview")
 async def generate_clothing_item_preview(
     item_id: str,
+    background_tasks: BackgroundTasks,
+    async_mode: bool = Query(True, description="Run generation in background and return job_id"),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
     Generate or regenerate a preview image for a clothing item
 
     Creates a visualization of the clothing item using AI image generation.
-    The preview shows the item on a mannequin (for worn items) or as a flat lay (for accessories).
+    The preview shows the item based on the configured visualization settings.
+
+    Query Parameters:
+    - async_mode: If true (default), returns job_id immediately and processes in background
     """
+    from api.services.job_queue import get_job_queue_manager
+    from api.models.jobs import JobType
+
+    # Async mode: Create job and return immediately
+    if async_mode:
+        # Create job
+        job_id = get_job_queue_manager().create_job(
+            job_type=JobType.GENERATE_IMAGE,
+            title="Generating clothing item preview",
+            description=f"Item ID: {item_id}"
+        )
+
+        # Queue background task
+        background_tasks.add_task(
+            run_preview_generation_job,
+            job_id,
+            item_id
+        )
+
+        # Return job info
+        return {
+            "job_id": job_id,
+            "status": "queued",
+            "message": "Preview generation queued. Use /jobs/{job_id} to check status."
+        }
+
+    # Synchronous mode: Run generation and return result
     service = ClothingItemsService()
 
     try:

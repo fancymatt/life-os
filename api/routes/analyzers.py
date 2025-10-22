@@ -8,7 +8,7 @@ import time
 import tempfile
 import base64
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Query, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Query, Depends, Request
 from typing import List, Optional
 import aiofiles
 
@@ -55,6 +55,64 @@ async def list_analyzers():
     return [ToolInfo(**a) for a in analyzers]
 
 
+# Image upload endpoint (MUST be before /{analyzer_name} route)
+from pydantic import BaseModel
+
+class ImageUploadRequest(BaseModel):
+    """Request model for image upload with base64 data"""
+    filename: str
+    image_data: str  # Base64 encoded image
+
+
+@router.post("/upload")
+async def upload_image(request: ImageUploadRequest):
+    """
+    Upload an image file via base64 encoding
+
+    Accepts JSON with filename and base64-encoded image data.
+    Returns a temporary URL that can be used for references.
+    """
+    print(f"📤 Upload handler REACHED!")
+    print(f"   Filename: {request.filename}")
+
+    try:
+        # Validate file type
+        if not any(request.filename.lower().endswith(ext) for ext in settings.allowed_extensions):
+            print(f"❌ Invalid file type: {request.filename}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Allowed: {', '.join(settings.allowed_extensions)}"
+            )
+
+        # Decode base64 data
+        import base64
+        image_bytes = base64.b64decode(request.image_data)
+        print(f"   Decoded {len(image_bytes)} bytes")
+
+        # Save file
+        file_path = settings.upload_dir / request.filename
+        print(f"   Saving to: {file_path}")
+
+        async with aiofiles.open(file_path, 'wb') as f:
+            await f.write(image_bytes)
+
+        print(f"✅ File saved: {file_path}")
+
+        return {
+            "filename": request.filename,
+            "url": f"/uploads/{request.filename}",
+            "size_bytes": len(image_bytes)
+        }
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        print(f"❌ Upload error: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def run_analyzer_job(
     job_id: str,
     analyzer_name: str,
@@ -80,6 +138,36 @@ def run_analyzer_job(
 
         # Complete job with result
         get_job_queue_manager().complete_job(job_id, result)
+
+        # For outfit analyzer, automatically queue preview generation for clothing items
+        if analyzer_name == "outfit" and isinstance(result, dict):
+            clothing_items = result.get("clothing_items", [])
+            if clothing_items:
+                print(f"\n🎨 Auto-generating previews for {len(clothing_items)} clothing items...")
+
+                # Import here to avoid circular dependency
+                from api.routes.clothing_items import run_preview_generation_job
+
+                for item in clothing_items:
+                    item_id = item.get("item_id")
+                    if item_id:
+                        # Create job for this item's preview
+                        preview_job_id = get_job_queue_manager().create_job(
+                            job_type=JobType.GENERATE_IMAGE,
+                            title=f"Preview: {item.get('item', 'Clothing Item')}",
+                            description=f"Category: {item.get('category', 'unknown')}"
+                        )
+
+                        # Run preview generation in a thread to avoid blocking
+                        import threading
+                        thread = threading.Thread(
+                            target=run_preview_generation_job,
+                            args=(preview_job_id, item_id)
+                        )
+                        thread.daemon = True
+                        thread.start()
+
+                        print(f"   ✅ Queued preview for {item.get('item')} (job: {preview_job_id[:8]}...)")
 
     except Exception as e:
         get_job_queue_manager().fail_job(job_id, str(e))
@@ -250,30 +338,3 @@ async def list_subjects():
                     })
 
     return subjects
-
-
-@router.post("/upload", response_model=dict)
-async def upload_image(file: UploadFile = File(...)):
-    """
-    Upload an image file
-
-    Returns a temporary URL that can be used for analysis.
-    """
-    # Validate file type
-    if not any(file.filename.lower().endswith(ext) for ext in settings.allowed_extensions):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file type. Allowed: {settings.allowed_extensions}"
-        )
-
-    # Save file
-    file_path = settings.upload_dir / file.filename
-    content = await file.read()
-    async with aiofiles.open(file_path, 'wb') as f:
-        await f.write(content)
-
-    return {
-        "filename": file.filename,
-        "url": f"/uploads/{file.filename}",
-        "size_bytes": len(content)
-    }

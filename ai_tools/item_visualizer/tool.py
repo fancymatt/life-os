@@ -81,17 +81,31 @@ class ItemVisualizer:
         Load reference image and encode as base64
 
         Args:
-            reference_path: Path to reference image
+            reference_path: URL path to reference image (e.g., /uploads/file.png)
 
         Returns:
             Base64 encoded image or None
         """
         try:
             from api.config import settings
-            full_path = settings.base_dir / reference_path
+
+            # Convert URL path to filesystem path
+            if reference_path.startswith('/uploads/'):
+                ref_img_name = reference_path[len('/uploads/'):]
+                full_path = settings.upload_dir / ref_img_name
+            elif reference_path.startswith('/output/'):
+                ref_img_name = reference_path[len('/output/'):]
+                full_path = settings.output_dir / ref_img_name
+            elif reference_path.startswith('/'):
+                # Strip leading slash for relative path
+                full_path = settings.base_dir / reference_path[1:]
+            else:
+                # Already relative path
+                full_path = settings.base_dir / reference_path
 
             if not full_path.exists():
                 print(f"⚠️  Reference image not found: {reference_path}")
+                print(f"   Tried filesystem path: {full_path}")
                 return None
 
             with open(full_path, 'rb') as f:
@@ -274,18 +288,34 @@ Generate a single, high-quality preview image that clearly shows the item."""
             reference_image_b64 = self._load_reference_image(config.reference_image_path)
 
         # Determine reference image path for Gemini generation
-        # Priority: 1) config.reference_image_path, 2) entity.source_image
+        # ONLY use config.reference_image_path - config should be self-contained
+        # Do NOT fall back to entity.source_image (config applies to all entities of this type)
         reference_image_path = None
         if config.reference_image_path:
             from api.config import settings
-            reference_image_path = settings.base_dir / config.reference_image_path
-        elif hasattr(entity, 'source_image') and entity.source_image:
-            from api.config import settings
-            reference_image_path = settings.base_dir / entity.source_image
-        elif isinstance(entity, dict) and entity.get('source_image'):
-            # Handle dict entities
-            from api.config import settings
-            reference_image_path = settings.base_dir / entity['source_image']
+
+            # Convert URL path to filesystem path
+            # URL format: /uploads/filename.png -> filesystem: settings.upload_dir / filename.png
+            # NOTE: Use ref_img_name to avoid shadowing the filename parameter!
+            path_str = config.reference_image_path
+            if path_str.startswith('/uploads/'):
+                ref_img_name = path_str[len('/uploads/'):]
+                reference_image_path = settings.upload_dir / ref_img_name
+            elif path_str.startswith('/output/'):
+                ref_img_name = path_str[len('/output/'):]
+                reference_image_path = settings.output_dir / ref_img_name
+            elif path_str.startswith('/'):
+                # Strip leading slash for relative path
+                reference_image_path = settings.base_dir / path_str[1:]
+            else:
+                # Already relative path
+                reference_image_path = settings.base_dir / path_str
+
+            # Verify reference image exists
+            if not reference_image_path.exists():
+                print(f"⚠️  Reference image not found: {config.reference_image_path}")
+                print(f"   Tried filesystem path: {reference_image_path}")
+                reference_image_path = None
 
         # Construct prompt
         prompt = self._construct_prompt(

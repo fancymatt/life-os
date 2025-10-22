@@ -297,26 +297,28 @@ class ClothingItemsService:
                 print(f"   Using default visualization settings (no config found)")
 
             # Generate preview using ItemVisualizer
+            # Save to output directory so nginx can serve it
             preview_path = self.visualizer.visualize(
                 entity=item_entity,
                 entity_type="clothing_item",
                 config=config,
-                output_dir=self.clothing_items_dir,
+                output_dir=settings.output_dir / "clothing_items",
                 filename=f"{item_id}_preview"
             )
 
-            # Convert absolute path to relative path for storage
-            relative_preview_path = str(preview_path.relative_to(settings.base_dir))
+            # Convert to web-accessible URL path
+            # /app/output/clothing_items/xyz.png -> /output/clothing_items/xyz.png
+            web_path = f"/output/clothing_items/{preview_path.name}"
 
             # Update item with preview path
-            existing_item['preview_image_path'] = relative_preview_path
+            existing_item['preview_image_path'] = web_path
 
             # Save updated item
             item_path = self.clothing_items_dir / f"{item_id}.json"
             with open(item_path, 'w') as f:
                 json.dump(existing_item, f, indent=2, default=str)
 
-            print(f"✅ Preview generated: {relative_preview_path}")
+            print(f"✅ Preview generated: {web_path}")
 
             return existing_item
 

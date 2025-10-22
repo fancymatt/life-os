@@ -44,7 +44,8 @@ from litellm import completion, acompletion
 import yaml
 
 # Configure LiteLLM
-litellm.set_verbose = False  # Set to True for debugging
+litellm.set_verbose = True  # Set to True for debugging
+litellm.drop_params = True  # Automatically drop unsupported parameters (e.g., temperature for GPT-5)
 
 
 class RouterConfig:
@@ -131,18 +132,73 @@ class LLMRouter:
         self.model = model or "gemini-2.0-flash"
         self.routing_config = self.config.get_routing_config()
 
-    def encode_image(self, image_path: Union[str, Path]) -> str:
+    def encode_image(self, image_path: Union[str, Path], max_size_mb: float = 1.0) -> str:
         """
-        Encode an image to base64 for API calls
+        Encode an image to base64 for API calls, with automatic resizing for large images
 
         Args:
             image_path: Path to the image file
+            max_size_mb: Maximum file size in MB before resizing (default: 1.0)
 
         Returns:
             Base64 encoded image string
         """
-        with open(image_path, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
+        from PIL import Image
+        import tempfile
+
+        image_path = Path(image_path)
+
+        # Check file size
+        file_size_mb = image_path.stat().st_size / (1024 * 1024)
+
+        if file_size_mb > max_size_mb:
+            print(f"📏 Image is {file_size_mb:.2f}MB, resizing to reduce size...")
+
+            # Open image with PIL
+            img = Image.open(image_path)
+
+            # Calculate new size (reduce by size ratio squared, since area scales quadratically)
+            # Target: reduce file size by approximately the ratio needed
+            size_ratio = max_size_mb / file_size_mb
+            dimension_ratio = size_ratio ** 0.5  # Square root since area = width × height
+
+            new_width = int(img.width * dimension_ratio)
+            new_height = int(img.height * dimension_ratio)
+
+            print(f"   Original: {img.width}x{img.height}")
+            print(f"   Resized: {new_width}x{new_height}")
+
+            # Resize image with high-quality resampling
+            resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+            # Save to temporary file
+            with tempfile.NamedTemporaryFile(suffix=image_path.suffix, delete=False) as tmp_file:
+                temp_path = Path(tmp_file.name)
+
+                # Preserve format and optimize
+                if image_path.suffix.lower() in ['.jpg', '.jpeg']:
+                    resized_img.save(temp_path, 'JPEG', quality=85, optimize=True)
+                elif image_path.suffix.lower() == '.png':
+                    resized_img.save(temp_path, 'PNG', optimize=True)
+                else:
+                    resized_img.save(temp_path, format=img.format, optimize=True)
+
+            # Encode the resized image
+            with open(temp_path, 'rb') as f:
+                encoded = base64.b64encode(f.read()).decode('utf-8')
+
+            # Clean up temp file
+            temp_path.unlink()
+
+            # Check final size
+            final_size_mb = len(base64.b64decode(encoded)) / (1024 * 1024)
+            print(f"   Final size: {final_size_mb:.2f}MB")
+
+            return encoded
+        else:
+            # Image is small enough, encode directly
+            with open(image_path, 'rb') as f:
+                return base64.b64encode(f.read()).decode('utf-8')
 
     def create_image_message(self, image_path: Union[str, Path], detail: str = "high") -> Dict[str, Any]:
         """

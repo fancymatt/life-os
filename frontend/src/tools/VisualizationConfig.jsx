@@ -86,6 +86,8 @@ function VisualizationConfig() {
 
   const handleUpdate = async (e) => {
     e.preventDefault()
+    console.log('📝 Submitting update with formData:', formData)
+    console.log('   reference_image_path:', formData.reference_image_path)
     try {
       await api.put(`/visualization-configs/${editingConfig.config_id}`, formData)
       setEditingConfig(null)
@@ -170,21 +172,69 @@ function VisualizationConfig() {
     setError(null)
 
     try {
-      const uploadFormData = new FormData()
-      uploadFormData.append('file', referenceImageFile)
+      // Convert image to base64 (same pattern as outfit analyzer)
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1]
 
-      const response = await api.post('/analyze/upload', uploadFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+          // Send as JSON with base64 data
+          const response = await api.post('/analyze/upload', {
+            filename: referenceImageFile.name,
+            image_data: base64Data
+          })
+
+          console.log('📤 Upload response:', response.data)
+          console.log('📝 Current formData before update:', formData)
+
+          // Update form data with the uploaded file path
+          const updatedFormData = { ...formData, reference_image_path: response.data.url }
+          console.log('📝 Updated formData:', updatedFormData)
+          setFormData(updatedFormData)
+          setReferenceImageFile(null)
+          setUploadingImage(false)
+        } catch (err) {
+          console.error('Failed to upload image:', err)
+
+          // Handle error message safely
+          let errorMessage = 'Failed to upload image'
+          if (err.response?.data?.detail) {
+            if (typeof err.response.data.detail === 'string') {
+              errorMessage = err.response.data.detail
+            } else if (Array.isArray(err.response.data.detail)) {
+              errorMessage = err.response.data.detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+            } else {
+              errorMessage = JSON.stringify(err.response.data.detail)
+            }
+          } else if (err.message) {
+            errorMessage = err.message
+          }
+
+          setError(errorMessage)
+          setUploadingImage(false)
         }
-      })
+      }
 
-      // Update form data with the uploaded file path
-      setFormData({ ...formData, reference_image_path: response.data.url })
-      setReferenceImageFile(null)
+      // Read file as base64
+      reader.readAsDataURL(referenceImageFile)
     } catch (err) {
       console.error('Failed to upload image:', err)
-      setError(err.response?.data?.detail || 'Failed to upload image')
+
+      // Handle error message safely (FastAPI validation errors can have complex structures)
+      let errorMessage = 'Failed to upload image'
+      if (err.response?.data?.detail) {
+        if (typeof err.response.data.detail === 'string') {
+          errorMessage = err.response.data.detail
+        } else if (Array.isArray(err.response.data.detail)) {
+          errorMessage = err.response.data.detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+        } else {
+          errorMessage = JSON.stringify(err.response.data.detail)
+        }
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+
+      setError(errorMessage)
     } finally {
       setUploadingImage(false)
     }
@@ -408,7 +458,7 @@ function VisualizationConfig() {
                 </div>
               )}
               <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
-                Upload a reference image for Gemini image generation. Leave empty to use entity's source image.
+                Upload a reference image for Gemini image generation (optional). Gemini will use this as visual inspiration.
               </small>
             </div>
 

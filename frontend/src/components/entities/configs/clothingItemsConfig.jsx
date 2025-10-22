@@ -21,8 +21,8 @@ export const clothingItemsConfig = {
       label: 'Generate Preview',
       icon: '🎨',
       handler: async (item) => {
-        const response = await api.post(`/clothing-items/${item.itemId}/generate-preview`)
-        return { success: true, message: 'Preview generation started!' }
+        await api.post(`/clothing-items/${item.itemId}/generate-preview`)
+        // Job will appear in job queue automatically
       }
     }
   ],
@@ -40,6 +40,7 @@ export const clothingItemsConfig = {
       color: item.color,
       details: item.details,
       sourceImage: item.source_image,
+      previewImage: item.preview_image_path,  // Add preview image path
       createdAt: item.created_at,
       // Wrap editable fields in data property for EntityBrowser
       data: {
@@ -58,44 +59,87 @@ export const clothingItemsConfig = {
   },
 
   gridConfig: {
-    columns: 'repeat(auto-fill, minmax(260px, 1fr))',
-    gap: '1.25rem'
+    columns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '1rem'
   },
 
   renderCard: (item) => (
     <div className="entity-card">
-      <div className="entity-card-image" style={{ height: '160px', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))' }}>
-        <div className="entity-card-placeholder" style={{ fontSize: '4rem' }}>
-          {getCategoryIcon(item.category)}
-        </div>
-      </div>
-      <div className="entity-card-content">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <span style={{
-            padding: '0.25rem 0.5rem',
-            background: 'rgba(99, 102, 241, 0.2)',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            color: 'rgba(99, 102, 241, 1)',
-            fontWeight: '500',
-            textTransform: 'capitalize'
+      {/* Square preview image */}
+      <div style={{
+        position: 'relative',
+        width: '100%',
+        paddingBottom: '100%', // Creates square aspect ratio
+        background: item.previewImage
+          ? `url(${item.previewImage}) center/cover`
+          : 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
+        borderRadius: '8px 8px 0 0',
+        overflow: 'hidden'
+      }}>
+        {!item.previewImage && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '4rem'
           }}>
-            {item.category.replace('_', ' ')}
-          </span>
-        </div>
-        <h3 className="entity-card-title" style={{ fontSize: '1rem' }}>{item.item}</h3>
-        <p className="entity-card-description" style={{ fontSize: '0.85rem' }}>
-          {item.color} • {getPreview(item.fabric, 15)}
-        </p>
-        {formatDate(item.createdAt) && (
-          <p className="entity-card-date" style={{ fontSize: '0.75rem' }}>{formatDate(item.createdAt)}</p>
+            {getCategoryIcon(item.category)}
+          </div>
         )}
+      </div>
+      {/* Just the item name */}
+      <div className="entity-card-content">
+        <h3 className="entity-card-title" style={{
+          fontSize: '0.95rem',
+          margin: '0',
+          textAlign: 'center'
+        }}>
+          {item.item}
+        </h3>
       </div>
     </div>
   ),
 
   renderPreview: (item) => (
     <div style={{ padding: '1rem' }}>
+      {/* Preview Image */}
+      {item.previewImage ? (
+        <div style={{
+          marginBottom: '1rem',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          background: 'rgba(0, 0, 0, 0.3)'
+        }}>
+          <img
+            src={item.previewImage}
+            alt={item.item}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block'
+            }}
+          />
+        </div>
+      ) : (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '3rem 1rem',
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '4rem'
+        }}>
+          {getCategoryIcon(item.category)}
+        </div>
+      )}
+
       <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <span style={{ fontSize: '2.5rem' }}>{getCategoryIcon(item.category)}</span>
         <span style={{
@@ -125,6 +169,26 @@ export const clothingItemsConfig = {
 
   renderDetail: (item, handleBackToList, onUpdate) => (
     <div style={{ padding: '2rem' }}>
+      {/* Preview Image */}
+      {item.previewImage && (
+        <div style={{
+          marginBottom: '2rem',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          maxWidth: '400px'
+        }}>
+          <img
+            src={item.previewImage}
+            alt={item.item}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block'
+            }}
+          />
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
         <span style={{ fontSize: '3rem' }}>{getCategoryIcon(item.category)}</span>
         <div>

@@ -150,17 +150,31 @@ function ToolConfigPage() {
       const formData = new FormData()
       formData.append('image', testImage)
 
-      const response = await api.post(`/tool-configs/tools/${toolName}/test`, formData, {
+      const response = await api.post(`/tool-configs/tools/${toolName}/test?async_mode=true`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
-      setTestResult(response.data.result)
+      const data = response.data
+
+      // Async mode: job queued, stay on page
+      if (data.job_id) {
+        console.log('Analysis queued:', data.job_id)
+        setTesting(false)
+        // Clear the test image to allow another test
+        setTestImage(null)
+        setTestImagePreview(null)
+        setError(null)
+        return
+      }
+
+      // Sync mode (fallback - shouldn't happen with async_mode=true)
+      setTestResult(data.result)
+      setTesting(false)
     } catch (err) {
       console.error('Test failed:', err)
       setError(err.response?.data?.detail || err.message || 'Test execution failed')
-    } finally {
       setTesting(false)
     }
   }

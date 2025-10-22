@@ -5,7 +5,7 @@ API endpoints for configuring non-preset tools (analyzers, generators, agents).
 Allows editing prompts, models, and parameters for system tools.
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
 from pathlib import Path
@@ -13,7 +13,9 @@ import yaml
 import aiofiles
 
 from api.models.auth import User
+from api.models.jobs import JobType
 from api.dependencies.auth import get_current_active_user
+from api.services.job_queue import get_job_queue_manager
 from api.config import settings
 
 router = APIRouter()
@@ -239,16 +241,134 @@ async def update_tool_config(
     return {"message": "Tool configuration updated successfully"}
 
 
+async def run_tool_test_job(
+    job_id: str,
+    tool_name: str,
+    temp_path: Path
+):
+    """Background task to run tool test and update job"""
+    try:
+        get_job_queue_manager().start_job(job_id)
+        get_job_queue_manager().update_progress(job_id, 0.1, "Loading tool configuration...")
+
+        # Load current config
+        models_config = await load_models_config()
+        model = models_config.get('defaults', {}).get(tool_name, 'gemini/gemini-2.0-flash-exp')
+
+        get_job_queue_manager().update_progress(job_id, 0.3, "Running analysis...")
+
+        # Import and run the tool based on tool_name
+        result = None
+        if tool_name == "character_appearance_analyzer":
+            from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
+            analyzer = CharacterAppearanceAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "outfit_analyzer":
+            from ai_tools.outfit_analyzer.tool import OutfitAnalyzer
+            analyzer = OutfitAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+            # Outfit analyzer returns dict directly
+            get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
+            get_job_queue_manager().complete_job(job_id, {
+                "status": "success",
+                "result": result
+            })
+            return
+        elif tool_name == "accessories_analyzer":
+            from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
+            analyzer = AccessoriesAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "art_style_analyzer":
+            from ai_tools.art_style_analyzer.tool import ArtStyleAnalyzer
+            analyzer = ArtStyleAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "expression_analyzer":
+            from ai_tools.expression_analyzer.tool import ExpressionAnalyzer
+            analyzer = ExpressionAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "hair_color_analyzer":
+            from ai_tools.hair_color_analyzer.tool import HairColorAnalyzer
+            analyzer = HairColorAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "hair_style_analyzer":
+            from ai_tools.hair_style_analyzer.tool import HairStyleAnalyzer
+            analyzer = HairStyleAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "makeup_analyzer":
+            from ai_tools.makeup_analyzer.tool import MakeupAnalyzer
+            analyzer = MakeupAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        elif tool_name == "visual_style_analyzer":
+            from ai_tools.visual_style_analyzer.tool import VisualStyleAnalyzer
+            analyzer = VisualStyleAnalyzer(model=model)
+            result = await analyzer.aanalyze(temp_path)
+        else:
+            get_job_queue_manager().fail_job(job_id, f"Testing not yet implemented for {tool_name}")
+            return
+
+        # Convert to dict
+        result_dict = result.model_dump()
+
+        get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
+        get_job_queue_manager().complete_job(job_id, {
+            "status": "success",
+            "result": result_dict
+        })
+
+        # For outfit analyzer, automatically queue preview generation for clothing items
+        if tool_name == "outfit_analyzer" and isinstance(result_dict, dict):
+            clothing_items = result_dict.get("clothing_items", [])
+            if clothing_items:
+                print(f"\n🎨 Auto-generating previews for {len(clothing_items)} clothing items...")
+
+                # Import here to avoid circular dependency
+                from api.routes.clothing_items import run_preview_generation_job
+
+                for item in clothing_items:
+                    item_id = item.get("item_id")
+                    if item_id:
+                        # Create job for this item's preview
+                        preview_job_id = get_job_queue_manager().create_job(
+                            job_type=JobType.GENERATE_IMAGE,
+                            title=f"Preview: {item.get('item', 'Clothing Item')}",
+                            description=f"Category: {item.get('category', 'unknown')}"
+                        )
+
+                        # Run preview generation in a thread to avoid blocking
+                        import threading
+                        thread = threading.Thread(
+                            target=run_preview_generation_job,
+                            args=(preview_job_id, item_id)
+                        )
+                        thread.daemon = True
+                        thread.start()
+
+                        print(f"   ✅ Queued preview for {item.get('item')} (job: {preview_job_id[:8]}...)")
+
+    except Exception as e:
+        get_job_queue_manager().fail_job(job_id, str(e))
+
+    finally:
+        # Clean up temp file
+        if temp_path.exists():
+            temp_path.unlink()
+
+
 @router.post("/tools/{tool_name}/test")
 async def test_tool(
     tool_name: str,
     image: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None,
+    async_mode: bool = Query(True, description="Run test in background and return job_id"),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
     Test a tool with an uploaded image
 
-    Runs the tool and returns the analysis results
+    Runs the tool and returns the analysis results.
+
+    Query Parameters:
+    - async_mode: If true (default), returns job_id immediately and processes in background
     """
     tool_dir = get_tool_dir(tool_name)
 
@@ -265,6 +385,34 @@ async def test_tool(
         content = await image.read()
         await f.write(content)
 
+    # Async mode: Create job and return immediately
+    if async_mode:
+        # Determine job title
+        display_name = tool_name.replace('_analyzer', '').replace('_', ' ').title()
+
+        # Create job
+        job_id = get_job_queue_manager().create_job(
+            job_type=JobType.ANALYZE,
+            title=f"Testing {display_name}",
+            description=f"Image: {image.filename}"
+        )
+
+        # Queue background task
+        background_tasks.add_task(
+            run_tool_test_job,
+            job_id,
+            tool_name,
+            temp_path
+        )
+
+        # Return job info
+        return {
+            "job_id": job_id,
+            "status": "queued",
+            "message": "Analysis queued. Use /jobs/{job_id} to check status."
+        }
+
+    # Synchronous mode: Run test and return result
     try:
         # Load current config
         models_config = await load_models_config()
@@ -327,8 +475,8 @@ async def test_tool(
         raise HTTPException(status_code=500, detail=f"Tool execution failed: {str(e)}")
 
     finally:
-        # Clean up temp file
-        if temp_path.exists():
+        # Clean up temp file (only in sync mode, async mode handles its own cleanup)
+        if not async_mode and temp_path.exists():
             temp_path.unlink()
 
 
