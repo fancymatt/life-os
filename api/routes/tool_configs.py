@@ -279,6 +279,11 @@ async def test_tool(
             from ai_tools.outfit_analyzer.tool import OutfitAnalyzer
             analyzer = OutfitAnalyzer(model=model)
             result = await analyzer.aanalyze(temp_path)
+            # Outfit analyzer now returns dict directly (new architecture)
+            return {
+                "status": "success",
+                "result": result
+            }
         elif tool_name == "accessories_analyzer":
             from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
             analyzer = AccessoriesAnalyzer(model=model)
@@ -334,9 +339,11 @@ async def list_available_models(
     """
     List all available models
 
-    Returns models organized by provider, filtered by available API keys
+    Returns models organized by provider, filtered by available API keys.
+    For Ollama, only returns actually downloaded models.
     """
     import os
+    import httpx
 
     # Load models registry
     models_registry_path = settings.base_dir / "configs" / "available_models.yaml"
@@ -352,21 +359,59 @@ async def list_available_models(
 
         # Check if API key exists
         if env_var and os.getenv(env_var):
-            # Provider has API key, include their models
-            models = []
-            for model in config.get('models', []):
-                model_info = {
-                    "id": model['id'],
-                    "name": model['name']
-                }
+            # Special handling for Ollama - only show downloaded models
+            if provider == "ollama":
+                try:
+                    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(f"{ollama_url}/api/tags", timeout=5.0)
+                        if response.status_code == 200:
+                            data = response.json()
+                            downloaded_models = {model['name'] for model in data.get('models', [])}
 
-                # Include temperature restrictions if present
-                if 'temperature_restrictions' in model:
-                    model_info['temperature_restrictions'] = model['temperature_restrictions']
+                            # Filter registry models to only include downloaded ones
+                            models = []
+                            for model in config.get('models', []):
+                                # Extract model name from id (e.g., "ollama/gpt-oss:120b" -> "gpt-oss:120b")
+                                model_id = model['id']
+                                if model_id.startswith('ollama/'):
+                                    model_name = model_id[7:]  # Remove "ollama/" prefix
+                                else:
+                                    model_name = model_id
 
-                models.append(model_info)
+                                # Only include if downloaded
+                                if model_name in downloaded_models:
+                                    model_info = {
+                                        "id": model['id'],
+                                        "name": model['name']
+                                    }
 
-            if models:  # Only include provider if they have models
-                available_models[provider] = models
+                                    if 'temperature_restrictions' in model:
+                                        model_info['temperature_restrictions'] = model['temperature_restrictions']
+
+                                    models.append(model_info)
+
+                            if models:
+                                available_models[provider] = models
+                except Exception as e:
+                    # If Ollama is unavailable, skip it
+                    print(f"Warning: Could not fetch Ollama models: {e}")
+            else:
+                # For other providers, show all models from registry
+                models = []
+                for model in config.get('models', []):
+                    model_info = {
+                        "id": model['id'],
+                        "name": model['name']
+                    }
+
+                    # Include temperature restrictions if present
+                    if 'temperature_restrictions' in model:
+                        model_info['temperature_restrictions'] = model['temperature_restrictions']
+
+                    models.append(model_info)
+
+                if models:  # Only include provider if they have models
+                    available_models[provider] = models
 
     return available_models

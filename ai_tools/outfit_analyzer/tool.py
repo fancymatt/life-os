@@ -10,14 +10,23 @@ Supports cache and preset workflows.
 """
 
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict, Any
 import sys
 import asyncio
+import uuid
+import json
+from datetime import datetime
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from ai_capabilities.specs import OutfitSpec, SpecMetadata
+from ai_capabilities.specs import (
+    OutfitSpec,
+    SpecMetadata,
+    OutfitAnalysisResult,
+    ClothingItemEntity,
+    ClothingCategory
+)
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.cache import CacheManager
 from ai_tools.shared.preset import PresetManager
@@ -85,129 +94,153 @@ class OutfitAnalyzer:
         skip_cache: bool = False,
         save_as_preset: Optional[str] = None,
         preset_notes: Optional[str] = None
-    ) -> OutfitSpec:
+    ) -> Dict[str, Any]:
         """
-        Analyze an outfit image (async version)
+        Analyze an outfit image and save individual clothing items (async version)
 
         Args:
             image_path: Path to image file
             skip_cache: Skip cache lookup (default: False)
-            save_as_preset: Save result as preset with this name
-            preset_notes: Optional notes for the preset
+            save_as_preset: DEPRECATED - no longer used with new architecture
+            preset_notes: DEPRECATED - no longer used with new architecture
 
         Returns:
-            OutfitSpec with analyzed outfit data
+            Dict with keys:
+                - clothing_items: List of ClothingItemEntity dicts
+                - suggested_outfit_name: Suggested name for this outfit
+                - item_count: Number of items created
         """
         image_path = Path(image_path)
 
         if not image_path.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        # Check cache first (unless skipped)
-        if self.use_cache and not skip_cache:
-            cached = self.cache_manager.get_for_file(
-                "outfits",
-                image_path,
-                OutfitSpec
-            )
-            if cached:
-                print(f"✅ Using cached analysis for {image_path.name}")
-                # Save as preset if requested (even for cached results)
-                if save_as_preset:
-                    preset_name = cached.suggested_name if save_as_preset is True else save_as_preset
-                    preset_path, preset_id = self.preset_manager.save(
-                        "outfits",
-                        cached,
-                        display_name=preset_name,
-                        notes=preset_notes
-                    )
-                    if not cached._metadata:
-                        cached._metadata = SpecMetadata(
-                            tool="outfit-analyzer",
-                            tool_version="1.0.0",
-                            source_image=str(image_path),
-                            source_hash=self.cache_manager.compute_file_hash(image_path),
-                            model_used="cached"
-                        )
-                    cached._metadata.preset_id = preset_id
-                    cached._metadata.display_name = preset_name
-                    print(f"⭐ Saved as preset: {preset_name}")
-
-                    # Generate preview if enabled
-                    if self.auto_visualize and self.visualizer:
-                        try:
-                            print(f"\n🎨 Generating preview visualization...")
-                            viz_path = self.visualizer.visualize(
-                                outfit=cached,
-                                output_dir=preset_path.parent,
-                                preset_id=preset_id
-                            )
-                            print(f"   Preview: {viz_path}")
-                        except Exception as e:
-                            print(f"⚠️  Preview generation failed: {e}")
-
-                return cached
-
-        # Load template (supports custom overrides)
+        # Load template first (needed for cache key)
         prompt_template = self._load_template()
+
+        # Compute cache key that includes image, template, AND model
+        import hashlib
+        image_hash = self.cache_manager.compute_file_hash(image_path)
+        template_hash = hashlib.sha256(prompt_template.encode('utf-8')).hexdigest()[:16]
+        model_hash = hashlib.sha256(self.router.model.encode('utf-8')).hexdigest()[:8]
+        combined_key = f"{image_hash}_{template_hash}_{model_hash}"
+
+        print(f"🔍 Cache key computation:")
+        print(f"   Image hash: {image_hash}")
+        print(f"   Template hash: {template_hash} (from {len(prompt_template)} chars)")
+        print(f"   Model: {self.router.model} (hash: {model_hash})")
+        print(f"   Combined key: {combined_key}")
+
+        # Check cache first (unless skipped)
+        # NOTE: Cache lookup disabled for new architecture - old OutfitSpec cache is incompatible
+        # New runs will cache OutfitAnalysisResult, but we always analyze fresh for now
+        if self.use_cache and not skip_cache:
+            # Try to get cached analysis result
+            try:
+                cached = self.cache_manager.get(
+                    "outfits",
+                    combined_key,
+                    OutfitAnalysisResult
+                )
+                if cached:
+                    print(f"✅ CACHE HIT - Processing cached analysis for {image_path.name}")
+                    # Process cached result into clothing items (same as fresh analysis)
+                    clothing_items_dir = settings.base_dir / "data" / "clothing_items"
+                    clothing_items_dir.mkdir(parents=True, exist_ok=True)
+
+                    created_items = []
+                    for item_data in cached.clothing_items:
+                        item_id = str(uuid.uuid4())
+                        item_entity = ClothingItemEntity(
+                            item_id=item_id,
+                            category=ClothingCategory(item_data["category"]),
+                            item=item_data["item"],
+                            fabric=item_data["fabric"],
+                            color=item_data["color"],
+                            details=item_data["details"],
+                            source_image=str(image_path),
+                            created_at=datetime.now()
+                        )
+                        item_path = clothing_items_dir / f"{item_id}.json"
+                        item_path.write_text(json.dumps(item_entity.dict(), indent=2, default=str))
+                        created_items.append(item_entity)
+                        print(f"   ✅ Saved {item_entity.category.value}: {item_entity.item}")
+
+                    print(f"\n✨ Created {len(created_items)} clothing items from cache")
+                    return {
+                        "clothing_items": [item.dict() for item in created_items],
+                        "suggested_outfit_name": cached.suggested_outfit_name,
+                        "item_count": len(created_items)
+                    }
+            except Exception as e:
+                # Cache miss or incompatible cache format - analyze fresh
+                print(f"❌ CACHE MISS - Will analyze fresh ({e})")
+        else:
+            if skip_cache:
+                print(f"⏩ CACHE SKIPPED - Will analyze fresh")
 
         # Perform analysis
         print(f"🔍 Analyzing outfit in {image_path.name}...")
 
+        # GPT-5 models only support temperature=1, use 0.3 for all others
+        temperature = 1.0 if "gpt-5" in self.router.model.lower() else 0.3
+
         try:
-            outfit = await self.router.acall_structured(
+            # Call LLM to analyze image and extract clothing items
+            analysis = await self.router.acall_structured(
                 prompt=prompt_template,
-                response_model=OutfitSpec,
+                response_model=OutfitAnalysisResult,
                 images=[image_path],
-                temperature=0.3
+                temperature=temperature
             )
 
-            # Add metadata
-            outfit._metadata = SpecMetadata(
-                tool="outfit-analyzer",
-                tool_version="1.0.0",
-                source_image=str(image_path),
-                source_hash=self.cache_manager.compute_file_hash(image_path),
-                model_used=self.router.model
-            )
+            # Create clothing_items directory if it doesn't exist
+            clothing_items_dir = settings.base_dir / "data" / "clothing_items"
+            clothing_items_dir.mkdir(parents=True, exist_ok=True)
 
-            # Cache the result
+            # Create and save individual ClothingItemEntity objects
+            created_items = []
+            for item_data in analysis.clothing_items:
+                # Generate unique ID
+                item_id = str(uuid.uuid4())
+
+                # Create ClothingItemEntity
+                item_entity = ClothingItemEntity(
+                    item_id=item_id,
+                    category=ClothingCategory(item_data["category"]),
+                    item=item_data["item"],
+                    fabric=item_data["fabric"],
+                    color=item_data["color"],
+                    details=item_data["details"],
+                    source_image=str(image_path),
+                    created_at=datetime.now()
+                )
+
+                # Save to file
+                item_path = clothing_items_dir / f"{item_id}.json"
+                item_path.write_text(json.dumps(item_entity.dict(), indent=2, default=str))
+
+                created_items.append(item_entity)
+                print(f"   ✅ Saved {item_entity.category.value}: {item_entity.item}")
+
+            # Cache the result using combined key (image + template + model)
             if self.use_cache:
-                self.cache_manager.set_for_file(
+                self.cache_manager.set(
                     "outfits",
-                    image_path,
-                    outfit
+                    combined_key,
+                    analysis,
+                    source_file=image_path
                 )
-                print(f"💾 Cached analysis")
+                print(f"💾 Cached analysis (key: {combined_key[:16]}...)")
 
-            # Save as preset if requested
-            if save_as_preset:
-                preset_name = outfit.suggested_name if save_as_preset is True else save_as_preset
-                preset_path, preset_id = self.preset_manager.save(
-                    "outfits",
-                    outfit,
-                    display_name=preset_name,
-                    notes=preset_notes
-                )
-                if outfit._metadata:
-                    outfit._metadata.preset_id = preset_id
-                    outfit._metadata.display_name = preset_name
-                print(f"⭐ Saved as preset: {preset_name}")
+            print(f"\n✨ Created {len(created_items)} clothing items")
 
-                # Generate preview if enabled
-                if self.auto_visualize and self.visualizer:
-                    try:
-                        print(f"\n🎨 Generating preview visualization...")
-                        viz_path = self.visualizer.visualize(
-                            outfit=outfit,
-                            output_dir=preset_path.parent,
-                            preset_id=preset_id
-                        )
-                        print(f"   Preview: {viz_path}")
-                    except Exception as e:
-                        print(f"⚠️  Preview generation failed: {e}")
-
-            return outfit
+            # Return the created items with suggested name
+            return {
+                "clothing_items": [item.dict() for item in created_items],
+                "suggested_outfit_name": analysis.suggested_outfit_name,
+                "item_count": len(created_items)
+            }
 
         except Exception as e:
             raise Exception(f"Failed to analyze outfit: {e}")
@@ -218,18 +251,21 @@ class OutfitAnalyzer:
         skip_cache: bool = False,
         save_as_preset: Optional[str] = None,
         preset_notes: Optional[str] = None
-    ) -> OutfitSpec:
+    ) -> Dict[str, Any]:
         """
-        Analyze an outfit image (synchronous wrapper)
+        Analyze an outfit image and save individual clothing items (synchronous wrapper)
 
         Args:
             image_path: Path to image file
             skip_cache: Skip cache lookup (default: False)
-            save_as_preset: Save result as preset with this name
-            preset_notes: Optional notes for the preset
+            save_as_preset: DEPRECATED - no longer used with new architecture
+            preset_notes: DEPRECATED - no longer used with new architecture
 
         Returns:
-            OutfitSpec with analyzed outfit data
+            Dict with keys:
+                - clothing_items: List of ClothingItemEntity dicts
+                - suggested_outfit_name: Suggested name for this outfit
+                - item_count: Number of items created
         """
         return asyncio.run(self.aanalyze(
             image_path=image_path,
@@ -356,7 +392,7 @@ Examples:
         parser.error("Image path required (or use --list)")
 
     try:
-        outfit = analyzer.analyze(
+        result = analyzer.analyze(
             args.image,
             skip_cache=args.no_cache,
             save_as_preset=args.save_as,
@@ -365,20 +401,21 @@ Examples:
 
         # Print results
         print("\n" + "="*70)
-        print("Outfit Analysis")
+        print("Outfit Analysis - Individual Clothing Items")
         print("="*70)
-        print(f"\nStyle Genre: {outfit.style_genre}")
-        print(f"Formality: {outfit.formality}")
-        print(f"Aesthetic: {outfit.aesthetic}")
+        if result.get("suggested_outfit_name"):
+            print(f"\nSuggested Name: {result['suggested_outfit_name']}")
 
-        print(f"\nClothing Items ({len(outfit.clothing_items)}):")
-        for i, item in enumerate(outfit.clothing_items, 1):
-            print(f"\n  {i}. {item.item}")
-            print(f"     Fabric: {item.fabric}")
-            print(f"     Color: {item.color}")
-            print(f"     Details: {item.details[:100]}{'...' if len(item.details) > 100 else ''}")
+        print(f"\nClothing Items ({result['item_count']}):")
+        for i, item in enumerate(result['clothing_items'], 1):
+            print(f"\n  {i}. {item['item']} ({item['category']})")
+            print(f"     Fabric: {item['fabric']}")
+            print(f"     Color: {item['color']}")
+            print(f"     Details: {item['details'][:100]}{'...' if len(item['details']) > 100 else ''}")
+            print(f"     ID: {item['item_id']}")
 
         print("\n" + "="*70)
+        print(f"\n💾 Saved {result['item_count']} items to data/clothing_items/")
 
     except Exception as e:
         print(f"\n❌ Error: {e}")

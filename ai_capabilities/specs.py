@@ -37,8 +37,66 @@ class SpecMetadata(BaseModel):
 # IMAGE ANALYSIS SPECS
 # ==============================================================================
 
+class ClothingCategory(str, Enum):
+    """Body-zone based clothing categories"""
+    HEADWEAR = "headwear"          # Hats, caps, beanies, headbands
+    EYEWEAR = "eyewear"            # Sunglasses, glasses
+    EARRINGS = "earrings"          # Earrings, ear cuffs
+    NECKWEAR = "neckwear"          # Necklaces, chokers, scarves, ties
+    TOPS = "tops"                  # Shirts, blouses, sweaters, t-shirts, bikini tops
+    OVERTOPS = "overtops"          # Cardigans, vests, shrugs (light layers)
+    OUTERWEAR = "outerwear"        # Coats, jackets, parkas (heavy/weather layers)
+    ONE_PIECE = "one_piece"        # Dresses, jumpsuits, rompers, one-piece swimsuits
+    BOTTOMS = "bottoms"            # Pants, skirts, shorts, bikini bottoms, swim trunks
+    BELTS = "belts"                # Belts, sashes
+    HOSIERY = "hosiery"            # Tights, stockings, socks
+    FOOTWEAR = "footwear"          # Shoes, boots, sandals
+    BAGS = "bags"                  # Handbags, purses, backpacks
+    WRISTWEAR = "wristwear"        # Watches, bracelets
+    HANDWEAR = "handwear"          # Rings, gloves
+
+
+class ClothingItemEntity(BaseModel):
+    """Individual clothing item entity (new architecture)"""
+    item_id: str = Field(..., description="Unique item ID (UUID)")
+    category: ClothingCategory = Field(..., description="Body zone category - choose the single most appropriate category")
+    item: str = Field(..., description="Specific garment type (e.g., 'ribbed tank top', 'high-waisted jeans')")
+    fabric: str = Field(..., description="Material and texture")
+    color: str = Field(..., description="Precise color description")
+    details: str = Field(..., description="Comprehensive construction, fit, and styling details")
+    source_image: Optional[str] = Field(None, description="Source image path")
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+class OutfitCompositionEntity(BaseModel):
+    """User-created outfit composition (new architecture)"""
+    outfit_id: str = Field(..., description="Unique outfit ID (UUID)")
+    name: str = Field(..., description="User-defined outfit name")
+    clothing_item_ids: List[str] = Field(..., description="List of clothing item IDs that make up this outfit")
+    notes: Optional[str] = Field(None, description="User notes about this outfit")
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+class OutfitAnalysisResult(BaseModel):
+    """Result from outfit analyzer - list of clothing items (new architecture)"""
+    clothing_items: List[Dict[str, Any]] = Field(..., description="List of individual clothing items identified in the image")
+    suggested_outfit_name: Optional[str] = Field(None, description="Short descriptive name for this outfit (2-4 words)")
+
+
+# Legacy ClothingItem (for backward compatibility)
 class ClothingItem(BaseModel):
-    """Individual clothing item description"""
+    """Individual clothing item description (legacy)"""
     item: str = Field(..., description="Type of clothing item")
     fabric: str = Field(..., description="Fabric material")
     color: str = Field(..., description="Color description")
