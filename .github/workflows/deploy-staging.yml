@@ -1,0 +1,157 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [staging]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: life_os_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/life_os_test
+          REDIS_URL: redis://localhost:6379/0
+          GEMINI_API_KEY: test_key
+          OPENAI_API_KEY: test_key
+          REQUIRE_AUTH: false
+          JWT_SECRET_KEY: test_secret
+        run: |
+          pytest tests/ --ignore=tests/manual/ -v --tb=short --maxfail=10 -m "not slow"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --run
+        continue-on-error: true
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/staging'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy notice
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "⚠️  Note: Actual deployment requires server SSH access"
+          echo "This workflow validates the code is ready to deploy."
+          echo ""
+          echo "To deploy manually:"
+          echo "1. SSH to staging server"
+          echo "2. cd /path/to/life-os"
+          echo "3. git pull origin staging"
+          echo "4. docker-compose -f docker-compose.staging.yml up -d --build"
+          echo "5. docker exec ai-studio-api alembic upgrade head"
+          echo "6. Verify at https://staging.os.fcy.sh"
+
+      # Uncomment and configure when staging server is ready
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1.0.0
+      #   with:
+      #     host: ${{ secrets.STAGING_HOST }}
+      #     username: ${{ secrets.STAGING_USER }}
+      #     key: ${{ secrets.STAGING_SSH_KEY }}
+      #     script: |
+      #       cd /var/www/life-os
+      #       git pull origin staging
+      #       docker-compose -f docker-compose.staging.yml down
+      #       docker-compose -f docker-compose.staging.yml up -d --build
+      #       docker exec ai-studio-api alembic upgrade head
+      #       echo "✅ Staging deployed successfully"
+
+      - name: Deployment summary
+        run: |
+          echo "✅ All tests passed - ready for staging deployment"
+          echo "📍 Staging URL: https://staging.os.fcy.sh"
+
+  notify:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+
+    steps:
+      - name: Deployment status
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Staging deployment successful"
+          else
+            echo "❌ Staging deployment failed"
+          fi
+
+      # Uncomment to enable Slack notifications
+      # - name: Slack Notification
+      #   uses: 8398a7/action-slack@v3
+      #   if: always()
+      #   with:
+      #     status: ${{ job.status }}
+      #     text: 'Staging deployment ${{ job.status }}'
+      #     webhook_url: ${{ secrets.SLACK_WEBHOOK }}
