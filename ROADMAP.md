@@ -1,8 +1,8 @@
 # Life-OS Development Roadmap
 
-**Last Updated**: 2025-10-22
-**Status**: Sprint 1 Complete - Database migration finished, Phase 1.2 pagination complete
-**Version**: 2.3
+**Last Updated**: 2025-10-23
+**Status**: Sprint 1 Complete - Database migration finished, Phase 1.2 pagination complete, Hair Styles preview pattern established
+**Version**: 2.4
 
 ---
 
@@ -322,6 +322,185 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 - Zero `any` types (use `unknown` instead)
 - All API responses have types
 - Type checking in CI passes
+
+---
+
+### 1.7 Preset Entity Unification ❌ **NOT STARTED**
+
+**STATUS**: **NOT STARTED** - Hair Styles reference implementation complete, needs replication across all preset entities
+
+**Goal**: Unify all image generation preset entities to provide a consistent, predictable user experience across the board.
+
+**Reference Implementation**: Hair Styles (complete as of 2025-10-23)
+- See `PRESET_ENTITY_PATTERN.md` for comprehensive documentation
+- Backend: `api/routes/presets.py` (module-level background tasks, correct JobQueueManager methods)
+- Frontend: `frontend/src/components/entities/configs/presetsConfig.jsx` (HairStylePreview component)
+
+**Target Entities** (8 total):
+- ✅ **Hair Styles** - Reference implementation (complete)
+- ⚠️ **Clothing Items** - Partial (has preview generation, needs test images)
+- ❌ **Accessories** - Needs both preview and test generation
+- ❌ **Art Styles** - Needs both preview and test generation
+- ❌ **Expressions** - Needs both preview and test generation
+- ❌ **Hair Colors** - Needs both preview and test generation
+- ❌ **Makeup** - Needs both preview and test generation
+- ❌ **Visual Styles** - Needs both preview and test generation
+- 🔲 **Characters** - Special case (different structure, may already support operations)
+
+**Required Features for ALL Preset Entities**:
+1. **Preview Generation** - Generate standalone visualization of preset
+2. **Test Image Generation** - Apply preset to reference subject (jenny.png)
+3. **Visualization Config Assignment** - Custom visualization templates
+4. **Gallery Tab** - View all generated images using this preset
+5. **Consistent UI** - Same layout, buttons, interaction patterns
+
+**Implementation Pattern** (from `PRESET_ENTITY_PATTERN.md`):
+
+**Backend Requirements**:
+- Module-level background task functions (NOT nested in endpoints)
+- Correct JobQueueManager methods: `start_job()`, `update_progress()`, `complete_job()`, `fail_job()`
+- Correct directory structure: Save previews to `presets/{category}/` (NOT `output/`)
+- Category-to-spec mapping in `run_preview_generation_job()`
+- Category-to-parameter mapping in `run_test_generation_job()`
+- Use `PresetVisualizer.visualize()` method (correct class/method names)
+- Convert dict to Pydantic spec before visualization
+
+**Frontend Requirements**:
+- `{Entity}Preview` component with job tracking
+- `trackingPresetId` state to prevent overlay cross-contamination
+- Job polling (1-second intervals) with cleanup
+- Loading overlay only on correct entity
+- Reserve space (`minHeight: '300px'`) to prevent layout shift
+- Preview image with timestamp cache-busting
+- "Generate Preview" and "Create Test Image" buttons
+- `enableGallery: true` in entity config
+- `renderPreview` function in entity config
+
+**Backend Implementation Tasks**:
+- [ ] **Accessories**: Add to category_param_map and spec mapping
+  - [ ] Add `AccessoriesSpec` to `run_preview_generation_job()`
+  - [ ] Add `"accessories": "accessories"` to `category_param_map` in `run_test_generation_job()`
+  - [ ] Verify `PresetVisualizer` supports `accessories` category
+  - [ ] Test endpoints: `/presets/accessories/{id}/generate-preview` and `/generate-test-image`
+
+- [ ] **Art Styles**: Add to category_param_map and spec mapping
+  - [ ] Add `ArtStyleSpec` to `run_preview_generation_job()` (already exists in code)
+  - [ ] Already in `category_param_map` (verify)
+  - [ ] Verify `PresetVisualizer` supports `art_styles` category
+  - [ ] Test endpoints
+
+- [ ] **Expressions**: Add to category_param_map and spec mapping
+  - [ ] Add `ExpressionSpec` to `run_preview_generation_job()` (already exists in code)
+  - [ ] Already in `category_param_map` (verify)
+  - [ ] Verify `PresetVisualizer` supports `expressions` category
+  - [ ] Test endpoints
+
+- [ ] **Hair Colors**: Add to category_param_map and spec mapping
+  - [ ] Add `HairColorSpec` to `run_preview_generation_job()` (already exists in code)
+  - [ ] Already in `category_param_map` (verify)
+  - [ ] Verify `PresetVisualizer` supports `hair_colors` category
+  - [ ] Test endpoints
+
+- [ ] **Makeup**: Add to category_param_map and spec mapping
+  - [ ] Add `MakeupSpec` to `run_preview_generation_job()` (already exists in code)
+  - [ ] Already in `category_param_map` (verify)
+  - [ ] Verify `PresetVisualizer` supports `makeup` category
+  - [ ] Test endpoints
+
+- [ ] **Visual Styles**: Add to category_param_map and spec mapping
+  - [ ] Add `VisualStyleSpec` to `run_preview_generation_job()` (already exists in code)
+  - [ ] Already in `category_param_map` (verify)
+  - [ ] Verify `PresetVisualizer` supports `visual_styles` category
+  - [ ] Test endpoints
+
+- [ ] **Clothing Items**: Complete test image generation
+  - [ ] Preview generation already works (verify)
+  - [ ] Add to `category_param_map` if missing
+  - [ ] Test test image generation endpoint
+  - [ ] Verify gallery tab works
+
+**Frontend Implementation Tasks**:
+- [ ] **Accessories**: Create `AccessoriesPreview` component
+  - [ ] Copy pattern from `HairStylePreview`
+  - [ ] Add `trackingPresetId` state management
+  - [ ] Add job polling with cleanup
+  - [ ] Add loading overlay with entity tracking
+  - [ ] Add `enableGallery: true` to `accessoriesConfig`
+  - [ ] Add `renderPreview` to `accessoriesConfig`
+
+- [ ] **Art Styles**: Create `ArtStylesPreview` component
+  - [ ] Follow same pattern as Accessories
+  - [ ] Update `artStylesConfig`
+
+- [ ] **Expressions**: Create `ExpressionsPreview` component
+  - [ ] Follow same pattern
+  - [ ] Update `expressionsConfig`
+
+- [ ] **Hair Colors**: Create `HairColorsPreview` component
+  - [ ] Follow same pattern
+  - [ ] Update `hairColorsConfig`
+
+- [ ] **Makeup**: Create `MakeupPreview` component
+  - [ ] Follow same pattern
+  - [ ] Update `makeupConfig`
+
+- [ ] **Visual Styles**: Create `VisualStylesPreview` component
+  - [ ] Follow same pattern
+  - [ ] Update `visualStylesConfig`
+
+- [ ] **Clothing Items**: Verify preview component works
+  - [ ] Test "Generate Preview" button
+  - [ ] Test "Create Test Image" button
+  - [ ] Verify gallery tab appears
+  - [ ] Verify loading overlay only on correct item
+
+**Testing Requirements** (per entity):
+- [ ] Generate preview for 2-3 different presets
+- [ ] Verify preview images appear in entity list
+- [ ] Verify detail view shows preview
+- [ ] Generate test image and check `output/test_generations/{category}/`
+- [ ] Refresh page and verify preview images persist
+- [ ] Open multiple entities simultaneously and verify loading overlays don't cross-contaminate
+- [ ] Test Gallery tab shows all generated images
+
+**Common Mistakes to Avoid** (documented in `PRESET_ENTITY_PATTERN.md`):
+- ❌ Nested background task functions inside endpoints
+- ❌ Wrong output directory (`output/` instead of `presets/{category}/`)
+- ❌ Wrong JobQueueManager methods (`update_job()` instead of `start_job()`, etc.)
+- ❌ Wrong class/method names (`Visualizer` instead of `PresetVisualizer`, etc.)
+- ❌ Loading overlay on all entities (missing `trackingPresetId` check)
+- ❌ Passing dict instead of Pydantic spec to visualizer
+
+**Success Criteria**:
+- [ ] All 8 preset entities support preview generation
+- [ ] All 8 preset entities support test image generation
+- [ ] All preview images display correctly in list and detail views
+- [ ] All Gallery tabs show generated images
+- [ ] Loading overlays only appear on the entity being processed
+- [ ] All entities feel identical in UI and behavior
+- [ ] Zero errors in browser console during preview/test generation
+- [ ] All generated images saved to correct directories
+- [ ] User can assign visualization configs to all preset types
+
+**Timeline**: 2-3 weeks
+- Week 1: Backend implementation for all entities (2-3 days)
+- Week 2: Frontend components for all entities (3-4 days)
+- Week 3: Testing and bug fixes (3-4 days)
+
+**Why This Matters**:
+- **Consistency**: Users understand new features immediately
+- **Maintainability**: Single pattern to maintain across all presets
+- **Scalability**: Easy to add new preset types in future
+- **Quality**: Visual previews improve preset selection UX
+- **Validation**: Test images verify presets work as expected
+
+**Risks**:
+- 🟡 **MEDIUM RISK**: Visualizer may not support all categories
+  - Mitigation: Check `ai_tools/shared/visualizer.py` for supported categories, add missing ones
+- 🟡 **MEDIUM RISK**: Some presets may have different field structures
+  - Mitigation: Verify Pydantic specs exist for all categories, create if missing
+- 🟢 **LOW RISK**: Frontend duplication (8 similar components)
+  - Mitigation: Extract shared logic to higher-order component (future refactoring)
 
 ---
 
@@ -1834,5 +2013,14 @@ visualizer.generate_visualization(entity_type="board_game", entity_data=game)
   - **Service layer**: 5 services with pagination params + count methods
   - **Efficient queries**: Moved from Python slicing to database-level pagination
   - Remaining: qa, favorites, presets (lower priority)
+- v2.4 (2025-10-23): Phase 1.7 Preset Entity Unification Added
+  - **Hair Styles preview pattern established** as reference implementation
+  - **Created PRESET_ENTITY_PATTERN.md** - comprehensive 500+ line documentation
+  - **Phase 1.7 added**: Tasks to unify all 8 preset entities (Accessories, Art Styles, Expressions, Hair Colors, Makeup, Visual Styles, Clothing Items, Hair Styles)
+  - **Backend tasks**: Add category support to preview/test generation endpoints
+  - **Frontend tasks**: Create {Entity}Preview components following HairStylePreview pattern
+  - **Testing tasks**: Verify preview generation, test images, and Gallery tabs work for all entities
+  - **Common mistakes documented**: Nested functions, wrong directories, incorrect method names, loading overlay issues
+  - **Timeline**: 2-3 weeks for complete unification
 
 **Next Update**: After completing Phase 1 (Foundation), reassess priorities and timelines.
