@@ -5,6 +5,7 @@ Handles database operations for ClothingItem entities.
 """
 
 from typing import Optional, List
+from datetime import datetime
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +33,8 @@ class ClothingItemRepository:
         user_id: Optional[int] = None,
         category: Optional[str] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[ClothingItem]:
         """Get all clothing items, optionally filtered with pagination support"""
         query = select(ClothingItem).order_by(ClothingItem.created_at.desc())
@@ -42,6 +44,10 @@ class ClothingItemRepository:
 
         if category:
             query = query.where(ClothingItem.category == category)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(ClothingItem.archived == False)
 
         if limit is not None:
             query = query.limit(limit)
@@ -72,16 +78,35 @@ class ClothingItemRepository:
         return item
 
     async def delete(self, item_id: str) -> bool:
-        """Delete clothing item by ID"""
+        """Archive clothing item by ID (soft delete)"""
+        return await self.archive(item_id)
+
+    async def archive(self, item_id: str) -> bool:
+        """Archive clothing item by ID (soft delete)"""
         item = await self.get_by_id(item_id)
 
         if not item:
             return False
 
-        await self.session.delete(item)
+        item.archived = True
+        item.archived_at = datetime.utcnow()
         await self.session.flush()
 
-        logger.info(f"Deleted clothing item from database: {item_id}")
+        logger.info(f"Archived clothing item in database: {item_id}")
+        return True
+
+    async def unarchive(self, item_id: str) -> bool:
+        """Unarchive clothing item by ID"""
+        item = await self.get_by_id(item_id)
+
+        if not item:
+            return False
+
+        item.archived = False
+        item.archived_at = None
+        await self.session.flush()
+
+        logger.info(f"Unarchived clothing item in database: {item_id}")
         return True
 
     async def search(
@@ -89,7 +114,8 @@ class ClothingItemRepository:
         query: Optional[str] = None,
         category: Optional[str] = None,
         color: Optional[str] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        include_archived: bool = False
     ) -> List[ClothingItem]:
         """
         Search clothing items with optional filters
@@ -99,6 +125,7 @@ class ClothingItemRepository:
             category: Filter by category
             color: Filter by color
             user_id: Filter by user ID
+            include_archived: If True, include archived items. Default False.
         """
         stmt = select(ClothingItem)
 
@@ -110,6 +137,10 @@ class ClothingItemRepository:
 
         if color:
             stmt = stmt.where(ClothingItem.color.ilike(f"%{color}%"))
+
+        # Exclude archived by default
+        if not include_archived:
+            stmt = stmt.where(ClothingItem.archived == False)
 
         if query:
             # Case-insensitive search in item, fabric, or details
@@ -143,7 +174,7 @@ class ClothingItemRepository:
         item = await self.get_by_id(item_id)
         return item is not None
 
-    async def count(self, user_id: Optional[int] = None, category: Optional[str] = None) -> int:
+    async def count(self, user_id: Optional[int] = None, category: Optional[str] = None, include_archived: bool = False) -> int:
         """Count clothing items"""
         query = select(func.count()).select_from(ClothingItem)
 
@@ -152,6 +183,10 @@ class ClothingItemRepository:
 
         if category:
             query = query.where(ClothingItem.category == category)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(ClothingItem.archived == False)
 
         result = await self.session.execute(query)
         return result.scalar_one()
