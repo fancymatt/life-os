@@ -44,6 +44,7 @@ from ai_capabilities.specs import (
     ImageGenerationResult,
     ImageGenerationRequest,
     ClothingItemEntity,
+    ClothingItem,
     ClothingCategory
 )
 from ai_tools.shared.router import LLMRouter, RouterConfig
@@ -156,10 +157,9 @@ class ModularImageGenerator:
                 for item_id in item_ids:
                     item_dict = await service.get_clothing_item(item_id)
                     if item_dict:
-                        # Convert database dict to ClothingItemEntity
-                        clothing_item = ClothingItemEntity(
-                            item_id=item_dict['item_id'],
-                            category=ClothingCategory(item_dict['category']),
+                        # Convert database dict to ClothingItem (legacy type for OutfitSpec)
+                        # OutfitSpec expects ClothingItem, not ClothingItemEntity
+                        clothing_item = ClothingItem(
                             item=item_dict['item'],
                             fabric=item_dict['fabric'],
                             color=item_dict['color'],
@@ -178,7 +178,7 @@ class ModularImageGenerator:
             clothing_items=all_clothing_items,
             style_genre="Custom",
             formality="Custom",
-            aesthetic=None
+            aesthetic="Mixed"  # Required string field, can't be None
         )
 
     def generate(
