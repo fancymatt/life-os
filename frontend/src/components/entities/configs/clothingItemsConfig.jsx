@@ -1,5 +1,466 @@
+import { useState, useEffect } from 'react'
 import api from '../../../api/client'
 import { formatDate, getPreview } from './helpers'
+
+/**
+ * Preview component with job tracking
+ */
+function ClothingItemPreview({ item, onUpdate }) {
+  const [generatingJobId, setGeneratingJobId] = useState(null)
+  const [jobProgress, setJobProgress] = useState(null)
+
+  // Poll for job status if we're tracking a job
+  useEffect(() => {
+    if (!generatingJobId) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await api.get(`/jobs/${generatingJobId}`)
+        const job = response.data
+
+        setJobProgress(job.progress)
+
+        if (job.status === 'completed') {
+          console.log('✅ Preview generation completed, refreshing item data...')
+          setGeneratingJobId(null)
+          setJobProgress(null)
+          // Refresh the item to get the new preview image
+          if (onUpdate) onUpdate()
+        } else if (job.status === 'failed') {
+          console.error('❌ Preview generation failed')
+          setGeneratingJobId(null)
+          setJobProgress(null)
+        }
+      } catch (error) {
+        console.error('Failed to poll job status:', error)
+      }
+    }, 1000) // Poll every second
+
+    return () => clearInterval(pollInterval)
+  }, [generatingJobId, onUpdate])
+
+  const handleGeneratePreview = async (e) => {
+    const button = e.currentTarget
+    const originalText = button.textContent
+
+    try {
+      button.disabled = true
+      button.textContent = '⏳ Queueing...'
+
+      const response = await api.post(`/clothing-items/${item.itemId}/generate-preview`)
+      const jobId = response.data.job_id
+
+      console.log(`✅ Preview generation queued (Job: ${jobId})`)
+      button.textContent = '✅ Queued!'
+
+      // Start tracking this job
+      setTimeout(() => {
+        setGeneratingJobId(jobId)
+        button.textContent = originalText
+        button.disabled = false
+      }, 500)
+    } catch (error) {
+      console.error('Failed to queue preview generation:', error)
+      button.textContent = '❌ Failed'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    }
+  }
+
+  const handleCreateTestImage = async (e) => {
+    const button = e.currentTarget
+    const originalText = button.textContent
+
+    try {
+      button.disabled = true
+      button.textContent = '⏳ Queueing...'
+
+      const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
+        character_id: 'jenny',
+        visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'
+      })
+
+      console.log(`✅ Test image generation queued (Job: ${response.data.job_id})`)
+      button.textContent = '✅ Queued!'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to generate test image:', error)
+      button.textContent = '❌ Failed'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    }
+  }
+
+  return (
+    <div style={{ padding: '1rem' }}>
+      {/* Preview Image with loading overlay */}
+      <div style={{ position: 'relative', marginBottom: '1rem' }}>
+        {item.previewImage ? (
+          <div style={{
+            borderRadius: '8px',
+            overflow: 'hidden',
+            background: 'rgba(0, 0, 0, 0.3)'
+          }}>
+            <img
+              src={item.previewImage}
+              alt={item.item}
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block'
+              }}
+            />
+          </div>
+        ) : (
+          <div style={{
+            padding: '3rem 1rem',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '4rem'
+          }}>
+            {getCategoryIcon(item.category)}
+          </div>
+        )}
+
+        {/* Loading overlay when generating */}
+        {generatingJobId && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              fontSize: '3rem',
+              animation: 'spin 2s linear infinite'
+            }}>
+              🎨
+            </div>
+            <div style={{ color: 'white', fontSize: '0.95rem' }}>
+              Generating preview...
+            </div>
+            {jobProgress !== null && (
+              <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+                {Math.round(jobProgress)}%
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Generate Preview Button */}
+      <button
+        onClick={handleGeneratePreview}
+        disabled={generatingJobId !== null}
+        style={{
+          width: '100%',
+          padding: '0.75rem',
+          marginBottom: '0.5rem',
+          background: 'rgba(168, 85, 247, 0.2)',
+          border: '1px solid rgba(168, 85, 247, 0.3)',
+          borderRadius: '8px',
+          color: 'rgba(168, 85, 247, 1)',
+          cursor: generatingJobId ? 'not-allowed' : 'pointer',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          transition: 'all 0.2s',
+          opacity: generatingJobId ? 0.5 : 1
+        }}
+        onMouseEnter={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.3)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'
+          }
+        }}
+      >
+        🎨 Generate Preview
+      </button>
+
+      {/* Create Test Image Button */}
+      <button
+        onClick={handleCreateTestImage}
+        style={{
+          width: '100%',
+          padding: '0.75rem',
+          background: 'rgba(99, 102, 241, 0.2)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          borderRadius: '8px',
+          color: 'rgba(99, 102, 241, 1)',
+          cursor: 'pointer',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
+          }
+        }}
+      >
+        🎨 Create Test Image
+      </button>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+/**
+ * Detail component with job tracking
+ */
+function ClothingItemDetail({ item, onUpdate }) {
+  const [generatingJobId, setGeneratingJobId] = useState(null)
+  const [jobProgress, setJobProgress] = useState(null)
+
+  // Poll for job status if we're tracking a job
+  useEffect(() => {
+    if (!generatingJobId) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await api.get(`/jobs/${generatingJobId}`)
+        const job = response.data
+
+        setJobProgress(job.progress)
+
+        if (job.status === 'completed') {
+          console.log('✅ Preview generation completed, refreshing item data...')
+          setGeneratingJobId(null)
+          setJobProgress(null)
+          // Refresh the item to get the new preview image
+          if (onUpdate) onUpdate()
+        } else if (job.status === 'failed') {
+          console.error('❌ Preview generation failed')
+          setGeneratingJobId(null)
+          setJobProgress(null)
+        }
+      } catch (error) {
+        console.error('Failed to poll job status:', error)
+      }
+    }, 1000) // Poll every second
+
+    return () => clearInterval(pollInterval)
+  }, [generatingJobId, onUpdate])
+
+  const handleGeneratePreview = async (e) => {
+    const button = e.currentTarget
+    const originalText = button.textContent
+
+    try {
+      button.disabled = true
+      button.textContent = '⏳ Queueing...'
+
+      const response = await api.post(`/clothing-items/${item.itemId}/generate-preview`)
+      const jobId = response.data.job_id
+
+      console.log(`✅ Preview generation queued (Job: ${jobId})`)
+      button.textContent = '✅ Queued!'
+
+      // Start tracking this job
+      setTimeout(() => {
+        setGeneratingJobId(jobId)
+        button.textContent = originalText
+        button.disabled = false
+      }, 500)
+    } catch (error) {
+      console.error('Failed to queue preview generation:', error)
+      button.textContent = '❌ Failed'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    }
+  }
+
+  const handleCreateTestImage = async (e) => {
+    const button = e.currentTarget
+    const originalText = button.textContent
+
+    try {
+      button.disabled = true
+      button.textContent = '⏳ Queueing...'
+
+      const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
+        character_id: 'jenny',
+        visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'
+      })
+
+      console.log(`✅ Test image generation queued (Job: ${response.data.job_id})`)
+      button.textContent = '✅ Queued!'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to generate test image:', error)
+      button.textContent = '❌ Failed'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    }
+  }
+
+  return (
+    <div style={{ padding: '2rem' }}>
+      {/* Preview Image with loading overlay */}
+      {item.previewImage && (
+        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+          <div style={{
+            borderRadius: '8px',
+            overflow: 'hidden',
+            maxWidth: '400px'
+          }}>
+            <img
+              src={item.previewImage}
+              alt={item.item}
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block'
+              }}
+            />
+          </div>
+
+          {/* Loading overlay when generating */}
+          {generatingJobId && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.7)',
+              borderRadius: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{
+                fontSize: '3rem',
+                animation: 'spin 2s linear infinite'
+              }}>
+                🎨
+              </div>
+              <div style={{ color: 'white', fontSize: '0.95rem' }}>
+                Generating preview...
+              </div>
+              {jobProgress !== null && (
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+                  {Math.round(jobProgress)}%
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Generate Preview Button */}
+      <button
+        onClick={handleGeneratePreview}
+        disabled={generatingJobId !== null}
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          padding: '0.75rem',
+          marginBottom: '0.5rem',
+          background: 'rgba(168, 85, 247, 0.2)',
+          border: '1px solid rgba(168, 85, 247, 0.3)',
+          borderRadius: '8px',
+          color: 'rgba(168, 85, 247, 1)',
+          cursor: generatingJobId ? 'not-allowed' : 'pointer',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          transition: 'all 0.2s',
+          opacity: generatingJobId ? 0.5 : 1
+        }}
+        onMouseEnter={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.3)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'
+          }
+        }}
+      >
+        🎨 Generate Preview
+      </button>
+
+      {/* Create Test Image Button */}
+      <button
+        onClick={handleCreateTestImage}
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          padding: '0.75rem',
+          background: 'rgba(99, 102, 241, 0.2)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          borderRadius: '8px',
+          color: 'rgba(99, 102, 241, 1)',
+          cursor: 'pointer',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
+          }
+        }}
+      >
+        🎨 Create Test Image
+      </button>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 /**
  * Clothing Items Entity Configuration
@@ -16,16 +477,7 @@ export const clothingItemsConfig = {
   defaultSort: 'newest',
   searchFields: ['item', 'category', 'fabric', 'color', 'details'],
 
-  actions: [
-    {
-      label: 'Generate Preview',
-      icon: '🎨',
-      handler: async (item) => {
-        await api.post(`/clothing-items/${item.itemId}/generate-preview`)
-        // Job will appear in job queue automatically
-      }
-    }
-  ],
+  actions: [],
 
   fetchEntities: async (filterCategory = null) => {
     const url = filterCategory ? `/clothing-items/?category=${filterCategory}` : '/clothing-items/'
@@ -105,145 +557,9 @@ export const clothingItemsConfig = {
     </div>
   ),
 
-  renderPreview: (item) => {
-    const handleCreateTestImage = async () => {
-      try {
-        await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
-          character_id: 'jenny',
-          visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'  // White Studio preset UUID
-        })
-        // Job will appear in job queue automatically
-      } catch (error) {
-        console.error('Failed to generate test image:', error)
-      }
-    }
+  renderPreview: (item, onUpdate) => <ClothingItemPreview item={item} onUpdate={onUpdate} />,
 
-    return (
-      <div style={{ padding: '1rem' }}>
-        {/* Preview Image */}
-        {item.previewImage ? (
-          <div style={{
-            marginBottom: '1rem',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            background: 'rgba(0, 0, 0, 0.3)'
-          }}>
-            <img
-              src={item.previewImage}
-              alt={item.item}
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block'
-              }}
-            />
-          </div>
-        ) : (
-          <div style={{
-            marginBottom: '1rem',
-            padding: '3rem 1rem',
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '4rem'
-          }}>
-            {getCategoryIcon(item.category)}
-          </div>
-        )}
-
-        {/* Create Test Image Button */}
-        <button
-          onClick={handleCreateTestImage}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            background: 'rgba(99, 102, 241, 0.2)',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
-            borderRadius: '8px',
-            color: 'rgba(99, 102, 241, 1)',
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            fontWeight: '500',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
-          }}
-        >
-          🎨 Create Test Image
-        </button>
-      </div>
-    )
-  },
-
-  renderDetail: (item, handleBackToList, onUpdate) => {
-    const handleCreateTestImage = async () => {
-      try {
-        await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
-          character_id: 'jenny',
-          visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'  // White Studio preset UUID
-        })
-        // Job will appear in job queue automatically
-      } catch (error) {
-        console.error('Failed to generate test image:', error)
-      }
-    }
-
-    return (
-      <div style={{ padding: '2rem' }}>
-        {/* Preview Image */}
-        {item.previewImage && (
-          <div style={{
-            marginBottom: '1rem',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            maxWidth: '400px'
-          }}>
-            <img
-              src={item.previewImage}
-              alt={item.item}
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block'
-              }}
-            />
-          </div>
-        )}
-
-        {/* Create Test Image Button */}
-        <button
-          onClick={handleCreateTestImage}
-          style={{
-            width: '100%',
-            maxWidth: '400px',
-            padding: '0.75rem',
-            background: 'rgba(99, 102, 241, 0.2)',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
-            borderRadius: '8px',
-            color: 'rgba(99, 102, 241, 1)',
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            fontWeight: '500',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
-          }}
-        >
-          🎨 Create Test Image
-        </button>
-      </div>
-    )
-  },
+  renderDetail: (item, handleBackToList, onUpdate) => <ClothingItemDetail item={item} onUpdate={onUpdate} />,
 
   renderEdit: (item, editedData, editedTitle, handlers) => (
     <div>
