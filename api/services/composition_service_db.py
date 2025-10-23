@@ -34,7 +34,8 @@ class CompositionServiceDB:
     async def list_compositions(
         self,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """
         List all compositions for the current user
@@ -42,6 +43,7 @@ class CompositionServiceDB:
         Args:
             limit: Maximum number of compositions to return
             offset: Number of compositions to skip
+            include_archived: If True, include archived compositions. Default False.
 
         Returns:
             List of composition data dicts
@@ -49,7 +51,8 @@ class CompositionServiceDB:
         compositions = await self.repository.list_all(
             user_id=self.user_id,
             limit=limit,
-            offset=offset
+            offset=offset,
+            include_archived=include_archived
         )
         return [self._composition_to_dict(comp) for comp in compositions]
 
@@ -115,11 +118,40 @@ class CompositionServiceDB:
         await self.session.commit()
         return True
 
-    async def count_compositions(self) -> int:
+    async def archive_composition(self, composition_id: str) -> bool:
+        """Archive composition (soft delete)"""
+        composition = await self.repository.get_by_id(composition_id)
+        if not composition:
+            return False
+        if self.user_id and composition.user_id != self.user_id:
+            return False
+
+        success = await self.repository.archive(composition_id)
+        if success:
+            await self.session.commit()
+        return success
+
+    async def unarchive_composition(self, composition_id: str) -> bool:
+        """Unarchive composition"""
+        composition = await self.repository.get_by_id(composition_id)
+        if not composition:
+            return False
+        if self.user_id and composition.user_id != self.user_id:
+            return False
+
+        success = await self.repository.unarchive(composition_id)
+        if success:
+            await self.session.commit()
+        return success
+
+    async def count_compositions(self, include_archived: bool = False) -> int:
         """
         Count total compositions (filtered by user if specified)
+
+        Args:
+            include_archived: If True, include archived compositions. Default False.
 
         Returns:
             Total number of compositions
         """
-        return await self.repository.count(user_id=self.user_id)
+        return await self.repository.count(user_id=self.user_id, include_archived=include_archived)

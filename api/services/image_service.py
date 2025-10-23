@@ -285,6 +285,64 @@ class ImageService:
 
         return success
 
+    async def archive_image(self, image_id: str) -> bool:
+        """
+        Archive an image (soft delete)
+
+        Args:
+            image_id: UUID of the image
+
+        Returns:
+            True if archived, False if not found
+        """
+        image = await self.image_repository.get_by_id(image_id)
+
+        if not image:
+            return False
+
+        # Check user permission
+        if self.user_id and image.user_id != self.user_id:
+            return False
+
+        success = await self.image_repository.archive(image_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Archived image: {image_id}", extra={'extra_fields': {
+                'image_id': image_id
+            }})
+
+        return success
+
+    async def unarchive_image(self, image_id: str) -> bool:
+        """
+        Unarchive an image
+
+        Args:
+            image_id: UUID of the image
+
+        Returns:
+            True if unarchived, False if not found
+        """
+        image = await self.image_repository.get_by_id(image_id)
+
+        if not image:
+            return False
+
+        # Check user permission
+        if self.user_id and image.user_id != self.user_id:
+            return False
+
+        success = await self.image_repository.unarchive(image_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Unarchived image: {image_id}", extra={'extra_fields': {
+                'image_id': image_id
+            }})
+
+        return success
+
     async def count_images_by_entity(
         self,
         entity_type: str,
@@ -308,7 +366,8 @@ class ImageService:
     async def list_all_images(
         self,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """
         List all images with their entity relationships
@@ -316,6 +375,7 @@ class ImageService:
         Args:
             limit: Maximum number of images to return
             offset: Number of images to skip
+            include_archived: If True, include archived images. Default False.
 
         Returns:
             List of image dicts with relationships
@@ -325,7 +385,11 @@ class ImageService:
         from sqlalchemy import select
         from api.models.db import Character, ClothingItem
 
-        images = await self.image_repository.get_all(limit=limit, offset=offset)
+        images = await self.image_repository.get_all(
+            limit=limit,
+            offset=offset,
+            include_archived=include_archived
+        )
 
         results = []
         for image in images:
@@ -398,11 +462,14 @@ class ImageService:
 
         return results
 
-    async def count_all_images(self) -> int:
+    async def count_all_images(self, include_archived: bool = False) -> int:
         """
         Count total number of images
+
+        Args:
+            include_archived: If True, include archived images. Default False.
 
         Returns:
             Total count of images
         """
-        return await self.image_repository.count_all()
+        return await self.image_repository.count(include_archived=include_archived)

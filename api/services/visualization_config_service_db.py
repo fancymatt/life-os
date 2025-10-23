@@ -60,7 +60,8 @@ class VisualizationConfigServiceDB:
         self,
         entity_type: Optional[str] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """
         List all visualization configs, optionally filtered by entity type
@@ -69,6 +70,7 @@ class VisualizationConfigServiceDB:
             entity_type: Optional filter by entity type (e.g., "clothing_item", "character")
             limit: Maximum number of configs to return
             offset: Number of configs to skip
+            include_archived: If True, include archived configs. Default False.
 
         Returns:
             List of visualization config dicts
@@ -77,7 +79,8 @@ class VisualizationConfigServiceDB:
             entity_type=entity_type,
             user_id=self.user_id,
             limit=limit,
-            offset=offset
+            offset=offset,
+            include_archived=include_archived
         )
         return [self._config_to_dict(config) for config in configs]
 
@@ -275,19 +278,83 @@ class VisualizationConfigServiceDB:
 
         return success
 
-    async def count_configs(self, entity_type: Optional[str] = None) -> int:
+    async def archive_config(self, config_id: str) -> bool:
+        """
+        Archive a visualization config (soft delete)
+
+        Args:
+            config_id: UUID of the config
+
+        Returns:
+            True if archived, False if not found
+        """
+        config = await self.repository.get_by_id(config_id)
+
+        if not config:
+            return False
+
+        # Check user permission
+        if self.user_id and config.user_id != self.user_id:
+            return False
+
+        # Check if this is a default config
+        if config.is_default:
+            logger.warning(f"Warning: Archiving default config for {config.entity_type}")
+
+        success = await self.repository.archive(config_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Archived visualization config: {config_id}")
+
+        return success
+
+    async def unarchive_config(self, config_id: str) -> bool:
+        """
+        Unarchive a visualization config
+
+        Args:
+            config_id: UUID of the config
+
+        Returns:
+            True if unarchived, False if not found
+        """
+        config = await self.repository.get_by_id(config_id)
+
+        if not config:
+            return False
+
+        # Check user permission
+        if self.user_id and config.user_id != self.user_id:
+            return False
+
+        success = await self.repository.unarchive(config_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Unarchived visualization config: {config_id}")
+
+        return success
+
+    async def count_configs(
+        self,
+        entity_type: Optional[str] = None,
+        include_archived: bool = False
+    ) -> int:
         """
         Count total visualization configs (before pagination)
 
         Args:
             entity_type: Optional filter by entity type
+            include_archived: If True, include archived configs. Default False.
 
         Returns:
             Total number of configs matching the filter
         """
         return await self.repository.count(
             entity_type=entity_type,
-            user_id=self.user_id
+            user_id=self.user_id,
+            include_archived=include_archived
         )
 
     async def get_entity_types_summary(self) -> Dict[str, int]:

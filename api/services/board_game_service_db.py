@@ -167,7 +167,8 @@ class BoardGameServiceDB:
     async def list_board_games(
         self,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """
         List all board games (filtered by user if specified)
@@ -175,6 +176,7 @@ class BoardGameServiceDB:
         Args:
             limit: Maximum number of board games to return
             offset: Number of board games to skip
+            include_archived: If True, include archived board games. Default False.
 
         Returns:
             List of board game data dicts
@@ -182,7 +184,8 @@ class BoardGameServiceDB:
         board_games = await self.repository.get_all(
             user_id=self.user_id,
             limit=limit,
-            offset=offset
+            offset=offset,
+            include_archived=include_archived
         )
         return [self._board_game_to_dict(game) for game in board_games]
 
@@ -294,11 +297,72 @@ class BoardGameServiceDB:
 
         return success
 
-    async def count_board_games(self) -> int:
+    async def archive_board_game(self, game_id: str) -> bool:
+        """
+        Archive a board game (soft delete)
+
+        Args:
+            game_id: Board game ID
+
+        Returns:
+            True if archived, False if not found
+        """
+        board_game = await self.repository.get_by_id(game_id)
+
+        if not board_game:
+            return False
+
+        # Check user permission
+        if self.user_id and board_game.user_id != self.user_id:
+            return False
+
+        success = await self.repository.archive(game_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Archived board game: {game_id}", extra={'extra_fields': {
+                'game_id': game_id
+            }})
+
+        return success
+
+    async def unarchive_board_game(self, game_id: str) -> bool:
+        """
+        Unarchive a board game
+
+        Args:
+            game_id: Board game ID
+
+        Returns:
+            True if unarchived, False if not found
+        """
+        board_game = await self.repository.get_by_id(game_id)
+
+        if not board_game:
+            return False
+
+        # Check user permission
+        if self.user_id and board_game.user_id != self.user_id:
+            return False
+
+        success = await self.repository.unarchive(game_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Unarchived board game: {game_id}", extra={'extra_fields': {
+                'game_id': game_id
+            }})
+
+        return success
+
+    async def count_board_games(self, include_archived: bool = False) -> int:
         """
         Count total board games (filtered by user if specified)
+
+        Args:
+            include_archived: If True, include archived board games. Default False.
 
         Returns:
             Total number of board games
         """
-        return await self.repository.count(user_id=self.user_id)
+        return await self.repository.count(user_id=self.user_id, include_archived=include_archived)

@@ -37,9 +37,17 @@ class OutfitServiceDB:
             "updated_at": outfit.updated_at.isoformat() if outfit.updated_at else None,
         }
 
-    async def list_outfits(self, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
+    async def list_outfits(
+        self,
+        limit: Optional[int] = None,
+        offset: int = 0,
+        include_archived: bool = False
+    ) -> List[Dict[str, Any]]:
         """List all outfits"""
-        outfits = await self.repository.list_all(user_id=self.user_id)
+        outfits = await self.repository.list_all(
+            user_id=self.user_id,
+            include_archived=include_archived
+        )
 
         # Apply pagination
         if offset:
@@ -120,6 +128,32 @@ class OutfitServiceDB:
         await self.repository.delete(outfit)
         await self.session.commit()
         return True
+
+    async def archive_outfit(self, outfit_id: str) -> bool:
+        """Archive outfit (soft delete)"""
+        outfit = await self.repository.get_by_id(outfit_id)
+        if not outfit:
+            return False
+        if self.user_id and outfit.user_id != self.user_id:
+            return False
+
+        success = await self.repository.archive(outfit_id)
+        if success:
+            await self.session.commit()
+        return success
+
+    async def unarchive_outfit(self, outfit_id: str) -> bool:
+        """Unarchive outfit"""
+        outfit = await self.repository.get_by_id(outfit_id)
+        if not outfit:
+            return False
+        if self.user_id and outfit.user_id != self.user_id:
+            return False
+
+        success = await self.repository.unarchive(outfit_id)
+        if success:
+            await self.session.commit()
+        return success
 
     async def add_item_to_outfit(self, outfit_id: str, item_id: str) -> Optional[Dict[str, Any]]:
         """Add item to outfit"""

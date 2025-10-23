@@ -60,7 +60,8 @@ class ClothingItemServiceDB:
         self,
         category: Optional[str] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """
         List all clothing items, optionally filtered by category
@@ -69,6 +70,7 @@ class ClothingItemServiceDB:
             category: Optional category filter (e.g., "tops", "bottoms")
             limit: Maximum number of items to return
             offset: Number of items to skip
+            include_archived: If True, include archived items. Default False.
 
         Returns:
             List of clothing item dicts
@@ -78,7 +80,8 @@ class ClothingItemServiceDB:
             user_id=self.user_id,
             category=category,
             limit=limit,
-            offset=offset
+            offset=offset,
+            include_archived=include_archived
         )
 
         # Convert to dicts
@@ -263,6 +266,64 @@ class ClothingItemServiceDB:
 
         return success
 
+    async def archive_clothing_item(self, item_id: str) -> bool:
+        """
+        Archive a clothing item (soft delete)
+
+        Args:
+            item_id: UUID of the clothing item
+
+        Returns:
+            True if archived, False if not found
+        """
+        clothing_item = await self.repository.get_by_id(item_id)
+
+        if not clothing_item:
+            return False
+
+        # Check user permission
+        if self.user_id and clothing_item.user_id != self.user_id:
+            return False
+
+        success = await self.repository.archive(item_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Archived clothing item: {item_id}", extra={'extra_fields': {
+                'item_id': item_id
+            }})
+
+        return success
+
+    async def unarchive_clothing_item(self, item_id: str) -> bool:
+        """
+        Unarchive a clothing item
+
+        Args:
+            item_id: UUID of the clothing item
+
+        Returns:
+            True if unarchived, False if not found
+        """
+        clothing_item = await self.repository.get_by_id(item_id)
+
+        if not clothing_item:
+            return False
+
+        # Check user permission
+        if self.user_id and clothing_item.user_id != self.user_id:
+            return False
+
+        success = await self.repository.unarchive(item_id)
+
+        if success:
+            await self.session.commit()
+            logger.info(f"Unarchived clothing item: {item_id}", extra={'extra_fields': {
+                'item_id': item_id
+            }})
+
+        return success
+
     async def get_categories_summary(self) -> Dict[str, int]:
         """
         Get count of items per category
@@ -276,17 +337,26 @@ class ClothingItemServiceDB:
         # Convert list of tuples to dict
         return {category: count for category, count in categories}
 
-    async def count_clothing_items(self, category: Optional[str] = None) -> int:
+    async def count_clothing_items(
+        self,
+        category: Optional[str] = None,
+        include_archived: bool = False
+    ) -> int:
         """
         Count total clothing items (filtered by user and optionally by category)
 
         Args:
             category: Optional category filter
+            include_archived: If True, include archived items. Default False.
 
         Returns:
             Total number of clothing items
         """
-        return await self.repository.count(user_id=self.user_id, category=category)
+        return await self.repository.count(
+            user_id=self.user_id,
+            category=category,
+            include_archived=include_archived
+        )
 
     def _generate_preview_safe(self, item_id: str):
         """
