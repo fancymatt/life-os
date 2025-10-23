@@ -356,7 +356,7 @@ class ImageService:
                         entity_name = item_name
                 elif rel.entity_type == 'visual_style' or rel.entity_type == 'preset':
                     # Read preset file to get name
-                    preset_path = Path(f"/app/presets/visual_style/{rel.entity_id}.json")
+                    preset_path = Path(f"/app/presets/visual_styles/{rel.entity_id}.json")
                     if preset_path.exists():
                         try:
                             async with aiofiles.open(preset_path, 'r') as f:

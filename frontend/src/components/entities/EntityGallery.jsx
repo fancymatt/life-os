@@ -233,7 +233,7 @@ function EntityGallery({ entityType, entityId }) {
                     {image.entities[entityType].map((entity, idx) => (
                       <Link
                         key={idx}
-                        to={getEntityRoute(entityType)}
+                        to={`${getEntityRoute(entityType)}/${entity.entity_id}`}
                         className="gallery-detail-entity-badge"
                       >
                         {entity.entity_name || entity.entity_id}

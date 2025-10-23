@@ -194,7 +194,7 @@ export const imagesConfig = {
                   {image.entities[entityType].map((entity, idx) => (
                     <Link
                       key={idx}
-                      to={getEntityRoute(entityType)}
+                      to={`${getEntityRoute(entityType)}/${entity.entity_id}`}
                       style={{
                         padding: '0.5rem 0.75rem',
                         background: 'rgba(255, 255, 255, 0.05)',
