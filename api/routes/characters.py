@@ -68,6 +68,8 @@ async def list_characters(
             reference_image_url=ref_image_url,
             tags=char.get('tags', []),
             created_at=char.get('created_at'),
+            archived=char.get('archived', False),
+            archived_at=char.get('archived_at'),
             metadata=char.get('metadata', {}),
             age=char.get('age'),
             skin_tone=char.get('skin_tone'),
@@ -493,9 +495,10 @@ async def delete_character(
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
-    Delete a character
+    Archive a character (soft delete)
 
-    Removes the character and its associated reference image.
+    Archives the character instead of permanently deleting it.
+    Archived characters are hidden from default listings but can be restored.
 
     **Cache Invalidation**: Clears all character caches
     """
@@ -505,7 +508,53 @@ async def delete_character(
     if not success:
         raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
 
-    return {"message": f"Character {character_id} deleted successfully"}
+    return {"message": f"Character {character_id} archived successfully"}
+
+
+@router.post("/{character_id}/archive")
+@invalidates_cache(entity_types=["characters"])
+async def archive_character(
+    character_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Archive a character
+
+    Hides the character from default listings. Archived characters can be restored later.
+
+    **Cache Invalidation**: Clears all character caches
+    """
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.archive_character(character_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
+
+    return {"message": f"Character {character_id} archived successfully", "archived": True}
+
+
+@router.post("/{character_id}/unarchive")
+@invalidates_cache(entity_types=["characters"])
+async def unarchive_character(
+    character_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Unarchive a character
+
+    Restores an archived character to active status.
+
+    **Cache Invalidation**: Clears all character caches
+    """
+    service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.unarchive_character(character_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
+
+    return {"message": f"Character {character_id} restored successfully", "archived": False}
 
 
 @router.post("/{character_id}/re-analyze-appearance", response_model=CharacterInfo)

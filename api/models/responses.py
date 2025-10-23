@@ -119,6 +119,8 @@ class CharacterInfo(BaseModel):
     reference_image_url: Optional[str] = None
     tags: List[str] = []
     created_at: Optional[str] = None
+    archived: bool = False
+    archived_at: Optional[str] = None
     metadata: Dict[str, Any] = {}
 
     # Detailed appearance fields (from character_appearance_analyzer)
