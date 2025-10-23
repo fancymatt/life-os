@@ -276,7 +276,28 @@ export const visualizationConfigsConfig = {
       label: 'New Config',
       icon: '+',
       primary: true,
-      path: '/tools/visualization-config'
+      handler: async () => {
+        // Create a new minimal visualization config
+        const response = await api.post('/visualization-configs/', {
+          entity_type: 'character',  // Default entity type
+          display_name: 'New Visualization Config',
+          composition_style: '',
+          framing: 'medium',
+          angle: 'front',
+          background: 'white',
+          lighting: 'soft_even',
+          additional_instructions: '',
+          image_size: '1024x1024',
+          model: 'gemini/gemini-2.5-flash-image',
+          is_default: false
+        })
+
+        // Return the new config ID to trigger navigation
+        return {
+          success: true,
+          navigateTo: `/entities/visualization-configs/${response.data.config_id}`
+        }
+      }
     }
   ],
 
