@@ -620,6 +620,7 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
 
             # Create a temporary outfit spec with morphsuit + clothing item
             from ai_capabilities.specs import OutfitSpec, ClothingItemEntity
+            import uuid
 
             # Build outfit description with morphsuit + specific item
             morphsuit_outfit = OutfitSpec(
@@ -629,13 +630,15 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
                 aesthetic=f"Black morphsuit showcasing {item['item']}",
                 clothing_items=[
                     ClothingItemEntity(
-                        category="full_body",
+                        item_id=str(uuid.uuid4()),  # Temporary ID
+                        category="one_piece",  # Morphsuit is a one-piece garment
                         item="black morphsuit",
                         fabric="stretch jersey",
                         color="solid black",
                         details="Full body coverage from neck to ankles, completely black and featureless, serves as neutral base"
                     ),
                     ClothingItemEntity(
+                        item_id=item['item_id'],
                         category=item['category'],
                         item=item['item'],
                         fabric=item['fabric'],
