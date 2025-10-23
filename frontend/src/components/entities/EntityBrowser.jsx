@@ -425,22 +425,54 @@ function EntityBrowser({ config }) {
   const handleAction = async (action, entity = null) => {
     if (action.handler) {
       // Handler-based action (async function)
-      setSaving(true)
+      // Don't block UI - just fire and forget for job-queueing actions
       setError(null)
       try {
-        await action.handler(entity || selectedEntity)
-        // Refresh data after action
-        fetchData()
+        const result = await action.handler(entity || selectedEntity)
+        // If action returns success=false, show error
+        if (result && result.success === false) {
+          setError(result.message || 'Action failed')
+        }
+        // Refresh data after action (but don't block UI)
+        setTimeout(() => fetchData(), 1000)
       } catch (err) {
         console.error('Action failed:', err)
         setError(err.response?.data?.detail || err.message || 'Action failed')
-      } finally {
-        setSaving(false)
       }
     } else if (action.onClick) {
       action.onClick()
     } else if (action.path) {
       navigate(action.path)
+    }
+  }
+
+  // Callback for child components to refresh current entity data
+  const handleEntityUpdate = async () => {
+    if (!selectedEntity) return
+
+    try {
+      // Refresh all entities
+      const data = await config.fetchEntities()
+      setEntities(data)
+
+      // Find the updated version of the currently selected entity
+      const entityId = selectedEntity.presetId || selectedEntity.characterId || selectedEntity.id
+      const updatedEntity = data.find(e => {
+        const eId = e.presetId || e.characterId || e.id
+        return eId === entityId
+      })
+
+      if (updatedEntity) {
+        setSelectedEntity(updatedEntity)
+
+        // If entity has data and we're editing, update edit state too
+        if (updatedEntity.data) {
+          setEditedData(JSON.parse(JSON.stringify(updatedEntity.data || {})))
+          setEditedTitle(updatedEntity.title || '')
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh entity:', err)
     }
   }
 
@@ -656,7 +688,7 @@ function EntityBrowser({ config }) {
                   </>
                 ) : (
                   // For entities without edit capability, just show renderDetail
-                  config.renderDetail(selectedEntity, handleBackToList)
+                  config.renderDetail(selectedEntity, handleBackToList, handleEntityUpdate)
                 )}
               </div>
             ) : (
@@ -665,7 +697,7 @@ function EntityBrowser({ config }) {
                 {/* Left Column - Preview */}
                 <div className="entity-detail-preview">
                   {config.renderPreview ? (
-                    config.renderPreview(selectedEntity)
+                    config.renderPreview(selectedEntity, handleEntityUpdate)
                   ) : (
                     <div style={{ background: 'rgba(0, 0, 0, 0.3)', borderRadius: '8px', padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
                       Preview not available
@@ -716,7 +748,7 @@ function EntityBrowser({ config }) {
                     </>
                   ) : (
                     // For entities without edit capability, just show renderDetail
-                    config.renderDetail(selectedEntity, handleBackToList)
+                    config.renderDetail(selectedEntity, handleBackToList, handleEntityUpdate)
                   )}
                 </div>
               </div>
