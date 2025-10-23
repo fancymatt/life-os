@@ -106,11 +106,63 @@ life-os/
 
 ### Backend
 - **Framework**: FastAPI 0.104+ (async Python web framework)
+- **Database**: PostgreSQL 15 with asyncpg (SQLAlchemy 2.0 async ORM)
 - **LLM Routing**: LiteLLM (multi-provider support: Gemini, OpenAI, Claude)
 - **Job Queue**: Redis (with in-memory fallback)
 - **Authentication**: JWT (python-jose)
 - **File I/O**: aiofiles (async file operations)
 - **Image Processing**: Pillow
+
+### 🚨 CRITICAL: Database Architecture
+
+**WE USE POSTGRESQL, NOT JSON FILES OR SQLITE**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ ACTIVE DATABASE: PostgreSQL                            │
+│ - Host: ai-studio-postgres (Docker container)          │
+│ - Database: lifeos                                      │
+│ - User: lifeos                                          │
+│ - Connection: postgresql+asyncpg://lifeos:password@... │
+│ - Tables: characters, clothing_items, outfits, stories │
+│           images, users, favorites, etc.                │
+└─────────────────────────────────────────────────────────┘
+```
+
+**How to Query the Database:**
+```bash
+# ✅ CORRECT - Query PostgreSQL
+docker exec ai-studio-postgres psql -U lifeos -d lifeos -c "SELECT COUNT(*) FROM clothing_items;"
+
+# ✅ CORRECT - Query via Python
+docker exec ai-studio-api python3 -c "
+import asyncio
+from api.database import get_session
+from sqlalchemy import text
+
+async def count_items():
+    async with get_session() as db:
+        result = await db.execute(text('SELECT COUNT(*) FROM clothing_items'))
+        print(result.scalar())
+
+asyncio.run(count_items())
+"
+
+# ❌ WRONG - Don't query SQLite (doesn't exist)
+# ❌ WRONG - Don't read JSON files (old/deprecated data)
+```
+
+**Where Data is Stored:**
+- **Database records**: PostgreSQL tables (characters, clothing_items, etc.)
+- **Generated images**: `output/` directory (PNG files)
+- **Uploaded images**: `uploads/` directory
+- **Presets**: `presets/` directory (JSON files - still used for presets only)
+- **Cache**: `cache/` directory (temporary analysis results)
+
+**Old JSON files in `data/` are DEPRECATED:**
+- `data/characters/*.json` - OLD (now in PostgreSQL `characters` table)
+- `data/clothing_items/*.json` - OLD (now in PostgreSQL `clothing_items` table)
+- These files are no longer used and have been deleted to prevent confusion
 
 ### Frontend
 - **Framework**: React 18.2
@@ -416,13 +468,21 @@ docker-compose run --rm api pytest tests/unit/ -v
 
 ### Database Operations
 ```bash
+# PostgreSQL (main database)
+docker exec ai-studio-postgres psql -U lifeos -d lifeos
+
+# Common queries
+docker exec ai-studio-postgres psql -U lifeos -d lifeos -c "\dt"  # List tables
+docker exec ai-studio-postgres psql -U lifeos -d lifeos -c "SELECT COUNT(*) FROM clothing_items;"
+docker exec ai-studio-postgres psql -U lifeos -d lifeos -c "SELECT * FROM characters LIMIT 5;"
+
 # Redis (job queue)
 docker exec -it ai-studio-redis redis-cli
 
-# Data files
-ls data/users.json              # User accounts
-ls data/favorites/              # User favorites (per user)
-ls data/compositions/           # Saved compositions (per user)
+# Static files (NOT in database)
+ls presets/                     # Preset JSON files (still file-based)
+ls output/                      # Generated images
+ls uploads/                     # Uploaded images
 ```
 
 ---
