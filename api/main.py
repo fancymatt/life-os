@@ -24,13 +24,38 @@ setup_logging(log_dir=settings.base_dir / "logs", log_level="INFO")
 # Get logger for main module
 logger = get_logger(__name__)
 
+
+# Database lifecycle management
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan: startup and shutdown events
+    """
+    # Startup
+    from api.database import init_db
+
+    logger.info("Initializing database...")
+    await init_db()
+    logger.info("Database initialized")
+
+    yield
+
+    # Shutdown
+    from api.database import close_db
+    await close_db()
+    logger.info("Application shutdown complete")
+
+
 # Create FastAPI app
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
     description=settings.api_description,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Track start time for uptime
