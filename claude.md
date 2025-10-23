@@ -178,6 +178,65 @@ life-os/
 
 ## Coding Standards & Patterns
 
+### 🚨 CRITICAL: Logging Standards (NEVER USE print())
+
+**MANDATORY**: This codebase uses structured logging. **NEVER** add `print()` statements.
+
+We have cleaned up print statements MULTIPLE times. Do not reintroduce them.
+
+#### ✅ CORRECT - Use structured logging:
+```python
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+# Success/Info messages
+logger.info(f"Created character: {character_id}")
+logger.info(f"Processing {count} items", extra={'extra_fields': {'count': count}})
+
+# Warnings
+logger.warning(f"Failed to load config: {error}")
+logger.warning("API rate limit approaching")
+
+# Errors
+logger.error(f"Database connection failed: {error}")
+logger.error("Image generation timed out", extra={'extra_fields': {'timeout': 30}})
+```
+
+#### ❌ WRONG - Never use print():
+```python
+# ❌ NEVER DO THIS
+print("Created character")
+print(f"Processing {count} items")
+print(f"Error: {error}")
+```
+
+#### Why This Matters:
+- **Structured logs** → Searchable JSON with timestamps, request IDs, and context
+- **print() statements** → Unstructured text that's hard to search and analyze
+- **Production debugging** → Logs go to files and aggregation systems, not stdout
+- **Performance** → print() can block I/O and slow down async operations
+
+#### If You Need to Debug:
+```python
+# ✅ Use logger.debug for temporary debugging
+logger.debug(f"Variable value: {variable}")
+
+# ✅ Use logging context for structured data
+logger.info("Task completed", extra={'extra_fields': {
+    'duration_ms': duration,
+    'item_count': len(items),
+    'status': 'success'
+}})
+```
+
+#### Enforcement:
+- A pre-commit hook will be added to reject any new `print()` statements
+- Use `scripts/replace_print_with_logging.py` if you accidentally add prints
+- Code reviews will flag any print() statements
+
+---
+
 ### Backend Patterns
 ```python
 # Use async file I/O
