@@ -105,67 +105,85 @@ export const clothingItemsConfig = {
     </div>
   ),
 
-  renderPreview: (item) => (
-    <div style={{ padding: '1rem' }}>
-      {/* Preview Image */}
-      {item.previewImage ? (
-        <div style={{
-          marginBottom: '1rem',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          background: 'rgba(0, 0, 0, 0.3)'
-        }}>
-          <img
-            src={item.previewImage}
-            alt={item.item}
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block'
-            }}
-          />
-        </div>
-      ) : (
-        <div style={{
-          marginBottom: '1rem',
-          padding: '3rem 1rem',
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '4rem'
-        }}>
-          {getCategoryIcon(item.category)}
-        </div>
-      )}
+  renderPreview: (item) => {
+    const handleCreateTestImage = async () => {
+      try {
+        const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
+          character_id: 'jenny',
+          visual_style: 'White Studio'
+        })
 
-      <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <span style={{ fontSize: '2.5rem' }}>{getCategoryIcon(item.category)}</span>
-        <span style={{
-          padding: '0.5rem 0.75rem',
-          background: 'rgba(99, 102, 241, 0.2)',
-          borderRadius: '6px',
-          fontSize: '0.85rem',
-          color: 'rgba(99, 102, 241, 1)',
-          fontWeight: '500',
-          textTransform: 'capitalize'
-        }}>
-          {item.category.replace('_', ' ')}
-        </span>
+        if (response.data.job_id) {
+          alert('Test image generation started! Check the job queue for progress.')
+        }
+      } catch (error) {
+        console.error('Failed to generate test image:', error)
+        alert('Failed to start test image generation: ' + (error.response?.data?.detail || error.message))
+      }
+    }
+
+    return (
+      <div style={{ padding: '1rem' }}>
+        {/* Preview Image */}
+        {item.previewImage ? (
+          <div style={{
+            marginBottom: '1rem',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            background: 'rgba(0, 0, 0, 0.3)'
+          }}>
+            <img
+              src={item.previewImage}
+              alt={item.item}
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block'
+              }}
+            />
+          </div>
+        ) : (
+          <div style={{
+            marginBottom: '1rem',
+            padding: '3rem 1rem',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '4rem'
+          }}>
+            {getCategoryIcon(item.category)}
+          </div>
+        )}
+
+        {/* Create Test Image Button */}
+        <button
+          onClick={handleCreateTestImage}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            background: 'rgba(99, 102, 241, 0.2)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            borderRadius: '8px',
+            color: 'rgba(99, 102, 241, 1)',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
+          }}
+        >
+          🎨 Create Test Image
+        </button>
       </div>
-      <h3 style={{ color: 'white', margin: '0 0 0.75rem 0', fontSize: '1.1rem' }}>{item.item}</h3>
-      <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '0.5rem' }}>
-        <strong>Color:</strong> {item.color}
-      </div>
-      <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '0.75rem' }}>
-        <strong>Fabric:</strong> {item.fabric}
-      </div>
-      <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-        {getPreview(item.details, 40)}
-      </div>
-    </div>
-  ),
+    )
+  },
 
   renderDetail: (item, handleBackToList, onUpdate) => {
     const handleCreateTestImage = async () => {
