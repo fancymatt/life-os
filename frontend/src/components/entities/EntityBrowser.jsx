@@ -495,7 +495,8 @@ function EntityBrowser({ config }) {
         setSelectedEntity(updatedEntity)
 
         // If entity has data and we're editing, update edit state too
-        if (updatedEntity.data) {
+        // BUT: Only update if the data is not empty (preset entities return empty data: {} in list view)
+        if (updatedEntity.data && Object.keys(updatedEntity.data).length > 0) {
           setEditedData(JSON.parse(JSON.stringify(updatedEntity.data || {})))
           setEditedTitle(updatedEntity.title || '')
         }

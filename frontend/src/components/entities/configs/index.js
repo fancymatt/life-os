@@ -26,3 +26,4 @@ export {
   storyWriterConfigsConfig,
   storyIllustratorConfigsConfig
 } from './storyToolsConfig'
+export { visualizationConfigsConfig } from './visualizationConfigsConfig'

@@ -1,0 +1,18 @@
+{
+  "config_id": "30867301-9f34-4747-a4d8-0dde301b12c2",
+  "entity_type": "hair_style",
+  "display_name": "Hair Style on Mannequin",
+  "composition_style": "mannequin",
+  "framing": "medium",
+  "angle": "three_quarter",
+  "background": "white",
+  "art_style_id": "",
+  "lighting": "soft_even",
+  "reference_image_path": "/uploads/viz_config_30867301-9f34-4747-a4d8-0dde301b12c2.png",
+  "additional_instructions": "Use nondescript mannequin with de-emphasized facial features. The hair style itself should pop. ALWAYS use brown hair. ONLY show one mannequin, not multiple. Mannequin should be facing screen right.",
+  "image_size": "1024x1024",
+  "model": "gemini/gemini-2.5-flash-image",
+  "created_at": "2025-10-23T12:07:04.741105",
+  "updated_at": "2025-10-23T18:17:02.303799",
+  "is_default": true
+}

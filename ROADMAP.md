@@ -184,7 +184,46 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 
 ### 1.3 Code Quality Improvements ⚠️ **PARTIAL**
 
-**STATUS**: Logging infrastructure in progress, refactoring not started
+**STATUS**: Logging infrastructure in progress, defensive programming started, refactoring not started
+
+**Defensive Programming & Bug Prevention** ✅ **STARTED** (2025-10-23):
+
+**Context**: Spent significant time debugging fundamental issues (file paths, cache invalidation, state management) that shouldn't require deep troubleshooting. As the app scales, these issues become unsustainable.
+
+**Implemented Preventative Measures**:
+- ✅ **File path utilities** (`api/utils/file_paths.py`)
+  - `normalize_container_path()` - Auto-fix `/uploads/` → `/app/uploads/`
+  - `validate_file_exists()` - Check files with helpful error messages
+  - `ensure_app_prefix()` - Normalize paths for storage
+  - Prevents silent failures when files not found
+  - Detailed error messages suggest fixes
+- ✅ **Visualizer validation** (`ai_tools/shared/visualizer.py`)
+  - Uses file path validation with auto-normalization
+  - Clear logging when reference images not found
+  - Explains fallback behavior (Gemini → DALL-E)
+- ✅ **Common Pitfalls Documentation** (`CLAUDE.md`)
+  - Section: "Common Pitfalls & Preventative Measures"
+  - Documents 4 recurring issues with solutions:
+    1. File path mismatches (container vs host paths)
+    2. Cache invalidation pattern bugs
+    3. Frontend not using server response
+    4. Conflicting prompt details in visualizations
+  - Includes error symptoms, when to use, prevention strategies
+  - Code examples showing right/wrong approaches
+
+**Remaining Defensive Programming Tasks**:
+- [ ] Add file path validation at ALL upload endpoints
+- [ ] Add cache invalidation tests (verify patterns match keys)
+- [ ] Add smoke tests for file path operations
+- [ ] Add validation for all external inputs (user uploads, API params)
+- [ ] Create pre-commit hooks to enforce validation patterns
+- [ ] Add runtime assertions in critical paths
+
+**Why This Matters**:
+- **Maintainability**: As system grows, debugging time must not grow linearly
+- **Prevention**: Catch issues at boundaries, not after silent failures
+- **Developer Experience**: Clear error messages reduce frustration
+- **Scalability**: Systematic validation enables confident rapid iteration
 
 **Logging Infrastructure** ✅ **PARTIAL**:
 - ✅ Logging infrastructure created (`api/logging_config.py`)
@@ -227,6 +266,9 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 - [ ] Zero `print()` statements in production code - NOT MET (15 files remain)
 - [ ] Consistent error responses across all endpoints - NOT MET
 - [ ] All shared components documented with JSDoc - NOT MET
+- [ ] File path validation at all upload endpoints - PARTIALLY MET (visualization configs done)
+- [ ] Cache invalidation tests passing - NOT STARTED
+- [ ] No silent failures (all errors have clear messages) - IN PROGRESS
 
 ---
 
@@ -2090,5 +2132,28 @@ visualizer.generate_visualization(entity_type="board_game", entity_data=game)
     - Compliance and auditing guidelines
   - **First JSON backup created**: 205 files, 85 presets, 144M compressed
   - Database migration now has full safety net: backups, rollback, feature flags, testing, documentation
+- v2.6 (2025-10-23): Defensive Programming & Bug Prevention Added
+  - **✅ Phase 1.3 updated** - Defensive programming section added
+  - **Context**: Spent significant time debugging fundamental issues (file paths, cache invalidation, state management)
+  - **File path utilities created** (`api/utils/file_paths.py`):
+    - `normalize_container_path()` - Auto-fix container path mismatches
+    - `validate_file_exists()` - Validation with helpful error messages
+    - `ensure_app_prefix()` - Normalize paths for storage
+    - Prevents silent failures, suggests fixes
+  - **Visualizer enhanced** (`ai_tools/shared/visualizer.py`):
+    - Uses file path validation with auto-normalization
+    - Clear logging when files not found
+    - Explains fallback behavior (Gemini → DALL-E)
+  - **Common Pitfalls Documentation** (`CLAUDE.md`):
+    - New section: "Common Pitfalls & Preventative Measures"
+    - Documents 4 recurring issues with solutions:
+      1. File path mismatches (container vs host paths)
+      2. Cache invalidation pattern bugs
+      3. Frontend not using server response
+      4. Conflicting prompt details in visualizations
+    - Includes error symptoms, when to use, prevention strategies
+    - Code examples showing right/wrong approaches
+  - **Why This Matters**: As system scales, debugging time must not grow linearly. Prevention > debugging.
+  - **Remaining work**: File path validation at all upload endpoints, cache invalidation tests, smoke tests
 
 **Next Update**: After completing Phase 1 (Foundation), reassess priorities and timelines.

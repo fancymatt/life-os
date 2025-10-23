@@ -78,11 +78,11 @@ class VisualizationConfigInfo(BaseModel):
     config_id: str
     entity_type: str
     display_name: str
-    composition_style: str
-    framing: str
-    angle: str
-    background: str
-    lighting: str
+    composition_style: Optional[str] = None
+    framing: Optional[str] = None
+    angle: Optional[str] = None
+    background: Optional[str] = None
+    lighting: Optional[str] = None
     art_style_id: Optional[str] = None
     reference_image_path: Optional[str] = None
     additional_instructions: str

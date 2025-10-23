@@ -39,7 +39,7 @@ function ToolConfigPage() {
   const [editedModel, setEditedModel] = useState('')
   const [editedTemperature, setEditedTemperature] = useState(0.7)
 
-  // Test state
+  // Run tool state
   const [testImage, setTestImage] = useState(null)
   const [testImagePreview, setTestImagePreview] = useState(null)
   const [testing, setTesting] = useState(false)
@@ -308,12 +308,12 @@ function ToolConfigPage() {
           </div>
         </div>
 
-        {/* Test Section */}
+        {/* Run Tool Section */}
         <div className="test-section">
-          <h2>Test Tool</h2>
+          <h2>Run Tool</h2>
 
           <div className="test-upload">
-            <label htmlFor="test-image">Upload Test Image</label>
+            <label htmlFor="test-image">Upload Image</label>
             <input
               type="file"
               id="test-image"
@@ -324,7 +324,7 @@ function ToolConfigPage() {
 
             {testImagePreview && (
               <div className="test-image-preview">
-                <img src={testImagePreview} alt="Test" />
+                <img src={testImagePreview} alt="Preview" />
               </div>
             )}
 
@@ -333,7 +333,7 @@ function ToolConfigPage() {
               disabled={testing || !testImage}
               className="primary-button"
             >
-              {testing ? 'Testing...' : 'Run Analysis'}
+              {testing ? 'Running...' : 'Run Analysis'}
             </button>
           </div>
 

@@ -179,7 +179,7 @@ function OutfitAnalyzer({ onClose }) {
         const base64Data = reader.result.split(',')[1]
 
         try {
-          const response = await api.post('/analyze/outfit?async_mode=true', {
+          const response = await api.post('/tools/analyzers/outfit?async_mode=true', {
             image: {
               image_data: base64Data
             },

@@ -1,0 +1,18 @@
+{
+  "config_id": "aa8f2f02-e930-4d93-9e4a-c3bd1bfdd4b9",
+  "entity_type": "clothing_item",
+  "display_name": "Inventory Item",
+  "composition_style": "flat_lay",
+  "framing": "medium",
+  "angle": "eye_level",
+  "background": "black",
+  "art_style_id": "",
+  "lighting": "soft_even",
+  "reference_image_path": "/uploads/shirt.png",
+  "additional_instructions": "Rendered like the equipment inventory in an RPG. No mannequin or model is shown, but it appears as it looks when it is worn, not as a folded item on a surface. DO NOT include any text.",
+  "image_size": "1024x1024",
+  "model": "gemini/gemini-2.5-flash-image",
+  "created_at": "2025-10-22 18:34:32.615457",
+  "updated_at": "2025-10-23T04:09:24.356295",
+  "is_default": true
+}

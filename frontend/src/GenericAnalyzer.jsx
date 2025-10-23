@@ -13,14 +13,14 @@ function GenericAnalyzer({ analyzerType: analyzerTypeProp, displayName, onClose 
 
   // Map analyzer types to API endpoints and categories
   const analyzerConfig = {
-    'visual-style': { category: 'visual_styles', endpoint: '/analyze/visual-style', title: 'Photograph Composition' },
-    'art-style': { category: 'art_styles', endpoint: '/analyze/art-style', title: 'Art Style' },
-    'hair-style': { category: 'hair_styles', endpoint: '/analyze/hair-style', title: 'Hair Style' },
-    'hair-color': { category: 'hair_colors', endpoint: '/analyze/hair-color', title: 'Hair Color' },
-    'makeup': { category: 'makeup', endpoint: '/analyze/makeup', title: 'Makeup' },
-    'expression': { category: 'expressions', endpoint: '/analyze/expression', title: 'Expression' },
-    'accessories': { category: 'accessories', endpoint: '/analyze/accessories', title: 'Accessories' },
-    'character-appearance': { category: 'character_appearance', endpoint: '/analyze/character-appearance', title: 'Character Appearance' }
+    'visual-style': { category: 'visual_styles', endpoint: '/tools/analyzers/visual-style', title: 'Photograph Composition' },
+    'art-style': { category: 'art_styles', endpoint: '/tools/analyzers/art-style', title: 'Art Style' },
+    'hair-style': { category: 'hair_styles', endpoint: '/tools/analyzers/hair-style', title: 'Hair Style' },
+    'hair-color': { category: 'hair_colors', endpoint: '/tools/analyzers/hair-color', title: 'Hair Color' },
+    'makeup': { category: 'makeup', endpoint: '/tools/analyzers/makeup', title: 'Makeup' },
+    'expression': { category: 'expressions', endpoint: '/tools/analyzers/expression', title: 'Expression' },
+    'accessories': { category: 'accessories', endpoint: '/tools/analyzers/accessories', title: 'Accessories' },
+    'character-appearance': { category: 'character_appearance', endpoint: '/tools/analyzers/character-appearance', title: 'Character Appearance' }
   }
 
   const config = analyzerConfig[analyzerType]

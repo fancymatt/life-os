@@ -2,10 +2,10 @@ defaults:
   outfit_analyzer: gpt-5
   visual_style_analyzer: gemini/gemini-2.0-flash-exp
   art_style_analyzer: gpt-5
-  hair_style_analyzer: gemini/gemini-2.0-flash-exp
-  hair_color_analyzer: gemini/gemini-2.0-flash-exp
+  hair_style_analyzer: gpt-5
+  hair_color_analyzer: ollama/llava:13b
   makeup_analyzer: gemini/gemini-2.0-flash-exp
-  expression_analyzer: gemini/gemini-2.0-flash-exp
+  expression_analyzer: gpt-5
   accessories_analyzer: gemini/gemini-2.0-flash-exp
   comprehensive_analyzer: gemini/gemini-2.0-flash-exp
   style_guide_analyzer: gemini/gemini-2.0-flash-exp
@@ -28,3 +28,9 @@ tool_settings:
     temperature: 1
   art_style_analyzer:
     temperature: 1
+  hair_style_analyzer:
+    temperature: 1
+  expression_analyzer:
+    temperature: 1
+  hair_color_analyzer:
+    temperature: 0.7

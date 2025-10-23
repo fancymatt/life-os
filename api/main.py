@@ -15,7 +15,7 @@ from api.config import settings
 from api.logging_config import setup_logging, get_logger
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters, configs, tool_configs, local_models, board_games, documents, qa, clothing_items, outfits, visualization_configs, images, cache
+from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, characters, configs, tool_configs, local_models, board_games, documents, qa, clothing_items, outfits, visualization_configs, images, cache, tools
 from api.middleware.request_id import RequestIDMiddleware
 
 # Initialize logging
@@ -117,7 +117,8 @@ except RuntimeError as e:
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 app.include_router(discovery.router, tags=["discovery"])
-app.include_router(analyzers.router, prefix="/analyze", tags=["analyzers"])
+app.include_router(tools.router, prefix="/tools", tags=["tools"])
+app.include_router(analyzers.router, prefix="/analyze", tags=["analyzers"])  # DEPRECATED: Use /tools/analyzers/ instead
 app.include_router(generators.router, prefix="/generate", tags=["generators"])
 app.include_router(presets.router, prefix="/presets", tags=["presets"])
 app.include_router(configs.router, prefix="/configs", tags=["configurations"])

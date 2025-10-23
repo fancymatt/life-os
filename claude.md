@@ -423,6 +423,240 @@ await api.post('/characters/from-subject/')  // ❌ Extra slash causes POST to f
 
 ---
 
+## 🚨 Common Pitfalls & Preventative Measures
+
+These are recurring issues that have caused debugging headaches. **Prevention is critical for maintainability.**
+
+### Issue 1: File Path Mismatches (Container vs Host)
+
+**Problem**: Files saved with wrong paths cause "file not found" errors.
+- Config saves `/uploads/image.png` but actual path is `/app/uploads/image.png`
+- Visualizer can't find reference images → falls back to different model
+- No clear error message → silent failure
+
+**Solution**: Use `api/utils/file_paths.py` utilities:
+```python
+from api.utils.file_paths import (
+    normalize_container_path,     # Fix paths to work in container
+    validate_file_exists,          # Check existence with helpful errors
+    ensure_app_prefix,             # Add /app prefix for internal use
+    fix_upload_path                # Quick fix for uploads
+)
+
+# ✅ CORRECT - Validate with auto-normalization
+try:
+    valid_path = validate_file_exists(
+        user_provided_path,
+        description="Reference image",
+        auto_normalize=True  # Will try /app prefix if needed
+    )
+except FilePathError as e:
+    logger.error(f"File validation failed: {e}")
+    # Error includes: parent directory check, normalized path suggestion,
+    # similar files in directory
+
+# ✅ CORRECT - Normalize before saving to database
+reference_image_path = ensure_app_prefix(uploaded_file_path)
+config = service.update_config(reference_image_path=reference_image_path)
+```
+
+**When to use**:
+- Before passing file paths to image generation APIs
+- When saving uploaded file paths to database/configs
+- When loading reference images or subject images
+- Anytime you see "file not found" errors in logs
+
+**Error symptoms**:
+- Gemini falls back to DALL-E unexpectedly
+- "No reference image found" warnings in logs
+- Generated images don't match reference style
+
+---
+
+### Issue 2: Cache Invalidation Pattern Bugs
+
+**Problem**: Cache keys don't match invalidation patterns.
+- Pattern: `cache:/api/visualization-configs/*`
+- Actual keys: `cache:/visualization-configs/abc123`
+- Mismatch → caches never cleared → stale data persists
+
+**Solution**: Pattern must match actual cache key structure:
+```python
+# ✅ CORRECT - Pattern matches actual keys
+# Actual key: cache:/visualization-configs/abc123
+# Pattern: cache:/visualization-configs*
+pattern = f"{self.prefix}/{endpoint_path}*"  # NO /api/ prefix
+
+# ❌ WRONG - Pattern doesn't match
+pattern = f"{self.prefix}/api/{endpoint_path}*"  # Has /api/ prefix
+```
+
+**Verification**:
+```python
+# In cache_service.py - Add logging to see actual patterns
+logger.info(f"Invalidating pattern: {pattern}")
+await self.delete_pattern(pattern)
+
+# Check Redis to see actual keys
+docker exec ai-studio-redis redis-cli KEYS "cache:*"
+```
+
+**When cache seems broken**:
+1. Check logs for "Invalidating pattern" messages
+2. Check Redis for actual key format: `docker exec ai-studio-redis redis-cli KEYS "cache:*"`
+3. Verify pattern in `cache_service.py` matches actual keys
+4. Test invalidation manually: `await cache_service.invalidate_entity_type("entity_type")`
+
+**Error symptoms**:
+- Save succeeds but refresh shows old data
+- Clearing field doesn't persist after page reload
+- Cache hits show stale data in logs
+
+---
+
+### Issue 3: Frontend Not Using Server Response
+
+**Problem**: Frontend updates UI with local state instead of server response.
+```javascript
+// ❌ WRONG - Uses local editedData
+const response = await api.save(entity, editedData)
+setEntity({ ...entity, data: editedData })  // Local state!
+
+// ✅ CORRECT - Uses server response
+const response = await api.save(entity, editedData)
+setEntity({ ...entity, data: response })  // Server response!
+```
+
+**Why this matters**:
+- Server may transform data (validation, normalization)
+- Server may add computed fields
+- Server is source of truth, not frontend
+
+**Solution**: Always use API response as source of truth:
+```javascript
+// EntityBrowser.jsx handleSave pattern
+const response = await config.saveEntity(selectedEntity, {
+  data: editedData,
+  title: editedTitle
+})
+
+// CRITICAL: Use response from server
+const savedData = response
+const savedTitle = response.display_name || response.title || editedTitle
+
+// Update UI with server data
+setEditedData(JSON.parse(JSON.stringify(savedData)))
+setEditedTitle(savedTitle)
+```
+
+**Error symptoms**:
+- Save shows success but data doesn't update
+- Refresh shows different data than what was displayed
+- Setting values works but clearing doesn't
+
+---
+
+### Issue 4: Conflicting Prompt Details
+
+**Problem**: Entity specs contain detailed descriptions that conflict with custom visualization styles.
+- Expression spec: "vibrant red lipstick", "dark eyeliner"
+- User instruction: "NO COLOR, black ink manga style"
+- Model receives conflicting instructions → ignores user preference
+
+**Solution**: Simplify descriptions when custom viz config exists:
+```python
+# ✅ CORRECT - Detect conflict and simplify
+if has_reference and additional_instructions and spec_type == "expressions":
+    # Use simplified description that focuses on structure, not styling
+    subject_description = self._extract_simplified_expression_description(spec)
+else:
+    # Use full description with all details
+    subject_description = self._extract_subject_description(spec_type, spec)
+```
+
+**Prompt structure priority**:
+```python
+# Put user instructions FIRST (highest priority)
+prompt = f"""
+🎨 CRITICAL REQUIREMENTS (HIGHEST PRIORITY):
+{user_instructions}
+
+📋 SUBJECT/EXPRESSION TO PORTRAY:
+{simplified_subject_description}
+
+IMPORTANT: CRITICAL REQUIREMENTS override any styling details in subject description.
+"""
+```
+
+**When to use**:
+- Custom visualization configs with reference images
+- User provides specific style instructions (manga, sketch, 3D render)
+- Any case where spec details might conflict with desired output style
+
+**Error symptoms**:
+- Generated image has colors when user said "NO COLOR"
+- Style doesn't match reference image
+- User instructions seem ignored
+
+---
+
+### Prevention Strategies
+
+**1. Add Validation at Boundaries**
+```python
+# At API entry points
+@router.post("/upload")
+async def upload_file(file: UploadFile):
+    file_path = await save_upload(file)
+    # ✅ Normalize before saving
+    normalized_path = ensure_app_prefix(file_path)
+    config.update(reference_image_path=normalized_path)
+```
+
+**2. Add Helpful Error Messages**
+```python
+# ✅ CORRECT - Detailed error with suggestions
+try:
+    validate_file_exists(path, "Reference image")
+except FilePathError as e:
+    logger.error(f"Validation failed: {e}")
+    # Error includes: normalized path suggestion, similar files, parent dir check
+```
+
+**3. Add Tests for Common Issues**
+```python
+# tests/test_file_paths.py
+def test_normalize_upload_path():
+    assert normalize_container_path("/uploads/img.png") == Path("/app/uploads/img.png")
+
+# tests/test_cache_invalidation.py
+async def test_invalidate_pattern_matches_keys():
+    await cache.set("/viz-configs/abc", "data")
+    await cache.invalidate_entity_type("viz_configs")
+    assert await cache.get("/viz-configs/abc") is None
+```
+
+**4. Document in Code**
+```python
+# ✅ Add docstrings explaining WHY
+def normalize_container_path(path):
+    """
+    Normalize to /app prefix for Docker container.
+
+    Common issue: Paths saved as "/uploads/file.png" but actual container
+    path is "/app/uploads/file.png". This causes file-not-found errors.
+    """
+```
+
+**5. Use Logging to Surface Issues Early**
+```python
+# Log when falling back or using workarounds
+logger.warning(f"Reference image not found at {path}, falling back to DALL-E")
+logger.warning(f"Cache pattern {pattern} found {count} keys to invalidate")
+```
+
+---
+
 ## Common Tasks
 
 ### Running the Application

@@ -220,13 +220,17 @@ const createPresetConfig = (options) => ({
   ),
 
   saveEntity: async (entity, updates) => {
-    const response = await api.put(
+    // Save the preset
+    await api.put(
       `/presets/${options.category}/${entity.presetId}`,
       {
         data: updates.data,
         display_name: updates.title
       }
     )
+
+    // Reload the full preset data after save (PUT only returns success message)
+    const response = await api.get(`/presets/${options.category}/${entity.presetId}`)
     return response.data
   },
 
@@ -266,21 +270,7 @@ export const outfitsConfig = {
 // ALL OTHER PRESET-BASED ENTITIES
 // =============================================================================
 
-export const expressionsConfig = createPresetConfig({
-  entityType: 'expression',
-  title: 'Expressions',
-  icon: '😊',
-  category: 'expressions',
-  analyzerPath: 'expression'
-})
-
-export const makeupsConfig = createPresetConfig({
-  entityType: 'makeup',
-  title: 'Makeup',
-  icon: '💄',
-  category: 'makeup',
-  analyzerPath: 'makeup'
-})
+// Note: expressionsConfig and makeupsConfig are defined later with preview components
 
 /**
  * Hair Style Preview Component (matches clothing items layout)
@@ -544,34 +534,325 @@ export const hairStylesConfig = {
   renderPreview: (entity, onUpdate) => <HairStylePreview entity={entity} onUpdate={onUpdate} />
 }
 
-export const hairColorsConfig = createPresetConfig({
-  entityType: 'hair color',
-  title: 'Hair Colors',
-  icon: '🎨',
-  category: 'hair_colors',
-  analyzerPath: 'hair-color'
-})
+/**
+ * Generic Preset Preview Component Factory
+ * Creates a preview component for any preset category
+ */
+function createPresetPreview(category, icon) {
+  return function PresetPreview({ entity, onUpdate }) {
+    const [generatingJobId, setGeneratingJobId] = useState(null)
+    const [jobProgress, setJobProgress] = useState(null)
+    const [trackingPresetId, setTrackingPresetId] = useState(null)
 
-export const visualStylesConfig = createPresetConfig({
-  entityType: 'visual style',
-  title: 'Visual Styles',
-  icon: '📸',
-  category: 'visual_styles',
-  analyzerPath: 'visual-style'
-})
+    // Reset state if entity changes
+    useEffect(() => {
+      if (trackingPresetId && trackingPresetId !== entity.presetId) {
+        setGeneratingJobId(null)
+        setJobProgress(null)
+        setTrackingPresetId(null)
+      }
+    }, [entity.presetId, trackingPresetId])
 
-export const artStylesConfig = createPresetConfig({
-  entityType: 'art style',
-  title: 'Art Styles',
-  icon: '🎨',
-  category: 'art_styles',
-  analyzerPath: 'art-style'
-})
+    // Poll for job status
+    useEffect(() => {
+      if (!generatingJobId) return
 
-export const accessoriesConfig = createPresetConfig({
-  entityType: 'accessory',
-  title: 'Accessories',
-  icon: '👓',
-  category: 'accessories',
-  analyzerPath: 'accessories'
-})
+      const pollInterval = setInterval(async () => {
+        try {
+          const response = await api.get(`/jobs/${generatingJobId}`)
+          const job = response.data
+
+          setJobProgress(job.progress)
+
+          if (job.status === 'completed') {
+            setGeneratingJobId(null)
+            setJobProgress(null)
+            setTrackingPresetId(null)
+            if (onUpdate) onUpdate()
+          } else if (job.status === 'failed') {
+            setGeneratingJobId(null)
+            setJobProgress(null)
+            setTrackingPresetId(null)
+          }
+        } catch (error) {
+          if (error.response?.status === 404) {
+            console.warn('Job not found, stopping polling')
+          }
+          setGeneratingJobId(null)
+          setJobProgress(null)
+          setTrackingPresetId(null)
+        }
+      }, 1000)
+
+      return () => clearInterval(pollInterval)
+    }, [generatingJobId, onUpdate])
+
+    const handleGeneratePreview = async (e) => {
+      const button = e.currentTarget
+      const originalText = button.textContent
+
+      try {
+        button.disabled = true
+        button.textContent = '⏳ Queueing...'
+
+        const response = await api.post(`/presets/${category}/${entity.presetId}/generate-preview`)
+        const jobId = response.data.job_id
+
+        button.textContent = '✅ Queued!'
+
+        setTimeout(() => {
+          setGeneratingJobId(jobId)
+          setTrackingPresetId(entity.presetId)
+          button.textContent = originalText
+          button.disabled = false
+        }, 500)
+      } catch (error) {
+        console.error('Failed to queue preview generation:', error)
+        button.textContent = '❌ Failed'
+        setTimeout(() => {
+          button.textContent = originalText
+          button.disabled = false
+        }, 2000)
+      }
+    }
+
+    const handleCreateTestImage = async (e) => {
+      const button = e.currentTarget
+      const originalText = button.textContent
+
+      try {
+        button.disabled = true
+        button.textContent = '⏳ Queueing...'
+
+        const response = await api.post(`/presets/${category}/${entity.presetId}/generate-test-image`)
+
+        button.textContent = '✅ Queued!'
+        setTimeout(() => {
+          button.textContent = originalText
+          button.disabled = false
+        }, 2000)
+      } catch (error) {
+        console.error('Failed to generate test image:', error)
+        button.textContent = '❌ Failed'
+        setTimeout(() => {
+          button.textContent = originalText
+          button.disabled = false
+        }, 2000)
+      }
+    }
+
+    return (
+      <div style={{ padding: '1rem' }}>
+        {/* Preview Image with loading overlay */}
+        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+          <div style={{
+            borderRadius: '8px',
+            overflow: 'hidden',
+            background: 'rgba(0, 0, 0, 0.3)',
+            minHeight: '300px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <LazyImage
+              src={`/api/presets/${category}/${entity.presetId}/preview?t=${Date.now()}`}
+              alt={entity.title}
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block'
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none'
+                const placeholder = document.createElement('div')
+                placeholder.style.cssText = 'font-size: 4rem; color: rgba(255, 255, 255, 0.3);'
+                placeholder.textContent = icon
+                e.target.parentElement.appendChild(placeholder)
+              }}
+            />
+          </div>
+
+          {/* Loading overlay when generating */}
+          {generatingJobId && trackingPresetId === entity.presetId && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.7)',
+              borderRadius: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem',
+              minHeight: '300px'
+            }}>
+              <div style={{
+                fontSize: '3rem',
+                animation: 'spin 2s linear infinite'
+              }}>
+                🎨
+              </div>
+              <div style={{ color: 'white', fontSize: '0.95rem' }}>
+                Generating preview...
+              </div>
+              {jobProgress !== null && (
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+                  {Math.round(jobProgress)}%
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Generate Preview Button */}
+        <button
+          onClick={handleGeneratePreview}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            marginBottom: '0.5rem',
+            background: 'rgba(168, 85, 247, 0.2)',
+            border: '1px solid rgba(168, 85, 247, 0.3)',
+            borderRadius: '8px',
+            color: 'rgba(168, 85, 247, 1)',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.background = 'rgba(168, 85, 247, 0.3)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'
+            }
+          }}
+        >
+          🎨 Generate Preview
+        </button>
+
+        {/* Create Test Image Button */}
+        <button
+          onClick={handleCreateTestImage}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            background: 'rgba(99, 102, 241, 0.2)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            borderRadius: '8px',
+            color: 'rgba(99, 102, 241, 1)',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
+            }
+          }}
+        >
+          🎨 Create Test Image
+        </button>
+
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+}
+
+// Create preview components for each category
+const HairColorsPreview = createPresetPreview('hair_colors', '🎨')
+const VisualStylesPreview = createPresetPreview('visual_styles', '📸')
+const ArtStylesPreview = createPresetPreview('art_styles', '🎨')
+const AccessoriesPreview = createPresetPreview('accessories', '👓')
+const ExpressionsPreview = createPresetPreview('expressions', '😊')
+const MakeupsPreview = createPresetPreview('makeup', '💄')
+
+export const hairColorsConfig = {
+  ...createPresetConfig({
+    entityType: 'hair color',
+    title: 'Hair Colors',
+    icon: '🎨',
+    category: 'hair_colors',
+    analyzerPath: 'hair-color'
+  }),
+  enableGallery: true,
+  renderPreview: (entity, onUpdate) => <HairColorsPreview entity={entity} onUpdate={onUpdate} />
+}
+
+export const visualStylesConfig = {
+  ...createPresetConfig({
+    entityType: 'visual style',
+    title: 'Visual Styles',
+    icon: '📸',
+    category: 'visual_styles',
+    analyzerPath: 'visual-style'
+  }),
+  enableGallery: true,
+  renderPreview: (entity, onUpdate) => <VisualStylesPreview entity={entity} onUpdate={onUpdate} />
+}
+
+export const artStylesConfig = {
+  ...createPresetConfig({
+    entityType: 'art style',
+    title: 'Art Styles',
+    icon: '🎨',
+    category: 'art_styles',
+    analyzerPath: 'art-style'
+  }),
+  enableGallery: true,
+  renderPreview: (entity, onUpdate) => <ArtStylesPreview entity={entity} onUpdate={onUpdate} />
+}
+
+export const accessoriesConfig = {
+  ...createPresetConfig({
+    entityType: 'accessory',
+    title: 'Accessories',
+    icon: '👓',
+    category: 'accessories',
+    analyzerPath: 'accessories'
+  }),
+  enableGallery: true,
+  renderPreview: (entity, onUpdate) => <AccessoriesPreview entity={entity} onUpdate={onUpdate} />
+}
+
+export const expressionsConfig = {
+  ...createPresetConfig({
+    entityType: 'expression',
+    title: 'Expressions',
+    icon: '😊',
+    category: 'expressions',
+    analyzerPath: 'expression'
+  }),
+  enableGallery: true,
+  renderPreview: (entity, onUpdate) => <ExpressionsPreview entity={entity} onUpdate={onUpdate} />
+}
+
+export const makeupsConfig = {
+  ...createPresetConfig({
+    entityType: 'makeup',
+    title: 'Makeup',
+    icon: '💄',
+    category: 'makeup',
+    analyzerPath: 'makeup'
+  }),
+  enableGallery: true,
+  renderPreview: (entity, onUpdate) => <MakeupsPreview entity={entity} onUpdate={onUpdate} />
+}
