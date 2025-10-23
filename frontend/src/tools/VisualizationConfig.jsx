@@ -74,10 +74,11 @@ function VisualizationConfig() {
   const handleCreate = async (e) => {
     e.preventDefault()
     try {
-      await api.post('/visualization-configs/', formData)
-      setShowCreateForm(false)
-      resetForm()
+      const response = await api.post('/visualization-configs/', formData)
+      // Keep form open with the data - switch to edit mode
+      setEditingConfig(response.data)
       fetchConfigs()
+      setError(null)
     } catch (err) {
       console.error('Failed to create config:', err)
       setError(err.response?.data?.detail || 'Failed to create config')
@@ -90,9 +91,9 @@ function VisualizationConfig() {
     console.log('   reference_image_path:', formData.reference_image_path)
     try {
       await api.put(`/visualization-configs/${editingConfig.config_id}`, formData)
-      setEditingConfig(null)
-      resetForm()
+      // Keep form open with current data - just refresh the list
       fetchConfigs()
+      setError(null)
     } catch (err) {
       console.error('Failed to update config:', err)
       setError(err.response?.data?.detail || 'Failed to update config')
