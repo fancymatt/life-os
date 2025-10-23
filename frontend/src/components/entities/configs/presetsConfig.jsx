@@ -281,13 +281,46 @@ export const makeupsConfig = createPresetConfig({
   analyzerPath: 'makeup'
 })
 
-export const hairStylesConfig = createPresetConfig({
-  entityType: 'hair style',
-  title: 'Hair Styles',
-  icon: '💇',
-  category: 'hair_styles',
-  analyzerPath: 'hair-style'
-})
+export const hairStylesConfig = {
+  ...createPresetConfig({
+    entityType: 'hair style',
+    title: 'Hair Styles',
+    icon: '💇',
+    category: 'hair_styles',
+    analyzerPath: 'hair-style'
+  }),
+  enableGallery: true,
+  actions: [
+    {
+      label: 'Generate Preview',
+      icon: '🎨',
+      handler: async (entity) => {
+        try {
+          const response = await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
+          console.log('Preview generation started:', response.data)
+          return { success: true, message: 'Preview generation started' }
+        } catch (err) {
+          console.error('Failed to generate preview:', err)
+          return { success: false, message: err.response?.data?.detail || 'Failed to generate preview' }
+        }
+      }
+    },
+    {
+      label: 'Generate Test Image',
+      icon: '🧪',
+      handler: async (entity) => {
+        try {
+          const response = await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
+          console.log('Test image generation started:', response.data)
+          return { success: true, message: 'Test image generation started' }
+        } catch (err) {
+          console.error('Failed to generate test image:', err)
+          return { success: false, message: err.response?.data?.detail || 'Failed to generate test image' }
+        }
+      }
+    }
+  ]
+}
 
 export const hairColorsConfig = createPresetConfig({
   entityType: 'hair color',
