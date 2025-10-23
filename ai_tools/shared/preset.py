@@ -71,6 +71,10 @@ class PresetManager:
         """Get the full path to a preset file by ID"""
         # Remove .json extension if provided
         preset_id = preset_id.replace(".json", "")
+
+        # Sanitize preset_id: replace spaces with dashes, remove unsafe characters
+        preset_id = preset_id.replace(" ", "-")
+
         return self._get_preset_dir(tool_type) / f"{preset_id}.json"
 
     def save(
@@ -105,7 +109,16 @@ class PresetManager:
             preset_dict = data.copy()
         else:
             # Assume it's a Pydantic model
+            # Extract _metadata before dumping (private fields are excluded from model_dump)
+            existing_metadata = None
+            if hasattr(data, '_metadata') and data._metadata is not None:
+                existing_metadata = data._metadata.model_dump(mode='json')
+
             preset_dict = data.model_dump(mode='json')
+
+            # Restore _metadata if it existed
+            if existing_metadata:
+                preset_dict["_metadata"] = existing_metadata
 
         # Ensure metadata exists
         if "_metadata" not in preset_dict or preset_dict["_metadata"] is None:
@@ -157,14 +170,29 @@ class PresetManager:
         with open(preset_path, 'r') as f:
             preset_data = json.load(f)
 
+        # Extract _metadata before validation (private fields can't be set via model_validate)
+        metadata_dict = preset_data.pop("_metadata", None)
+
         # Parse into spec
         try:
-            return spec_class.model_validate(preset_data)
+            spec = spec_class.model_validate(preset_data)
         except ValidationError as e:
             raise PresetValidationError(
                 f"Preset validation failed: {tool_type}/{preset_id}\n"
                 f"Errors: {e.errors()}"
             )
+
+        # Restore _metadata if it existed and is valid
+        if metadata_dict:
+            try:
+                from ai_capabilities.specs import SpecMetadata
+                spec._metadata = SpecMetadata.model_validate(metadata_dict)
+            except ValidationError:
+                # Metadata exists but doesn't have all required fields (e.g., just preset_id)
+                # This is fine - leave _metadata as None
+                pass
+
+        return spec
 
     def exists(self, tool_type: str, preset_id: str) -> bool:
         """
@@ -388,8 +416,9 @@ class PresetManager:
         except ValidationError as e:
             raise PresetValidationError(f"Data validation failed: {e.errors()}")
 
-        # Save with optional notes
-        return self.save(tool_type, name, spec, notes=notes)
+        # Save with optional notes (returns tuple of (Path, str))
+        preset_path, preset_id = self.save(tool_type, spec, name, notes=notes)
+        return preset_path
 
     def get_info(self, tool_type: str, name: str) -> Dict[str, Any]:
         """

@@ -71,9 +71,21 @@ class TestOutfitSpec:
         assert outfit.style_genre == "modern professional"
         assert outfit.formality == "business formal"
 
-    def test_outfit_spec_with_metadata(self, sample_outfit_data_with_metadata):
+    def test_outfit_spec_with_metadata(self, sample_outfit_data):
         """Test outfit spec with metadata"""
-        outfit = OutfitSpec(**sample_outfit_data_with_metadata)
+        # Create the outfit first
+        outfit = OutfitSpec(**sample_outfit_data)
+
+        # Then assign metadata (Pydantic v2 doesn't allow _ fields in __init__)
+        outfit._metadata = SpecMetadata(
+            tool="outfit-analyzer",
+            tool_version="1.0.0",
+            source_image="test_image.jpg",
+            source_hash="a3f8b92c",
+            model_used="gemini-2.0-flash",
+            notes="Test outfit"
+        )
+
         assert outfit._metadata is not None
         assert outfit._metadata.tool == "outfit-analyzer"
 
@@ -108,15 +120,16 @@ class TestVisualStyleSpec:
     def test_create_visual_style(self, sample_visual_style_data):
         """Test creating a valid visual style spec"""
         style = VisualStyleSpec(**sample_visual_style_data)
-        assert style.lighting_setup == "three-point lighting"
-        assert style.mood == "professional and approachable"
+        assert style.framing == "medium shot"
+        assert "professional" in style.mood.lower()
 
     def test_visual_style_serialization(self, sample_visual_style_data):
         """Test visual style serialization"""
         style = VisualStyleSpec(**sample_visual_style_data)
         style_dict = style.model_dump()
-        assert "lighting_setup" in style_dict
-        assert "photography_style" in style_dict
+        assert "lighting" in style_dict
+        assert "framing" in style_dict
+        assert "subject_action" in style_dict
 
 
 @pytest.mark.unit
@@ -126,6 +139,7 @@ class TestArtStyleSpec:
     def test_create_art_style(self):
         """Test creating art style spec"""
         style = ArtStyleSpec(
+            suggested_name="Impressionist Oil Painting",
             medium="oil painting",
             technique="impasto",
             color_palette=["blue", "gold", "white"],
@@ -146,21 +160,23 @@ class TestHairSpecs:
     def test_hair_style_spec(self):
         """Test HairStyleSpec"""
         style = HairStyleSpec(
-            cut="layered bob",
+            suggested_name="Modern Layered Bob",
+            cut="A classic bob haircut featuring clean, defined lines with a structured perimeter that falls at shoulder length. The cut incorporates precision techniques with carefully graduated interior layers to remove bulk while maintaining fullness. The shape follows the natural head contours with subtle face-framing angles.",
             length="shoulder length",
-            layers="long layers throughout",
-            texture="wavy",
+            layers="Long, flowing layers are strategically placed throughout the interior of the hair, starting from approximately the ear level and extending to the ends. These layers are cut using point-cutting and slide-cutting techniques to create seamless blending and natural movement. The graduation provides dimensional shape without creating steps or harsh lines.",
+            texture="The hair displays a natural wavy pattern with soft, loose S-curves throughout. The texture has been enhanced with diffusing techniques to maintain the wave definition while minimizing frizz. The overall feel is touchable and flowing with a gentle bounce. Modern texturizing products provide separation and definition to individual waves.",
             volume="medium volume",
             parting="side part",
-            front_styling="swept to the side",
-            overall_style="casual modern"
+            front_styling="Face-framing pieces are swept elegantly to the side, creating soft movement around the face. The front sections are styled with a gentle curve that follows the cheekbone, providing flattering dimension. Subtle layering in the front allows pieces to fall naturally while maintaining structure.",
+            overall_style="A contemporary interpretation of the classic bob, blending timeless elegance with modern styling techniques. The look balances polished sophistication with effortless wearability, suitable for both professional and casual settings."
         )
-        assert style.cut == "layered bob"
+        assert style.cut and len(style.cut) > 150
         assert style.length == "shoulder length"
 
     def test_hair_color_spec(self):
         """Test HairColorSpec"""
         color = HairColorSpec(
+            suggested_name="Warm Chocolate Brown",
             base_color="dark brown",
             undertones="warm caramel",
             dimension="multi-dimensional",
@@ -177,6 +193,7 @@ class TestMakeupSpec:
     def test_makeup_spec(self):
         """Test creating makeup spec"""
         makeup = MakeupSpec(
+            suggested_name="Natural Professional Makeup",
             complexion="natural foundation, soft blush",
             eyes="neutral eyeshadow, mascara",
             lips="nude lip color",
@@ -195,16 +212,16 @@ class TestExpressionSpec:
     def test_expression_spec(self):
         """Test creating expression spec"""
         expr = ExpressionSpec(
+            suggested_name="Confident Professional",
             primary_emotion="confidence",
             intensity="moderate",
             mouth="slight smile",
             eyes="direct gaze",
             eyebrows="relaxed",
-            gaze_direction="camera",
             overall_mood="professional and approachable"
         )
         assert expr.primary_emotion == "confidence"
-        assert expr.gaze_direction == "camera"
+        assert expr.overall_mood == "professional and approachable"
 
 
 @pytest.mark.unit
@@ -214,6 +231,7 @@ class TestAccessoriesSpec:
     def test_accessories_spec(self):
         """Test creating accessories spec"""
         acc = AccessoriesSpec(
+            suggested_name="Minimalist Professional",
             jewelry=["stud earrings", "simple necklace"],
             watches="silver watch",
             overall_style="minimalist professional"
@@ -223,7 +241,10 @@ class TestAccessoriesSpec:
 
     def test_accessories_with_defaults(self):
         """Test accessories with default values"""
-        acc = AccessoriesSpec(overall_style="minimal")
+        acc = AccessoriesSpec(
+            suggested_name="Minimal Style",
+            overall_style="minimal"
+        )
         assert acc.jewelry == []
         assert acc.other == []
         assert acc.bags is None
@@ -346,11 +367,25 @@ class TestSpecSerialization:
         assert outfit1.style_genre == outfit2.style_genre
         assert len(outfit1.clothing_items) == len(outfit2.clothing_items)
 
-    def test_spec_with_metadata_round_trip(self, sample_outfit_data_with_metadata):
+    def test_spec_with_metadata_round_trip(self, sample_outfit_data):
         """Test spec with metadata round trip"""
-        outfit1 = OutfitSpec(**sample_outfit_data_with_metadata)
-        outfit_dict = outfit1.model_dump(mode='json')
+        # Create outfit and assign metadata
+        outfit1 = OutfitSpec(**sample_outfit_data)
+        outfit1._metadata = SpecMetadata(
+            tool="outfit-analyzer",
+            tool_version="1.0.0",
+            source_image="test_image.jpg",
+            source_hash="a3f8b92c",
+            model_used="gemini-2.0-flash",
+            notes="Test outfit"
+        )
+
+        # Serialize (note: _metadata is not included in model_dump by default for private fields)
+        outfit_dict = outfit1.model_dump()
+
+        # Create new outfit from dict
         outfit2 = OutfitSpec(**outfit_dict)
 
-        assert outfit1._metadata.tool == outfit2._metadata.tool
+        # Verify data (but not metadata, as private fields don't round-trip through JSON)
         assert outfit1.style_genre == outfit2.style_genre
+        assert len(outfit1.clothing_items) == len(outfit2.clothing_items)

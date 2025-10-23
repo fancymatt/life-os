@@ -42,10 +42,11 @@ class TestPresetManager:
         manager = PresetManager(presets_root=presets_dir)
         outfit = OutfitSpec(**sample_outfit_data)
 
-        preset_path = manager.save("outfits", "test-suit", outfit)
+        preset_path, preset_id = manager.save("outfits", outfit, "test-suit")
 
         assert preset_path.exists()
         assert preset_path.name == "test-suit.json"
+        assert preset_id == "test-suit"
 
         # Verify content
         with open(preset_path) as f:
@@ -57,7 +58,7 @@ class TestPresetManager:
         manager = PresetManager(presets_root=presets_dir)
         outfit = OutfitSpec(**sample_outfit_data_with_metadata)
 
-        preset_path = manager.save("outfits", "test-suit", outfit, notes="Custom notes")
+        preset_path, preset_id = manager.save("outfits", outfit, "test-suit", notes="Custom notes")
 
         with open(preset_path) as f:
             data = json.load(f)
@@ -69,7 +70,7 @@ class TestPresetManager:
         outfit = OutfitSpec(**sample_outfit_data)
 
         # Save first
-        manager.save("outfits", "test-suit", outfit)
+        manager.save("outfits", outfit, "test-suit")
 
         # Load
         loaded_outfit = manager.load("outfits", "test-suit", OutfitSpec)
@@ -91,7 +92,7 @@ class TestPresetManager:
         assert not manager.exists("outfits", "test-suit")
 
         outfit = OutfitSpec(**sample_outfit_data)
-        manager.save("outfits", "test-suit", outfit)
+        manager.save("outfits", outfit, "test-suit")
 
         assert manager.exists("outfits", "test-suit")
 
@@ -104,15 +105,16 @@ class TestPresetManager:
 
         # Add some presets
         outfit = OutfitSpec(**sample_outfit_data)
-        manager.save("outfits", "suit-1", outfit)
-        manager.save("outfits", "suit-2", outfit)
-        manager.save("outfits", "suit-3", outfit)
+        manager.save("outfits", outfit, "suit-1")
+        manager.save("outfits", outfit, "suit-2")
+        manager.save("outfits", outfit, "suit-3")
 
         presets = manager.list("outfits")
         assert len(presets) == 3
-        assert "suit-1" in presets
-        assert "suit-2" in presets
-        assert "suit-3" in presets
+        preset_ids = [p["preset_id"] for p in presets]
+        assert "suit-1" in preset_ids
+        assert "suit-2" in preset_ids
+        assert "suit-3" in preset_ids
 
     def test_list_all_presets(self, presets_dir, sample_outfit_data, sample_visual_style_data):
         """Test listing all presets across tool types"""
@@ -122,22 +124,25 @@ class TestPresetManager:
         outfit = OutfitSpec(**sample_outfit_data)
         style = VisualStyleSpec(**sample_visual_style_data)
 
-        manager.save("outfits", "suit", outfit)
-        manager.save("visual-styles", "dramatic", style)
+        manager.save("outfits", outfit, "suit")
+        manager.save("visual-styles", style, "dramatic")
 
         all_presets = manager.list_all()
 
         assert "outfits" in all_presets
         assert "visual-styles" in all_presets
-        assert "suit" in all_presets["outfits"]
-        assert "dramatic" in all_presets["visual-styles"]
+        # list_all returns list of dicts
+        outfit_ids = [p["preset_id"] for p in all_presets["outfits"]]
+        style_ids = [p["preset_id"] for p in all_presets["visual-styles"]]
+        assert "suit" in outfit_ids
+        assert "dramatic" in style_ids
 
     def test_delete_preset(self, presets_dir, sample_outfit_data):
         """Test deleting a preset"""
         manager = PresetManager(presets_root=presets_dir)
         outfit = OutfitSpec(**sample_outfit_data)
 
-        manager.save("outfits", "test-suit", outfit)
+        manager.save("outfits", outfit, "test-suit")
         assert manager.exists("outfits", "test-suit")
 
         # Delete
@@ -149,12 +154,18 @@ class TestPresetManager:
         result = manager.delete("outfits", "test-suit")
         assert result is False
 
-    def test_get_metadata(self, presets_dir, sample_outfit_data_with_metadata):
+    def test_get_metadata(self, presets_dir, sample_outfit_data):
         """Test getting preset metadata"""
         manager = PresetManager(presets_root=presets_dir)
-        outfit = OutfitSpec(**sample_outfit_data_with_metadata)
+        outfit = OutfitSpec(**sample_outfit_data)
 
-        manager.save("outfits", "test-suit", outfit)
+        # Manually assign metadata (Pydantic v2 doesn't allow _ fields in __init__)
+        outfit._metadata = SpecMetadata(
+            tool="outfit-analyzer",
+            model_used="gemini-2.0-flash"
+        )
+
+        manager.save("outfits", outfit, "test-suit")
 
         metadata = manager.get_metadata("outfits", "test-suit")
         assert metadata is not None
@@ -166,7 +177,7 @@ class TestPresetManager:
         manager = PresetManager(presets_dir)
         outfit = OutfitSpec(**sample_outfit_data)
 
-        manager.save("outfits", "test-suit", outfit)
+        manager.save("outfits", outfit, "test-suit")
 
         result = manager.validate("outfits", "test-suit", OutfitSpec)
         assert result.valid is True
@@ -225,12 +236,18 @@ class TestPresetManager:
                 OutfitSpec
             )
 
-    def test_get_info(self, presets_dir, sample_outfit_data_with_metadata):
+    def test_get_info(self, presets_dir, sample_outfit_data):
         """Test getting preset info"""
         manager = PresetManager(presets_dir)
-        outfit = OutfitSpec(**sample_outfit_data_with_metadata)
+        outfit = OutfitSpec(**sample_outfit_data)
 
-        manager.save("outfits", "test-suit", outfit)
+        # Manually assign metadata (Pydantic v2 doesn't allow _ fields in __init__)
+        outfit._metadata = SpecMetadata(
+            tool="outfit-analyzer",
+            model_used="gemini-2.0-flash"
+        )
+
+        manager.save("outfits", outfit, "test-suit")
 
         info = manager.get_info("outfits", "test-suit")
 
@@ -248,7 +265,7 @@ class TestPresetManager:
         outfit = OutfitSpec(**sample_outfit_data)
 
         # Name with spaces and slashes
-        manager.save("outfits", "my fancy suit", outfit)
+        manager.save("outfits", outfit, "my fancy suit")
 
         # Should be converted to safe filename
         assert manager.exists("outfits", "my-fancy-suit")
@@ -258,17 +275,23 @@ class TestPresetManager:
         manager = PresetManager(presets_dir)
         outfit = OutfitSpec(**sample_outfit_data)
 
-        manager.save("outfits", "test-suit.json", outfit)
+        manager.save("outfits", outfit, "test-suit.json")
 
         # Should exist without .json in name
         assert manager.exists("outfits", "test-suit")
 
-    def test_round_trip(self, presets_dir, sample_outfit_data_with_metadata):
+    def test_round_trip(self, presets_dir, sample_outfit_data):
         """Test complete save/load round trip preserves data"""
         manager = PresetManager(presets_dir)
-        original = OutfitSpec(**sample_outfit_data_with_metadata)
+        original = OutfitSpec(**sample_outfit_data)
 
-        manager.save("outfits", "round-trip-test", original)
+        # Manually assign metadata (Pydantic v2 doesn't allow _ fields in __init__)
+        original._metadata = SpecMetadata(
+            tool="outfit-analyzer",
+            model_used="gemini-2.0-flash"
+        )
+
+        manager.save("outfits", original, "round-trip-test")
         loaded = manager.load("outfits", "round-trip-test", OutfitSpec)
 
         # Check all fields match
