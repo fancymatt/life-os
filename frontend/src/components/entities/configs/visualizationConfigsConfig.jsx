@@ -338,88 +338,93 @@ export const visualizationConfigsConfig = {
   ),
 
   renderPreview: (entity, onUpdate) => {
-    const [uploading, setUploading] = useState(false)
+    // Return a component that can use hooks
+    const PreviewWithUpload = () => {
+      const [uploading, setUploading] = useState(false)
 
-    const handleUpload = async (e) => {
-      const file = e.target.files?.[0]
-      if (!file) return
+      const handleUpload = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
 
-      setUploading(true)
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
+        setUploading(true)
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
 
-        const response = await api.post(
-          `/visualization-configs/${entity.config_id}/upload-reference`,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data'
+          const response = await api.post(
+            `/visualization-configs/${entity.config_id}/upload-reference`,
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
             }
-          }
-        )
+          )
 
-        // Update entity with new reference image path
-        if (onUpdate) {
-          await onUpdate()
+          // Update entity with new reference image path
+          if (onUpdate) {
+            await onUpdate()
+          }
+        } catch (err) {
+          console.error('Failed to upload reference image:', err)
+          alert('Failed to upload reference image')
+        } finally {
+          setUploading(false)
         }
-      } catch (err) {
-        console.error('Failed to upload reference image:', err)
-        alert('Failed to upload reference image')
-      } finally {
-        setUploading(false)
       }
+
+      return (
+        <div>
+          {entity.data.reference_image_path ? (
+            <img
+              src={entity.data.reference_image_path}
+              alt={entity.title}
+              style={{ width: '100%', height: 'auto', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)', marginBottom: '1rem' }}
+              onError={(e) => e.target.style.display = 'none'}
+            />
+          ) : (
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              borderRadius: '12px',
+              padding: '4rem',
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.3)',
+              fontSize: '4rem',
+              marginBottom: '1rem'
+            }}>
+              🎨
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <div style={{ marginTop: '1rem' }}>
+            <label style={{
+              display: 'inline-block',
+              padding: '0.75rem 1.5rem',
+              background: uploading ? 'rgba(255, 255, 255, 0.1)' : 'rgba(59, 130, 246, 0.8)',
+              color: 'white',
+              borderRadius: '8px',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              transition: 'all 0.2s ease',
+              border: '1px solid rgba(255, 255, 255, 0.2)'
+            }}>
+              {uploading ? 'Uploading...' : (entity.data.reference_image_path ? 'Replace Reference Image' : 'Upload Reference Image')}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleUpload}
+                disabled={uploading}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </div>
+        </div>
+      )
     }
 
-    return (
-      <div>
-        {entity.data.reference_image_path ? (
-          <img
-            src={entity.data.reference_image_path}
-            alt={entity.title}
-            style={{ width: '100%', height: 'auto', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)', marginBottom: '1rem' }}
-            onError={(e) => e.target.style.display = 'none'}
-          />
-        ) : (
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.3)',
-            borderRadius: '12px',
-            padding: '4rem',
-            textAlign: 'center',
-            color: 'rgba(255, 255, 255, 0.3)',
-            fontSize: '4rem',
-            marginBottom: '1rem'
-          }}>
-            🎨
-          </div>
-        )}
-
-        {/* Upload Button */}
-        <div style={{ marginTop: '1rem' }}>
-          <label style={{
-            display: 'inline-block',
-            padding: '0.75rem 1.5rem',
-            background: uploading ? 'rgba(255, 255, 255, 0.1)' : 'rgba(59, 130, 246, 0.8)',
-            color: 'white',
-            borderRadius: '8px',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            fontWeight: 500,
-            fontSize: '0.95rem',
-            transition: 'all 0.2s ease',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            {uploading ? 'Uploading...' : (entity.data.reference_image_path ? 'Replace Reference Image' : 'Upload Reference Image')}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleUpload}
-              disabled={uploading}
-              style={{ display: 'none' }}
-            />
-          </label>
-        </div>
-      </div>
-    )
+    return <PreviewWithUpload />
   },
 
   renderEdit: (entity, editedData, editedTitle, handlers) => (
