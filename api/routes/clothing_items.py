@@ -594,12 +594,12 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
                 job_manager.fail_job(job_id, f"Clothing item {item_id} not found")
                 return
 
-            # Load character
+            # Load character by name (case-insensitive)
             character_service = CharacterService()
-            character = character_service.get_character(character_id)
+            character = character_service.get_character_by_name(character_id)
 
             if not character:
-                job_manager.fail_job(job_id, f"Character {character_id} not found")
+                job_manager.fail_job(job_id, f"Character '{character_id}' not found")
                 return
 
             # Get character reference image

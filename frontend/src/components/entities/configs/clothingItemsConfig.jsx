@@ -108,17 +108,13 @@ export const clothingItemsConfig = {
   renderPreview: (item) => {
     const handleCreateTestImage = async () => {
       try {
-        const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
+        await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
           character_id: 'jenny',
           visual_style: 'White Studio'
         })
-
-        if (response.data.job_id) {
-          alert('Test image generation started! Check the job queue for progress.')
-        }
+        // Job will appear in job queue automatically
       } catch (error) {
         console.error('Failed to generate test image:', error)
-        alert('Failed to start test image generation: ' + (error.response?.data?.detail || error.message))
       }
     }
 
@@ -188,18 +184,13 @@ export const clothingItemsConfig = {
   renderDetail: (item, handleBackToList, onUpdate) => {
     const handleCreateTestImage = async () => {
       try {
-        // Generate test image with Jenny wearing this clothing item
-        const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
+        await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
           character_id: 'jenny',
           visual_style: 'White Studio'
         })
-
-        if (response.data.job_id) {
-          alert('Test image generation started! Check the job queue for progress.')
-        }
+        // Job will appear in job queue automatically
       } catch (error) {
         console.error('Failed to generate test image:', error)
-        alert('Failed to start test image generation: ' + (error.response?.data?.detail || error.message))
       }
     }
 

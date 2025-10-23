@@ -111,6 +111,30 @@ class CharacterService:
         with open(character_file, 'r') as f:
             return json.load(f)
 
+    def get_character_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a character by name (case-insensitive)
+
+        Args:
+            name: Character name
+
+        Returns:
+            Character data dict or None if not found
+        """
+        name_lower = name.lower()
+
+        for file_path in self.characters_dir.glob("*.json"):
+            try:
+                with open(file_path, 'r') as f:
+                    character_data = json.load(f)
+                    if character_data.get('name', '').lower() == name_lower:
+                        return character_data
+            except Exception as e:
+                print(f"Error loading character {file_path}: {e}")
+                continue
+
+        return None
+
     def list_characters(self) -> List[Dict[str, Any]]:
         """
         List all characters
