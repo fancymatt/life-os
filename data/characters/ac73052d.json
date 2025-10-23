@@ -6,7 +6,12 @@
   "reference_image_path": "/app/data/characters/ac73052d_ref.png",
   "tags": [],
   "created_at": "2025-10-16T18:10:47.530375",
-  "updated_at": "2025-10-16T21:53:21.804799",
+  "updated_at": "2025-10-17T01:41:05.303298",
   "metadata": {},
-  "physical_description": "An adult woman with light skin and an oval face. She has medium to long brown hair styled in various ways. Her eyes are brown, and she has an average build and height. She does not appear to have any distinctive features."
+  "physical_description": "A young adult woman with a round face and light skin tone. She has light brown eyes and freckles. Her medium length brown hair is styled differently in the images. She has an average height and a medium build. Appears to have European features.",
+  "age": "young adult",
+  "skin_tone": "light",
+  "face_description": "Round face with feminine features, light brown eyes. Some freckles are visible. Appears to have European features.",
+  "hair_description": "Medium length brown hair, styles vary between straight and wavy.",
+  "body_description": "Average height, medium build."
 }

@@ -6,7 +6,12 @@
   "reference_image_path": "/app/data/characters/41c5726d_ref.png",
   "tags": [],
   "created_at": "2025-10-16T18:10:47.601157",
-  "updated_at": "2025-10-16T21:53:19.503856",
+  "updated_at": "2025-10-17T01:41:13.614427",
   "metadata": {},
-  "physical_description": "A young adult woman with an oval face and fair skin. She has shoulder-length wavy brown hair and brown eyes. She appears to be of average height with a slender build. She has no visible distinctive features."
+  "physical_description": "A young adult woman with light skin and an oval face, displaying feminine features and a warm smile. Her brown almond-shaped eyes are complemented by medium-length, wavy brown hair. She appears to be of average height with a slender to average build.",
+  "age": "young adult",
+  "skin_tone": "light",
+  "face_description": "Oval face with feminine features, brown almond-shaped eyes, and a warm smile. Some have distinctive square glasses and thinner lips. Evidence of potential European ancestry.",
+  "hair_description": "Medium-length, wavy brown hair, often styled with loose curls or waves. Color varies from reddish brown to dark brown.",
+  "body_description": "Appears to be of average height with a slender to average build."
 }

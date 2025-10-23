@@ -266,8 +266,14 @@ async def run_tool_test_job(
             result = await analyzer.aanalyze(temp_path)
         elif tool_name == "outfit_analyzer":
             from ai_tools.outfit_analyzer.tool import OutfitAnalyzer
-            analyzer = OutfitAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            from api.database import get_session
+
+            # Create database session for outfit analyzer to save clothing items
+            async with get_session() as session:
+                analyzer = OutfitAnalyzer(model=model, db_session=session, user_id=None)
+                result = await analyzer.aanalyze(temp_path)
+                await session.commit()  # Commit clothing item creations
+
             # Outfit analyzer returns dict directly
             get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
             get_job_queue_manager().complete_job(job_id, {
@@ -426,8 +432,14 @@ async def test_tool(
             result = await analyzer.aanalyze(temp_path)
         elif tool_name == "outfit_analyzer":
             from ai_tools.outfit_analyzer.tool import OutfitAnalyzer
-            analyzer = OutfitAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            from api.database import get_session
+
+            # Create database session for outfit analyzer to save clothing items
+            async with get_session() as session:
+                analyzer = OutfitAnalyzer(model=model, db_session=session, user_id=current_user.id if current_user else None)
+                result = await analyzer.aanalyze(temp_path)
+                await session.commit()  # Commit clothing item creations
+
             # Outfit analyzer now returns dict directly (new architecture)
             return {
                 "status": "success",

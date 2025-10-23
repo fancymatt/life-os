@@ -99,7 +99,6 @@ function Composer() {
         for (const cat of styleCategories) {
           presetsData[cat.key] = response.data[cat.apiCategory] || []
         }
-        console.log('✅ Loaded style presets in batch request')
       } catch (err) {
         console.error('Batch preset loading failed, falling back to individual requests:', err)
         // Fallback to individual requests
@@ -116,7 +115,6 @@ function Composer() {
 
       setPresets(presetsData)
       setCategories(categoryConfig)
-      console.log('✅ Loaded all presets and clothing items')
     } catch (err) {
       console.error('Failed to load presets:', err)
     }
@@ -197,17 +195,11 @@ function Composer() {
             if (!imageUrl.startsWith('/')) {
               imageUrl = '/' + imageUrl
             }
-            console.log('📸 Job completed, file path:', filePath)
-            console.log('📸 Converted to URL:', imageUrl)
             return imageUrl
-          } else {
-            console.log('⚠️ Job completed but no file_paths in result:', job.result)
           }
         } else if (job.status === 'failed') {
           throw new Error(job.error || 'Generation failed')
         }
-
-        console.log(`⏳ Job status: ${job.status}, progress: ${job.progress}`)
 
       } catch (err) {
         console.error('Polling error:', err)
@@ -228,7 +220,6 @@ function Composer() {
       const cached = generationCache.get(cacheKey)
 
       if (cached) {
-        console.log('✅ Using cached result:', cached)
         setGeneratedImage(cached)
         setGenerating(false)
         return
@@ -260,29 +251,18 @@ function Composer() {
 
       // Add presets and clothing items to payload
       presetsToApply.forEach(preset => {
-        console.log('🔍 Processing preset:', {
-          preset_id: preset.preset_id,
-          category: preset.category,
-          display_name: preset.display_name
-        })
-
         // Find the category configuration
         const catConfig = categoryConfig.find(c => {
           // For clothing items, match by category field
           if (c.apiCategory === 'clothing_items') {
-            const matches = preset.category === c.clothingCategory
-            console.log(`  Checking clothing category: ${c.clothingCategory} === ${preset.category}? ${matches}`)
-            return matches
+            return preset.category === c.clothingCategory
           }
           // For style presets, match by apiCategory
-          const matches = c.apiCategory === preset.category
-          console.log(`  Checking style category: ${c.apiCategory} === ${preset.category}? ${matches}`)
-          return matches
+          return c.apiCategory === preset.category
         })
 
         if (catConfig) {
           const categoryKey = catConfig.key
-          console.log(`  ✓ Found category config: ${categoryKey}`)
 
           // Clothing items can be layered (multiple items per category)
           if (catConfig.apiCategory === 'clothing_items') {
@@ -290,18 +270,12 @@ function Composer() {
               payload[categoryKey] = []
             }
             payload[categoryKey].push(preset.preset_id)
-            console.log(`  ✓ Added clothing item to ${categoryKey}:`, preset.preset_id)
           } else {
             // Style presets replace (one per category)
             payload[categoryKey] = preset.preset_id
-            console.log(`  ✓ Added style preset to ${categoryKey}:`, preset.preset_id)
           }
-        } else {
-          console.log(`  ✗ No category config found for:`, preset.category)
         }
       })
-
-      console.log('🎨 Generating with payload:', JSON.stringify(payload, null, 2))
 
       const response = await api.post('/generate/modular', payload)
       const jobId = response.data.job_id
@@ -310,7 +284,6 @@ function Composer() {
       const imageUrl = await pollForCompletion(jobId)
 
       if (imageUrl) {
-        console.log('✅ Generated image URL:', imageUrl)
         setGeneratedImage(imageUrl)
 
         // Cache the result in LRU cache
@@ -548,8 +521,6 @@ function Composer() {
 
       // Cleanup
       window.URL.revokeObjectURL(url)
-
-      console.log('✅ Downloaded image:', filename)
     } catch (err) {
       console.error('Failed to download image:', err)
       alert('Failed to download image')
@@ -768,11 +739,6 @@ function Composer() {
                 src={generatedImage}
                 alt="Generated composition"
                 className="generated-preview"
-                onLoad={() => console.log('✅ Image loaded successfully:', generatedImage)}
-                onError={(e) => {
-                  console.error('❌ Image failed to load:', generatedImage)
-                  console.error('Error event:', e)
-                }}
               />
               {generating && (
                 <div className="generating-badge">

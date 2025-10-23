@@ -56,9 +56,7 @@ Fit and silhouette — how the piece interacts with the body (draped, sculpted, 
 
 Condition and treatment — pressed, distressed, patinated, brushed, quilted, embossed, or perforated.
 
-Interaction — how layers overlap, tuck, or contrast (e.g., “shirt hem visible beneath jacket,” “belt threaded through external loops”).
-
-Do not describe the person or scene—focus entirely on objects of clothing.
+Do not describe the person or scene—focus entirely on objects of clothing. Do not describe how clothing interacts with other articles of clothing.
 
 Field-Specific Clarifications
 

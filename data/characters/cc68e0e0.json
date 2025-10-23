@@ -1,12 +1,17 @@
 {
   "character_id": "cc68e0e0",
   "name": "Kylee",
-  "visual_description": null,
-  "personality": null,
-  "physical_description": "An attractive young adult woman with an oval face and light skin. She has shoulder-length wavy brown hair with subtle highlights and blue eyes. She appears to be of average height with a slender build. Her face is unmarked by distinctive features, presenting a clean, youthful appearance.",
+  "visual_description": "An attractive young adult woman with an oval face and light skin. She has shoulder-length wavy brown hair with subtle highlights and blue eyes. She appears to be of average height with a slender build. Her face is unmarked by distinctive features, presenting a clean, youthful appearance.",
+  "personality": "Hipster, cool",
+  "physical_description": "A young adult woman with an oval face, feminine features, and light skin tone with European characteristics. She has blue eyes and a slight smile. Her shoulder-length wavy brown hair has subtle highlights. She appears to be of average height with a slender build.",
   "reference_image_path": "/app/data/characters/cc68e0e0_ref.png",
   "tags": [],
   "created_at": "2025-10-16T20:19:30.048984",
-  "updated_at": "2025-10-16T21:52:59.202645",
-  "metadata": {}
+  "updated_at": "2025-10-17T01:01:36.642662",
+  "metadata": {},
+  "age": "young adult",
+  "skin_tone": "light",
+  "face_description": "Oval face with feminine features, blue eyes, and European characteristics. Slight smile.",
+  "hair_description": "Shoulder-length wavy brown hair with subtle highlights.",
+  "body_description": "Average height with slender build."
 }

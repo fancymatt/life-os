@@ -1,7 +1,7 @@
 # Life-OS - Claude AI Assistant Context
 
-**Last Updated**: 2025-10-15
-**Current Sprint**: Sprint 4 (Performance & Architecture Foundations)
+**Last Updated**: 2025-10-22
+**Current Phase**: Phase 1 - Foundation & Critical Fixes (see ROADMAP.md)
 
 ---
 
@@ -33,15 +33,15 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 ## Essential Documentation
 
 ### For Development Work
-1. **OPTIMIZATION_ROADMAP.md** - Complete 4-phase development plan with current status
-2. **SPRINT_3.md** - Recently completed features (reference for patterns)
+1. **ROADMAP.md** - Complete 6-phase development plan with priorities
+2. **DESIGN_PATTERNS.md** - Best practices guide using Character + Appearance Analyzer as gold standard
 3. **README.md** - Setup instructions and feature overview
 4. **API_ARCHITECTURE.md** - Backend architecture details
 
 ### For Understanding the Codebase
 1. **Directory Structure** (see below)
 2. **Key Technologies** (see below)
-3. **Current Blockers & Progress** (see OPTIMIZATION_ROADMAP.md)
+3. **Current Phase & Priorities** (see ROADMAP.md)
 
 ---
 
@@ -136,38 +136,43 @@ life-os/
 
 ## Current Development Focus
 
-### Active Work (Week 1-2, Sprint 4)
-1. **Story Generation Workflow Prototype** 🚧 IN PROGRESS
-   - Multi-agent workflow: Story Planner → Story Writer → Image Illustrator
-   - Tests workflow orchestration architecture
-   - Validates Phase 2 extensibility needs
+### Phase 1: Foundation & Critical Fixes (4-6 weeks)
 
-2. **Performance Quick Wins**
-   - ✅ Async file I/O (routes completed)
-   - ✅ Cache-Control headers for static files
-   - 🔴 BLOCKED: GZIP compression (import issue)
-   - 📋 TODO: React optimizations (useMemo/useCallback)
-   - 📋 TODO: Batch preset loading endpoint
+**See ROADMAP.md for complete details**
 
-### Known Issues & Blockers
+**Priority 1: Database Migration** (2-3 weeks)
+- Migrate from JSON files to PostgreSQL
+- Add Alembic for migrations
+- Update service layer to async ORM
 
-**🔴 Critical Blockers**:
-- **GZIP Compression**: `ImportError: cannot import name 'GZIPMiddleware'`
-  - Current FastAPI/Starlette version compatibility issue
-  - Needs research for correct import path
-  - Impact: Would reduce bandwidth by 60-80%
+**Priority 2: Performance Optimizations** (1-2 weeks)
+- Backend pagination for all list endpoints
+- Redis-based response caching
+- Virtual scrolling for large entity lists
 
-**⚠️ Technical Debt**:
-- **Code Duplication**: OutfitAnalyzer.jsx and GenericAnalyzer.jsx are 85% identical (~500 duplicate lines)
-- **Large Components**: Composer.jsx (855 lines), OutfitAnalyzer.jsx (702 lines) need refactoring
-- **No Frontend Tests**: 0% test coverage for React components
-- **Synchronous File I/O**: Still present in api/services/*.py files
+**Priority 3: Code Quality** (1 week)
+- Structured logging infrastructure
+- Standardized error handling
+- Component refactoring (Composer.jsx, unify analyzers)
 
-**📊 Performance Opportunities**:
-- Sequential preset loading (8 API calls on page load → should be 1)
-- No React memoization (causes unnecessary re-renders)
-- No search debouncing (triggers on every keystroke)
-- No request batching or rate limiting
+### Known Issues
+
+**See ROADMAP.md Phase 1 for complete list**
+
+**Critical**:
+- JSON file storage doesn't scale (Phase 1.1 - Database Migration)
+- No pagination causes slow loads with 200+ entities (Phase 1.2)
+- 10 failing smoke tests need auth fixtures (Phase 1.4)
+
+**Technical Debt**:
+- Component duplication: OutfitAnalyzer + GenericAnalyzer (~500 lines)
+- Large components: Composer.jsx (910 lines) needs splitting
+- Zero frontend tests (Phase 1.4)
+
+**Performance**:
+- No response caching (Phase 1.2)
+- No virtual scrolling for large lists (Phase 1.2)
+- No search debouncing
 
 ---
 
@@ -389,47 +394,38 @@ ls data/compositions/           # Saved compositions (per user)
 
 ---
 
-## Future Architecture (Phases 2-4)
+## Future Architecture
 
-### Phase 2: Extensibility (4-5 weeks)
-**Goal**: Plugin architecture for domain expansion
+**See ROADMAP.md for complete 6-phase plan**
 
-**New Components**:
-- `api/core/plugin_interface.py` - Base plugin class
-- `api/core/plugin_manager.py` - Plugin discovery & lifecycle
-- `api/core/workflow_engine.py` - Multi-step workflow orchestration
-- `api/core/context_manager.py` - Cross-domain memory & preferences
-- `api/core/providers/` - Provider abstraction (local LLMs, ComfyUI, MCP)
-- `plugins/` - Domain-specific plugins
+### Phase 2: Board Game Assistant (3-4 weeks)
+- Rules Gatherer (BGG integration)
+- Document RAG Preparer (Docling + ChromaDB)
+- Document Q&A system (semantic search + citations)
+- Tool configuration UI
 
-**Example Plugin Structure**:
-```
-plugins/image_generation/
-├── plugin.py           # BasePlugin implementation
-├── config.yaml         # Plugin configuration
-└── README.md          # Plugin documentation
-```
+### Phase 3: Local LLMs & Performance (2-3 weeks)
+- llama-cpp-python integration
+- Local model management
+- Rate limiting & monitoring
 
-### Phase 3: Agent Framework (3-4 weeks)
-**Goal**: Autonomous agents with safety
+### Phase 4: Extensibility & Workflows (4-6 weeks)
+- Plugin architecture
+- Advanced workflow engine
+- Context management system
 
-**New Components**:
-- `api/core/agents/` - Agent implementations
-- `api/core/task_planner.py` - Goal decomposition
-- `api/core/permission_manager.py` - Safety & permissions
-- `api/core/learning_system.py` - Preference learning
+### Phase 5: Agent Framework (5-6 weeks)
+- Semi-autonomous agents
+- Task planning & decomposition
+- Safety & permissions system
 
-### Phase 4: Domain Expansion (12-15 weeks)
-**Goal**: Add new domains
-
-**New Plugins**:
-- `plugins/video_generation/` - Sora integration
-- `plugins/code_management/` - Claude Code integration
-- `plugins/home_automation/` - Home Assistant integration
-- `plugins/life_planning/` - Calendar, tasks, habits
-- `plugins/educational_content/` - Video scripts, lessons
-- `plugins/board_game_tools/` - Game analysis, teaching guides
-- `plugins/mcp_integration/` - MCP server connections
+### Phase 6: Domain Expansion (Ongoing)
+- Video generation (Sora)
+- Code management
+- Life planning
+- Home automation
+- Educational content
+- Board games (full suite)
 
 ---
 
@@ -467,13 +463,13 @@ plugins/image_generation/
 - `ai_tools/modular_image_generator/tool.py` - Complex AI tool implementation
 
 ### For Understanding Features
-- `SPRINT_3.md` - Recently completed features
+- `README.md` - High-level overview and feature documentation
 - `API_QUICKSTART.md` - API usage examples
-- `README.md` - High-level overview
+- `DESIGN_PATTERNS.md` - Development patterns and best practices
 
 ### For Architecture
 - `API_ARCHITECTURE.md` - Backend design
-- `OPTIMIZATION_ROADMAP.md` - Development plan
+- `ROADMAP.md` - Development plan (Phases 1-6)
 - `configs/models.yaml` - LLM configuration
 
 ---
@@ -510,13 +506,13 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ## Getting Help
 
 ### If You're Stuck
-1. Check `OPTIMIZATION_ROADMAP.md` for known blockers
+1. Check `ROADMAP.md` for known issues and priorities
 2. Check `API_ARCHITECTURE.md` for design decisions
-3. Check existing code for similar patterns
+3. Check `DESIGN_PATTERNS.md` for established patterns
 4. Ask the user for clarification
 
 ### If You Find Issues
-1. Document in `OPTIMIZATION_ROADMAP.md` (Blockers section)
+1. Document in comments or create GitHub issue
 2. Update TODO tasks with blocker status
 3. Provide workaround if possible
 4. Suggest next steps
@@ -618,9 +614,9 @@ POST /api/compositions/save         # Save composition
 
 ---
 
-**Remember**: Life-OS is evolving into a multi-domain AI platform. Always consider how your changes will support the plugin architecture and workflow orchestration planned for Phase 2.
+**Remember**: Life-OS is evolving into a multi-domain AI platform. Always consider how your changes will support future extensibility.
 
-**Current Priority**: Build story generation workflow to validate architectural needs, then continue Phase 1 optimizations.
+**Current Priority**: Phase 1 Foundation - Database migration, performance optimizations, code quality improvements. See ROADMAP.md for complete plan.
 
 ---
 
