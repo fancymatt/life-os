@@ -76,10 +76,11 @@ function Composer() {
       const clothingCategories = categoryConfig.filter(cat => cat.apiCategory === 'clothing_items')
       for (const cat of clothingCategories) {
         try {
-          const response = await api.get(`/clothing-items?category=${cat.clothingCategory}`)
-          // Map clothing items to preset-like format
+          // CRITICAL: Must include trailing slash - FastAPI is strict about this
+          const response = await api.get(`/clothing-items/?category=${cat.clothingCategory}`)
+          // Map clothing items to preset-like format (using snake_case field names from API)
           presetsData[cat.key] = (response.data.items || []).map(item => ({
-            preset_id: item.itemId,
+            preset_id: item.item_id,
             display_name: `${item.item} - ${item.color}`,
             category: item.category,
             data: item
@@ -921,9 +922,9 @@ function PresetThumbnail({ preset, category, isFavorite, isSelected, onDragStart
   const [imageError, setImageError] = useState(false)
 
   // For clothing items, use preview_image_path; for style presets, use API endpoint
-  const isClothingItem = preset.data && preset.data.previewImagePath
+  const isClothingItem = preset.data && preset.data.preview_image_path
   const previewUrl = isClothingItem
-    ? preset.data.previewImagePath
+    ? preset.data.preview_image_path
     : `/api/presets/${category}/${preset.preset_id}/preview?t=${Date.now()}`
 
   return (
