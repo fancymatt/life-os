@@ -428,8 +428,13 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
             reference_image = None
 
         logger.info(f"Generating preview for {category} preset with model {model}...")
+        logger.info(f"📝 PROMPT BEING SENT TO MODEL:\n{'-'*80}\n{prompt}\n{'-'*80}")
+        if reference_image:
+            logger.info(f"🖼️  REFERENCE IMAGE: {reference_image}")
+        else:
+            logger.info(f"🖼️  NO REFERENCE IMAGE")
 
-        # Determine provider based on model
+        # Determine provider based on model and whether reference image exists
         if "dall-e" in model.lower():
             provider = "dalle"
             quality = "standard"
@@ -444,20 +449,29 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
                 quality=quality
             )
         elif "gemini" in model.lower():
-            # Use Gemini for image generation
-            # If reference image provided, load it
-            image_path = None
+            # Gemini REQUIRES a reference image for image generation
+            # If no reference image, fall back to DALL-E
             if reference_image and Path(reference_image).exists():
-                image_path = reference_image
-                logger.info(f"Using reference image: {reference_image}")
-
-            image_bytes = self.router.generate_image(
-                prompt=prompt,
-                model=model,
-                provider="gemini",
-                size=size,
-                image_path=image_path
-            )
+                logger.info(f"Using Gemini with reference image: {reference_image}")
+                image_bytes = self.router.generate_image(
+                    prompt=prompt,
+                    model=model,
+                    provider="gemini",
+                    size=size,
+                    image_path=reference_image
+                )
+            else:
+                logger.warning(f"No reference image found for Gemini model - falling back to DALL-E")
+                # Fall back to DALL-E when no reference image
+                if len(prompt) > 3900:
+                    prompt = prompt[:3900] + "..."
+                image_bytes = self.router.generate_image(
+                    prompt=prompt,
+                    model="dall-e-3",
+                    provider="dalle",
+                    size="1024x1024",
+                    quality="standard"
+                )
         else:
             # Default to DALL-E
             provider = "dalle"
@@ -508,8 +522,11 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
         Returns:
             Custom prompt string incorporating viz config
         """
+        logger.info(f"🔧 VIZ CONFIG DATA: {viz_config}")
+
         # Get base subject description from the spec
         subject_description = self._extract_subject_description(spec_type, spec)
+        logger.info(f"📋 SUBJECT DESCRIPTION: {subject_description}")
 
         # Get additional instructions (primary driver)
         additional_instructions = viz_config.get("additional_instructions", "")
@@ -540,7 +557,25 @@ ART STYLE:
                 logger.warning(f"Could not load art style {art_style_id}: {e}")
 
         # Build minimal custom prompt
-        prompt = f"""Create a reference image showing this {spec_type.replace('_', ' ')} preset.
+        # If reference image will be included, tell the model to match its style
+        has_reference = viz_config.get("reference_image_path") and Path(viz_config.get("reference_image_path")).exists()
+        logger.info(f"🎨 ART STYLE GUIDANCE: {art_style_guidance if art_style_guidance else '(none)'}")
+        logger.info(f"📝 ADDITIONAL INSTRUCTIONS: {additional_instructions if additional_instructions else '(none)'}")
+        logger.info(f"🖼️  HAS REFERENCE IMAGE: {has_reference}")
+
+        if has_reference:
+            prompt = f"""Look at the reference image I've provided and create a new image that MATCHES its artistic style, technique, and rendering approach.
+
+CRITICAL: Use the SAME artistic style, medium, and visual treatment shown in the reference image.
+
+SUBJECT TO PORTRAY:
+{subject_description}
+{art_style_guidance}
+{f"ADDITIONAL GUIDANCE: {additional_instructions}" if additional_instructions else ""}
+
+Apply the visual style from the reference image to the subject described above. Keep the same level of detail, rendering technique, linework style, shading approach, and overall artistic treatment."""
+        else:
+            prompt = f"""Create a reference image showing this {spec_type.replace('_', ' ')} preset.
 
 SUBJECT DETAILS:
 {subject_description}

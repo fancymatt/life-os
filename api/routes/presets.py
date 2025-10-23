@@ -43,46 +43,32 @@ async def run_preview_generation_job(job_id: str, category: str, preset_id: str)
         if '_metadata' in preset_data:
             del preset_data['_metadata']
 
-        # Convert dict to Pydantic spec based on category
-        spec = None
-        if category == "hair_styles":
-            from ai_capabilities.specs import HairStyleSpec
-            spec = HairStyleSpec(**preset_data)
-        elif category == "visual_styles":
-            from ai_capabilities.specs import VisualStyleSpec
-            spec = VisualStyleSpec(**preset_data)
-        elif category == "art_styles":
-            from ai_capabilities.specs import ArtStyleSpec
-            spec = ArtStyleSpec(**preset_data)
-        elif category == "hair_colors":
-            from ai_capabilities.specs import HairColorSpec
-            spec = HairColorSpec(**preset_data)
-        elif category == "makeup":
-            from ai_capabilities.specs import MakeupSpec
-            spec = MakeupSpec(**preset_data)
-        elif category == "expressions":
-            from ai_capabilities.specs import ExpressionSpec
-            spec = ExpressionSpec(**preset_data)
-        elif category == "accessories":
-            from ai_capabilities.specs import AccessoriesSpec
-            spec = AccessoriesSpec(**preset_data)
-        else:
-            raise ValueError(f"Unsupported category for preview generation: {category}")
+        job_manager.update_progress(job_id, 0.2, "Loading visualization config...")
 
-        job_manager.update_progress(job_id, 0.3, "Generating preview image...")
+        # Load visualization config for this entity type
+        from api.services.visualization_config_service import VisualizationConfigService
+        viz_service = VisualizationConfigService()
+
+        # Convert category to entity_type (strip trailing 's')
+        entity_type = category.rstrip('s') if category.endswith('s') else category
+        viz_config = viz_service.get_default_config(entity_type)
+        logger.info(f"Loaded viz config for {entity_type}: {viz_config.get('display_name') if viz_config else 'None'}")
+
+        job_manager.update_progress(job_id, 0.4, "Generating preview image...")
         logger.info(f"Starting visualization for {category}/{preset_id}")
 
         # Get correct output directory from preset manager
         preset_dir = preset_service.preset_manager._get_preset_dir(category)
+        output_file = str(preset_dir / f"{preset_id}_preview.png")
 
-        # Generate preview image
+        # Generate preview using create_preset_preview with viz config
+        # Pass preset_data as dict (not Pydantic spec), create_preset_preview handles it
         output_path = await asyncio.to_thread(
-            visualizer.visualize,
+            visualizer.create_preset_preview,
+            preset_data,
+            output_file,
             category,
-            spec,
-            str(preset_dir),
-            preset_id,
-            "standard"
+            viz_config
         )
 
         job_manager.complete_job(job_id, {"output_path": str(output_path)})
