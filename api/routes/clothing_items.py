@@ -571,7 +571,7 @@ class TestImageRequest(BaseModel):
     visual_style: str
 
 
-async def run_test_image_generation_job(job_id: str, item_id: str, character_id: str, visual_style: str):
+async def run_test_image_generation_job(job_id: str, item_id: str, character_id: str, visual_style_id: str):
     """Background task to generate test image of character wearing clothing item"""
     from api.services.job_queue import get_job_queue_manager
     from api.database import get_session
@@ -649,7 +649,7 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
             result = await generator.agenerate(
                 subject_image=str(subject_path),
                 outfit=morphsuit_outfit,
-                visual_style=visual_style,
+                visual_style=visual_style_id,  # Pass UUID, not name
                 output_dir="output/generated"
             )
 
@@ -660,7 +660,7 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
                 'file_path': str(result.file_path),
                 'item_id': item_id,
                 'character_id': character_id,
-                'visual_style': visual_style
+                'visual_style_id': visual_style_id
             })
 
     except Exception as e:
@@ -712,7 +712,7 @@ async def generate_test_image(
         job_id,
         item_id,
         request.character_id,
-        request.visual_style
+        request.visual_style  # This should be a UUID (e.g., 'b1ed9953-a91d-4257-98de-bf8b2f256293')
     )
 
     return {

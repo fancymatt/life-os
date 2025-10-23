@@ -110,7 +110,7 @@ export const clothingItemsConfig = {
       try {
         await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
           character_id: 'jenny',
-          visual_style: 'White Studio'
+          visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'  // White Studio preset UUID
         })
         // Job will appear in job queue automatically
       } catch (error) {
@@ -186,7 +186,7 @@ export const clothingItemsConfig = {
       try {
         await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
           character_id: 'jenny',
-          visual_style: 'White Studio'
+          visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'  // White Studio preset UUID
         })
         // Job will appear in job queue automatically
       } catch (error) {
