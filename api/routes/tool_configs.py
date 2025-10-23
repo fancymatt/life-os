@@ -301,7 +301,10 @@ async def run_tool_test_job(
         elif tool_name == "hair_style_analyzer":
             from ai_tools.hair_style_analyzer.tool import HairStyleAnalyzer
             analyzer = HairStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(
+                temp_path,
+                save_as_preset=True  # Auto-save as preset like outfit analyzer
+            )
         elif tool_name == "makeup_analyzer":
             from ai_tools.makeup_analyzer.tool import MakeupAnalyzer
             analyzer = MakeupAnalyzer(model=model)
@@ -466,7 +469,10 @@ async def test_tool(
         elif tool_name == "hair_style_analyzer":
             from ai_tools.hair_style_analyzer.tool import HairStyleAnalyzer
             analyzer = HairStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(
+                temp_path,
+                save_as_preset=True  # Auto-save as preset like outfit analyzer
+            )
         elif tool_name == "makeup_analyzer":
             from ai_tools.makeup_analyzer.tool import MakeupAnalyzer
             analyzer = MakeupAnalyzer(model=model)
