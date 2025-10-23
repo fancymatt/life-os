@@ -11,6 +11,8 @@ from api.repositories.board_game_repository import BoardGameRepository
 from api.repositories.outfit_repository import OutfitRepository
 from api.repositories.favorite_repository import FavoriteRepository
 from api.repositories.composition_repository import CompositionRepository
+from api.repositories.image_repository import ImageRepository
+from api.repositories.image_entity_relationship_repository import ImageEntityRelationshipRepository
 
 __all__ = [
     'UserRepository',
@@ -20,4 +22,6 @@ __all__ = [
     'OutfitRepository',
     'FavoriteRepository',
     'CompositionRepository',
+    'ImageRepository',
+    'ImageEntityRelationshipRepository',
 ]

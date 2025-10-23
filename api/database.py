@@ -164,7 +164,9 @@ async def init_db():
             ClothingItem,
             Outfit,
             Story,
-            StoryScene
+            StoryScene,
+            Image,
+            ImageEntityRelationship
         )
 
         # Create all tables

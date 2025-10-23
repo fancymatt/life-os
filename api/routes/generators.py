@@ -161,6 +161,72 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
                         'file_path': str(result.file_path)
                     }})
 
+                    # Save image and entity relationships to database
+                    try:
+                        from api.database import get_session
+                        from api.services.image_service import ImageService
+
+                        # Build entity relationships from request parameters
+                        entities = []
+
+                        # Add character as subject
+                        if request.subject_image.startswith("character:"):
+                            character_id = request.subject_image.split(":", 1)[1]
+                            entities.append({
+                                "entity_type": "character",
+                                "entity_id": character_id,
+                                "role": "subject"
+                            })
+
+                        # Add clothing items (from all categories)
+                        for category in clothing_categories:
+                            value = getattr(request, category, None)
+                            if value:
+                                # Handle both single ID and list of IDs
+                                item_ids = value if isinstance(value, list) else [value]
+                                for item_id in item_ids:
+                                    entities.append({
+                                        "entity_type": "clothing_item",
+                                        "entity_id": item_id,
+                                        "role": category
+                                    })
+
+                        # Add style presets
+                        for category in style_categories:
+                            value = getattr(request, category, None)
+                            if value:
+                                entities.append({
+                                    "entity_type": "preset",
+                                    "entity_id": value,
+                                    "role": category
+                                })
+
+                        # Save to database
+                        async with get_session() as session:
+                            image_service = ImageService(session)
+                            await image_service.create_image_with_relationships(
+                                file_path=str(result.file_path),
+                                entities=entities,
+                                generation_metadata={
+                                    "job_id": job_id,
+                                    "variation": i + 1,
+                                    "generator": "modular",
+                                    "subject_image": request.subject_image
+                                }
+                            )
+
+                        logger.info(f"Saved image to database with {len(entities)} entity relationships", extra={'extra_fields': {
+                            'file_path': str(result.file_path),
+                            'entity_count': len(entities)
+                        }})
+
+                    except Exception as e:
+                        # Log error but don't fail the generation
+                        logger.error(f"Failed to save image to database: {e}", extra={'extra_fields': {
+                            'file_path': str(result.file_path),
+                            'error': str(e)
+                        }})
+
                 except Exception as e:
                     # Log the error but continue with remaining variations
                     error_msg = str(e)

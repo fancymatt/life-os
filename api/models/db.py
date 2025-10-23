@@ -357,3 +357,93 @@ class Composition(Base):
 
     def __repr__(self):
         return f"<Composition(id='{self.composition_id}', name='{self.name}')>"
+
+
+# ============================================================================
+# Image and Relationship Entities
+# ============================================================================
+
+class Image(Base):
+    """Generated image entity"""
+    __tablename__ = "images"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    image_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+
+    # File details
+    file_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Image dimensions
+    width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    height: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Generation metadata
+    # Stores: generation params, model used, prompt, etc.
+    generation_metadata: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # User relationship
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+
+    # Relationships
+    entity_relationships = relationship("ImageEntityRelationship", back_populates="image", cascade="all, delete-orphan")
+
+    # Indexes for common queries
+    __table_args__ = (
+        Index("ix_image_user_created", "user_id", "created_at"),
+    )
+
+    def __repr__(self):
+        return f"<Image(id='{self.image_id}', file_path='{self.file_path}')>"
+
+
+class ImageEntityRelationship(Base):
+    """
+    Polymorphic relationship table linking images to any entity type
+
+    This allows flexible many-to-many relationships between images and entities
+    without hard-coding entity-specific columns. Any entity (character, clothing_item,
+    visual_style preset, etc.) can be linked to an image.
+
+    Example: An image generated with character='luna', outerwear='jacket-123',
+    visual_style='noir' would have 3 rows:
+    - (image_id, 'character', 'luna')
+    - (image_id, 'clothing_item', 'jacket-123')
+    - (image_id, 'visual_style', 'noir')
+    """
+    __tablename__ = "image_entity_relationships"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # Image reference
+    image_id: Mapped[str] = mapped_column(String(100), ForeignKey("images.image_id"), nullable=False, index=True)
+
+    # Polymorphic entity reference
+    entity_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    # Optional role/category context (e.g., "subject", "headwear", "visual_style")
+    # This helps distinguish multiple entities of the same type
+    role: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+
+    # Timestamp
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    image = relationship("Image", back_populates="entity_relationships")
+
+    # Indexes for common queries
+    __table_args__ = (
+        # Find all images using a specific entity
+        Index("ix_relationship_entity", "entity_type", "entity_id"),
+        # Find all entities used in an image
+        Index("ix_relationship_image", "image_id"),
+        # Unique constraint: one relationship per image+entity+role
+        Index("ix_relationship_unique", "image_id", "entity_type", "entity_id", "role", unique=True),
+    )
+
+    def __repr__(self):
+        return f"<ImageEntityRelationship(image_id='{self.image_id}', entity_type='{self.entity_type}', entity_id='{self.entity_id}')>"
