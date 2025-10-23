@@ -19,6 +19,127 @@ logger = get_logger(__name__)
 preset_service = PresetService()
 
 
+async def run_preview_generation_job(job_id: str, category: str, preset_id: str):
+    """Background task to generate preview and update job"""
+    from ai_tools.shared.visualizer import PresetVisualizer
+    from api.services.job_queue import get_job_queue_manager
+    import asyncio
+    import traceback
+
+    logger.info(f"Starting preview generation for {category}/{preset_id} (Job: {job_id})")
+
+    try:
+        job_manager = get_job_queue_manager()
+        job_manager.start_job(job_id)
+        job_manager.update_progress(job_id, 0.1, "Loading preset data...")
+        logger.info(f"Job {job_id} updated to running")
+
+        # Generate preview using visualizer
+        visualizer = PresetVisualizer()
+        preset_data = preset_service.get_preset(category, preset_id)
+        logger.info(f"Loaded preset data for {category}/{preset_id}")
+
+        # Remove metadata
+        if '_metadata' in preset_data:
+            del preset_data['_metadata']
+
+        # Convert dict to Pydantic spec based on category
+        spec = None
+        if category == "hair_styles":
+            from ai_capabilities.specs import HairStyleSpec
+            spec = HairStyleSpec(**preset_data)
+        elif category == "visual_styles":
+            from ai_capabilities.specs import VisualStyleSpec
+            spec = VisualStyleSpec(**preset_data)
+        elif category == "art_styles":
+            from ai_capabilities.specs import ArtStyleSpec
+            spec = ArtStyleSpec(**preset_data)
+        elif category == "hair_colors":
+            from ai_capabilities.specs import HairColorSpec
+            spec = HairColorSpec(**preset_data)
+        elif category == "makeup":
+            from ai_capabilities.specs import MakeupSpec
+            spec = MakeupSpec(**preset_data)
+        elif category == "expressions":
+            from ai_capabilities.specs import ExpressionSpec
+            spec = ExpressionSpec(**preset_data)
+        elif category == "accessories":
+            from ai_capabilities.specs import AccessoriesSpec
+            spec = AccessoriesSpec(**preset_data)
+        else:
+            raise ValueError(f"Unsupported category for preview generation: {category}")
+
+        job_manager.update_progress(job_id, 0.3, "Generating preview image...")
+        logger.info(f"Starting visualization for {category}/{preset_id}")
+
+        # Generate preview image
+        output_path = await asyncio.to_thread(
+            visualizer.visualize,
+            category,
+            spec,
+            f"output/{category}",
+            preset_id,
+            "standard"
+        )
+
+        job_manager.complete_job(job_id, {"output_path": str(output_path)})
+        logger.info(f"✅ Preview generated successfully for {category}/{preset_id}: {output_path}")
+
+    except Exception as e:
+        logger.error(f"❌ Preview generation failed for {category}/{preset_id}: {e}")
+        logger.error(traceback.format_exc())
+        get_job_queue_manager().fail_job(job_id, str(e))
+
+
+async def run_test_generation_job(job_id: str, category: str, preset_id: str):
+    """Background task to generate test image and update job"""
+    from ai_tools.modular_image_generator.tool import ModularImageGenerator
+    from api.services.job_queue import get_job_queue_manager
+
+    try:
+        job_manager = get_job_queue_manager()
+        job_manager.start_job(job_id)
+        job_manager.update_progress(job_id, 0.1, "Preparing test generation...")
+
+        # Map category to parameter name
+        category_param_map = {
+            "outfits": "outfit",
+            "visual_styles": "visual_style",
+            "art_styles": "art_style",
+            "hair_styles": "hair_style",
+            "hair_colors": "hair_color",
+            "makeup": "makeup",
+            "expressions": "expression",
+            "accessories": "accessories"
+        }
+
+        # Check if jenny.png exists
+        jenny_path = Path("jenny.png")
+        if not jenny_path.exists():
+            raise FileNotFoundError("jenny.png not found in project root")
+
+        job_manager.update_progress(job_id, 0.2, "Loading generator...")
+
+        # Generate test image
+        generator = ModularImageGenerator()
+        kwargs = {
+            "subject_image": str(jenny_path),
+            "output_dir": f"output/test_generations/{category}",
+            category_param_map[category]: preset_id
+        }
+
+        job_manager.update_progress(job_id, 0.4, "Generating image...")
+
+        result = await generator.agenerate(**kwargs)
+
+        job_manager.complete_job(job_id, {"file_path": result.file_path})
+        logger.info(f"Test image generated: {result.file_path}")
+
+    except Exception as e:
+        logger.error(f"Test generation failed: {e}")
+        get_job_queue_manager().fail_job(job_id, str(e))
+
+
 @router.get("/batch")
 async def get_all_presets():
     """
@@ -256,51 +377,7 @@ async def generate_preset_preview(
     logger.info(f"Created job {job_id} for preview generation")
 
     # Queue background task
-    async def generate_preview_task():
-        from ai_tools.shared.visualizer import Visualizer
-        import asyncio
-        import traceback
-
-        logger.info(f"Starting preview generation for {category}/{preset_id} (Job: {job_id})")
-
-        try:
-            job_manager = get_job_queue_manager()
-            job_manager.update_job(job_id, status="running", progress=10)
-            logger.info(f"Job {job_id} updated to running")
-
-            # Generate preview using visualizer
-            visualizer = Visualizer()
-            preset_data = preset_service.get_preset(category, preset_id)
-            logger.info(f"Loaded preset data for {category}/{preset_id}")
-
-            # Remove metadata
-            if '_metadata' in preset_data:
-                del preset_data['_metadata']
-
-            job_manager.update_job(job_id, progress=30)
-            logger.info(f"Starting visualization for {category}/{preset_id}")
-
-            # Generate preview image
-            await asyncio.to_thread(
-                visualizer.generate_preset_visualization,
-                category,
-                preset_id,
-                preset_data
-            )
-
-            job_manager.update_job(job_id, status="completed", progress=100)
-            logger.info(f"✅ Preview generated successfully for {category}/{preset_id}")
-
-        except Exception as e:
-            logger.error(f"❌ Preview generation failed for {category}/{preset_id}: {e}")
-            logger.error(traceback.format_exc())
-            get_job_queue_manager().update_job(
-                job_id,
-                status="failed",
-                error_message=str(e)
-            )
-
-    background_tasks.add_task(generate_preview_task)
+    background_tasks.add_task(run_preview_generation_job, job_id, category, preset_id)
     logger.info(f"Queued preview generation task for {category}/{preset_id} (Job: {job_id})")
 
     return {
@@ -350,44 +427,7 @@ async def generate_test_image(
     )
 
     # Queue background task
-    async def generate_test_task():
-        from ai_tools.modular_image_generator.tool import ModularImageGenerator
-
-        try:
-            job_manager = get_job_queue_manager()
-            job_manager.update_job(job_id, status="running", progress=10)
-
-            # Check if jenny.png exists
-            jenny_path = Path("jenny.png")
-            if not jenny_path.exists():
-                raise FileNotFoundError("jenny.png not found in project root")
-
-            job_manager.update_job(job_id, progress=20)
-
-            # Generate test image
-            generator = ModularImageGenerator()
-            kwargs = {
-                "subject_image": str(jenny_path),
-                "output_dir": f"output/test_generations/{category}",
-                category_param_map[category]: preset_id
-            }
-
-            job_manager.update_job(job_id, progress=40)
-
-            result = await generator.agenerate(**kwargs)
-
-            job_manager.update_job(job_id, status="completed", progress=100)
-            logger.info(f"Test image generated: {result.file_path}")
-
-        except Exception as e:
-            logger.error(f"Test generation failed: {e}")
-            get_job_queue_manager().update_job(
-                job_id,
-                status="failed",
-                error_message=str(e)
-            )
-
-    background_tasks.add_task(generate_test_task)
+    background_tasks.add_task(run_test_generation_job, job_id, category, preset_id)
 
     return {
         "job_id": job_id,
