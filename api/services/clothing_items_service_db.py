@@ -276,6 +276,18 @@ class ClothingItemServiceDB:
         # Convert list of tuples to dict
         return {category: count for category, count in categories}
 
+    async def count_clothing_items(self, category: Optional[str] = None) -> int:
+        """
+        Count total clothing items (filtered by user and optionally by category)
+
+        Args:
+            category: Optional category filter
+
+        Returns:
+            Total number of clothing items
+        """
+        return await self.repository.count(user_id=self.user_id, category=category)
+
     def _generate_preview_safe(self, item_id: str):
         """
         Safe wrapper for preview generation with error logging

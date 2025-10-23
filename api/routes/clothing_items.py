@@ -81,7 +81,10 @@ async def list_clothing_items(
     Returns items sorted by created_at (newest first).
     """
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+
+    # Get both items and total count
     items = await service.list_clothing_items(category=category, limit=limit, offset=offset)
+    total_count = await service.count_clothing_items(category=category)
 
     item_infos = [
         ClothingItemInfo(
@@ -99,7 +102,7 @@ async def list_clothing_items(
     ]
 
     return ClothingItemListResponse(
-        count=len(item_infos),
+        count=total_count,
         items=item_infos,
         category_filter=category
     )

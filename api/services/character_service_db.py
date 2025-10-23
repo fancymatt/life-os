@@ -430,3 +430,12 @@ class CharacterServiceDB:
         )
 
         return [self._character_to_dict(char) for char in characters]
+
+    async def count_characters(self) -> int:
+        """
+        Count total characters (filtered by user if specified)
+
+        Returns:
+            Total number of characters
+        """
+        return await self.repository.count(user_id=self.user_id)

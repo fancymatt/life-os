@@ -42,7 +42,10 @@ async def list_characters(
     Supports pagination via limit/offset parameters.
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
+
+    # Get both characters and total count
     characters = await service.list_characters(limit=limit, offset=offset)
+    total_count = await service.count_characters()
 
     character_infos = []
     for char in characters:
@@ -69,7 +72,7 @@ async def list_characters(
         ))
 
     return CharacterListResponse(
-        count=len(character_infos),
+        count=total_count,
         characters=character_infos
     )
 
