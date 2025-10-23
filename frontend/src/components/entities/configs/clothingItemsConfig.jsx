@@ -169,7 +169,6 @@ function ClothingItemPreview({ item, onUpdate }) {
       {/* Generate Preview Button */}
       <button
         onClick={handleGeneratePreview}
-        disabled={generatingJobId !== null}
         style={{
           width: '100%',
           padding: '0.75rem',
@@ -178,11 +177,10 @@ function ClothingItemPreview({ item, onUpdate }) {
           border: '1px solid rgba(168, 85, 247, 0.3)',
           borderRadius: '8px',
           color: 'rgba(168, 85, 247, 1)',
-          cursor: generatingJobId ? 'not-allowed' : 'pointer',
+          cursor: 'pointer',
           fontSize: '0.95rem',
           fontWeight: '500',
-          transition: 'all 0.2s',
-          opacity: generatingJobId ? 0.5 : 1
+          transition: 'all 0.2s'
         }}
         onMouseEnter={(e) => {
           if (!e.currentTarget.disabled) {
@@ -392,7 +390,6 @@ function ClothingItemDetail({ item, onUpdate }) {
       {/* Generate Preview Button */}
       <button
         onClick={handleGeneratePreview}
-        disabled={generatingJobId !== null}
         style={{
           width: '100%',
           maxWidth: '400px',
@@ -402,11 +399,10 @@ function ClothingItemDetail({ item, onUpdate }) {
           border: '1px solid rgba(168, 85, 247, 0.3)',
           borderRadius: '8px',
           color: 'rgba(168, 85, 247, 1)',
-          cursor: generatingJobId ? 'not-allowed' : 'pointer',
+          cursor: 'pointer',
           fontSize: '0.95rem',
           fontWeight: '500',
-          transition: 'all 0.2s',
-          opacity: generatingJobId ? 0.5 : 1
+          transition: 'all 0.2s'
         }}
         onMouseEnter={(e) => {
           if (!e.currentTarget.disabled) {
