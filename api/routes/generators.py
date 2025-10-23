@@ -115,6 +115,14 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
         value = getattr(request, category, None)
         if value is not None:
             kwargs[category] = value
+            logger.info(f"Added {category}: {value}", extra={'extra_fields': {
+                'category': category,
+                'value': str(value)
+            }})
+
+    logger.info(f"Final kwargs keys: {list(kwargs.keys())}", extra={'extra_fields': {
+        'kwargs_keys': list(kwargs.keys())
+    }})
 
     # Define background task
     async def generate_variations():

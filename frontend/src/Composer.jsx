@@ -285,7 +285,7 @@ function Composer() {
         }
       })
 
-      console.log('🎨 Generating with presets:', payload)
+      console.log('🎨 Generating with payload:', JSON.stringify(payload, null, 2))
 
       const response = await api.post('/generate/modular', payload)
       const jobId = response.data.job_id
@@ -833,7 +833,15 @@ function Composer() {
         ) : (
           <div className="applied-presets-list">
             {appliedPresets.map((preset, index) => {
-              const catConfig = categoryConfig.find(c => c.apiCategory === preset.category)
+              // Find category config - handle both clothing items and style presets
+              const catConfig = categoryConfig.find(c => {
+                // For clothing items, match by clothingCategory field
+                if (c.apiCategory === 'clothing_items') {
+                  return preset.category === c.clothingCategory
+                }
+                // For style presets, match by apiCategory
+                return c.apiCategory === preset.category
+              })
               return (
                 <div key={index} className="applied-preset-item">
                   <div className="applied-preset-info">
