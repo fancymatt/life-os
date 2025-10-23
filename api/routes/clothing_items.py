@@ -563,3 +563,149 @@ async def generate_clothing_item_preview(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate preview: {str(e)}")
+
+
+class TestImageRequest(BaseModel):
+    """Request to generate test image with character wearing item"""
+    character_id: str
+    visual_style: str
+
+
+async def run_test_image_generation_job(job_id: str, item_id: str, character_id: str, visual_style: str):
+    """Background task to generate test image of character wearing clothing item"""
+    from api.services.job_queue import get_job_queue_manager
+    from api.database import get_session
+    from api.services.character_service import CharacterService
+    from ai_tools.modular_image_generator.tool import ModularImageGenerator
+    from api.config import settings
+    from pathlib import Path
+
+    try:
+        job_manager = get_job_queue_manager()
+        job_manager.start_job(job_id)
+        job_manager.update_progress(job_id, 0.1, "Loading clothing item and character...")
+
+        async with get_session() as session:
+            # Load clothing item
+            service = ClothingItemServiceDB(session, user_id=None)
+            item = await service.get_clothing_item(item_id)
+
+            if not item:
+                job_manager.fail_job(job_id, f"Clothing item {item_id} not found")
+                return
+
+            # Load character
+            character_service = CharacterService()
+            character = character_service.get_character(character_id)
+
+            if not character:
+                job_manager.fail_job(job_id, f"Character {character_id} not found")
+                return
+
+            # Get character reference image
+            reference_image_path = character.get('reference_image_path')
+            if not reference_image_path:
+                job_manager.fail_job(job_id, f"Character {character_id} has no reference image")
+                return
+
+            subject_path = Path(reference_image_path)
+            if not subject_path.exists():
+                job_manager.fail_job(job_id, f"Character reference image not found: {reference_image_path}")
+                return
+
+            job_manager.update_progress(job_id, 0.3, "Generating test image...")
+
+            # Generate image with modular generator
+            generator = ModularImageGenerator()
+
+            # Build special prompt for morphsuit + item
+            additional_instructions = f"""
+CRITICAL RENDERING INSTRUCTIONS:
+- Render the character wearing a BLACK MORPHSUIT covering the entire body up to the neck
+- The morphsuit should be completely black and featureless
+- ONLY the following clothing item should be rendered in its actual appearance:
+  * Item: {item['item']}
+  * Category: {item['category']}
+  * Color: {item['color']}
+  * Fabric: {item['fabric']}
+  * Details: {item['details']}
+- ALL OTHER body parts should be covered by the plain black morphsuit
+- Show the clothing item clearly and prominently
+- Use clean, professional studio lighting
+"""
+
+            # Generate using character reference + visual style + special instructions
+            result = await generator.agenerate(
+                subject_image=str(subject_path),
+                visual_style=visual_style,
+                output_dir="output/generated",
+                additional_instructions=additional_instructions
+            )
+
+            job_manager.update_progress(job_id, 0.9, "Finalizing...")
+
+            # Complete job with result
+            job_manager.complete_job(job_id, {
+                'file_path': str(result.file_path),
+                'item_id': item_id,
+                'character_id': character_id,
+                'visual_style': visual_style
+            })
+
+    except Exception as e:
+        from api.services.job_queue import get_job_queue_manager
+        get_job_queue_manager().fail_job(job_id, str(e))
+
+
+@router.post("/{item_id}/generate-test-image")
+async def generate_test_image(
+    item_id: str,
+    request: TestImageRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Generate a test image of a character wearing this clothing item
+
+    Creates a test visualization showing the specified character wearing the clothing item.
+    The character is rendered in a black morphsuit with only the specified clothing item
+    shown in its actual appearance.
+
+    Request Body:
+    - character_id: ID of character to use (e.g., 'jenny')
+    - visual_style: Visual style preset to use (e.g., 'White Studio')
+
+    Returns job ID for tracking generation progress.
+    """
+    from api.services.job_queue import get_job_queue_manager
+    from api.models.jobs import JobType
+
+    # Verify clothing item exists
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    item = await service.get_clothing_item(item_id)
+
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+
+    # Create job
+    job_id = get_job_queue_manager().create_job(
+        job_type=JobType.GENERATE_IMAGE,
+        title=f"Test image: {item['item']}",
+        description=f"{request.character_id} wearing {item['item']} ({request.visual_style})"
+    )
+
+    # Queue background task
+    background_tasks.add_task(
+        run_test_image_generation_job,
+        job_id,
+        item_id,
+        request.character_id,
+        request.visual_style
+    )
+
+    return {
+        "job_id": job_id,
+        "status": "queued",
+        "message": "Test image generation queued. Use /jobs/{job_id} to check status."
+    }

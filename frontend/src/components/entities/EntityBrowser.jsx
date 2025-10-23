@@ -645,13 +645,6 @@ function EntityBrowser({ config }) {
                       </div>
                       <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
                         <button
-                          onClick={handleResetChanges}
-                          disabled={saving}
-                          className="cancel-button"
-                        >
-                          Reset Changes
-                        </button>
-                        <button
                           onClick={handleSave}
                           disabled={saving}
                           className="save-button"
@@ -711,13 +704,6 @@ function EntityBrowser({ config }) {
                           </button>
                         </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
-                          <button
-                            onClick={handleResetChanges}
-                            disabled={saving}
-                            className="cancel-button"
-                          >
-                            Reset Changes
-                          </button>
                           <button
                             onClick={handleSave}
                             disabled={saving}

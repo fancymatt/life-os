@@ -167,85 +167,74 @@ export const clothingItemsConfig = {
     </div>
   ),
 
-  renderDetail: (item, handleBackToList, onUpdate) => (
-    <div style={{ padding: '2rem' }}>
-      {/* Preview Image */}
-      {item.previewImage && (
-        <div style={{
-          marginBottom: '2rem',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          maxWidth: '400px'
-        }}>
-          <img
-            src={item.previewImage}
-            alt={item.item}
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block'
-            }}
-          />
-        </div>
-      )}
+  renderDetail: (item, handleBackToList, onUpdate) => {
+    const handleCreateTestImage = async () => {
+      try {
+        // Generate test image with Jenny wearing this clothing item
+        const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
+          character_id: 'jenny',
+          visual_style: 'White Studio'
+        })
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <span style={{ fontSize: '3rem' }}>{getCategoryIcon(item.category)}</span>
-        <div>
-          <h2 style={{ color: 'white', margin: '0 0 0.5rem 0' }}>{item.item}</h2>
-          <span style={{
-            padding: '0.5rem 0.75rem',
-            background: 'rgba(99, 102, 241, 0.2)',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-            color: 'rgba(99, 102, 241, 1)',
-            fontWeight: '500',
-            textTransform: 'capitalize'
+        if (response.data.job_id) {
+          alert('Test image generation started! Check the job queue for progress.')
+        }
+      } catch (error) {
+        console.error('Failed to generate test image:', error)
+        alert('Failed to start test image generation: ' + (error.response?.data?.detail || error.message))
+      }
+    }
+
+    return (
+      <div style={{ padding: '2rem' }}>
+        {/* Preview Image */}
+        {item.previewImage && (
+          <div style={{
+            marginBottom: '1rem',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            maxWidth: '400px'
           }}>
-            {item.category.replace('_', ' ')}
-          </span>
-        </div>
-      </div>
+            <img
+              src={item.previewImage}
+              alt={item.item}
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block'
+              }}
+            />
+          </div>
+        )}
 
-      {/* Color */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
-          Color
-        </h3>
-        <p style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.6', margin: 0 }}>
-          {item.color}
-        </p>
+        {/* Create Test Image Button */}
+        <button
+          onClick={handleCreateTestImage}
+          style={{
+            width: '100%',
+            maxWidth: '400px',
+            padding: '0.75rem',
+            background: 'rgba(99, 102, 241, 0.2)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            borderRadius: '8px',
+            color: 'rgba(99, 102, 241, 1)',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
+          }}
+        >
+          🎨 Create Test Image
+        </button>
       </div>
-
-      {/* Fabric */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
-          Fabric
-        </h3>
-        <p style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.6', margin: 0 }}>
-          {item.fabric}
-        </p>
-      </div>
-
-      {/* Construction Details */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>
-          Construction & Details
-        </h3>
-        <p style={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6', margin: 0 }}>
-          {item.details}
-        </p>
-      </div>
-
-      {formatDate(item.createdAt) && (
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem', margin: 0 }}>
-            <strong>Created:</strong> {formatDate(item.createdAt)}
-          </p>
-        </div>
-      )}
-    </div>
-  ),
+    )
+  },
 
   renderEdit: (item, editedData, editedTitle, handlers) => (
     <div>
