@@ -736,6 +736,292 @@ Check that:
 
 ## Development
 
+### CI/CD Workflow
+
+This project uses a **staging → production** deployment strategy with automated testing.
+
+#### Branch Strategy
+
+```
+staging (development)  →  main (production)
+    ↓                         ↓
+Auto-deploy to          Manual approval
+staging environment     for production
+```
+
+**Branches**:
+- `staging` - Development branch, auto-deploys on push
+- `main` - Production branch, requires PR approval
+
+**Workflow Rules**:
+1. ✅ **Always develop on `staging`** - Never commit directly to `main`
+2. ✅ **All tests must pass** - 100% pass rate required
+3. ✅ **PRs required for production** - `staging` → `main` via pull request
+4. ✅ **Manual approval required** - Production deploys need explicit approval
+
+#### Daily Development Workflow
+
+```bash
+# 1. Start on staging branch
+git checkout staging
+
+# 2. Make your changes
+# ... edit files ...
+
+# 3. Run tests locally
+docker-compose exec api pytest tests/unit/ -v
+
+# 4. Commit and push to staging
+git add .
+git commit -m "feat: Add new feature
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+git push origin staging
+
+# 5. Staging auto-deploys (GitHub Actions runs tests)
+# Check: https://github.com/your-repo/actions
+```
+
+**After push to `staging`**:
+- ✅ GitHub Actions runs full test suite
+- ✅ Backend CI checks: pytest, coverage, linting
+- ✅ Frontend CI checks: vitest, eslint, build
+- ✅ If all pass: Auto-deploy to staging environment (when configured)
+
+#### Deploying to Production
+
+```bash
+# 1. Ensure staging is stable and tested
+git checkout staging
+git pull origin staging
+
+# 2. Create pull request: staging → main
+gh pr create --base main --head staging \
+  --title "Deploy: Your Feature Name" \
+  --body "## Summary
+
+  Description of changes...
+
+  ## Test Results
+  - ✅ All unit tests passing (85/85)
+  - ✅ Manual testing complete
+
+  ## Deployment Checklist
+  - [x] Tests passing
+  - [x] No breaking changes
+  - [x] Staging verified"
+
+# Or create PR via web UI:
+# https://github.com/your-repo/compare/main...staging
+
+# 3. Wait for CI/CD checks to pass
+# 4. Get approval (if required by branch protection)
+# 5. Merge PR to main
+# 6. Production deployment workflow runs (manual approval required)
+```
+
+**After merge to `main`**:
+- ✅ Full test suite runs again (including slow tests)
+- ⏸️ Manual approval required for production deployment
+- 🚀 Deployment instructions shown in workflow
+- ✅ Smoke tests run after deployment
+
+#### Post-Deployment
+
+```bash
+# 1. Pull production changes
+git checkout main
+git pull origin main
+
+# 2. Rebuild containers with production code
+docker-compose up -d --build
+
+# 3. Verify tests still pass
+docker-compose exec api pytest tests/unit/ -v
+
+# 4. Sync staging with main
+git checkout staging
+git merge main --ff-only
+git push origin staging
+```
+
+#### GitHub Actions Workflows
+
+**Backend CI** (`.github/workflows/backend-ci.yml`):
+- Runs on: Push to `main`, PRs to `main`
+- Tests: `pytest tests/unit/` (fast tests only)
+- Coverage: Generates coverage report
+- Linting: `ruff`, `black`, `isort`
+- Triggers on: `api/**`, `ai_tools/**`, `tests/**` changes
+
+**Frontend CI** (`.github/workflows/frontend-ci.yml`):
+- Runs on: Push to `main`, PRs to `main`
+- Tests: `npm test -- --run`
+- Linting: `npm run lint`
+- Build: `npm run build`
+- Triggers on: `frontend/**` changes
+
+**Deploy Staging** (`.github/workflows/deploy-staging.yml`):
+- Runs on: Push to `staging` branch
+- Tests: Full test suite
+- Deployment: Auto-deploy to staging (SSH config needed)
+- Notifications: Optional Slack notifications
+
+**Deploy Production** (`.github/workflows/deploy-production.yml`):
+- Runs on: Push to `main` branch
+- Tests: Full test suite (including slow tests)
+- Deployment: Manual approval required
+- Safety: Creates backup before deployment
+- Smoke tests: Runs critical path tests after deploy
+
+#### Testing Requirements
+
+**Before committing**:
+```bash
+# Run all unit tests
+docker-compose exec api pytest tests/unit/ -v
+
+# Must see: "85 passed" (100% pass rate)
+```
+
+**Test organization**:
+```
+tests/
+├── unit/              # Fast, isolated tests (run in CI)
+│   ├── test_cache.py
+│   ├── test_preset.py
+│   ├── test_router.py
+│   └── test_specs.py
+├── integration/       # API integration tests
+├── smoke/            # Critical path tests
+└── manual/           # Manual tests (not run in CI)
+```
+
+**Test markers**:
+```bash
+# Run only unit tests
+pytest tests/unit/ -v -m unit
+
+# Run only integration tests
+pytest tests/integration/ -v -m integration
+
+# Run smoke tests (critical paths)
+pytest tests/smoke/ -v -m smoke
+
+# Skip slow tests
+pytest tests/ -v -m "not slow"
+```
+
+#### Environment Setup
+
+**Local Development**:
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Required variables
+GEMINI_API_KEY=your_key
+OPENAI_API_KEY=your_key  # Optional
+REQUIRE_AUTH=false       # Disable auth for local dev
+```
+
+**Staging Environment** (`.env.staging`):
+```bash
+ENVIRONMENT=staging
+REQUIRE_AUTH=true
+JWT_SECRET_KEY=staging_secret
+DATABASE_URL=postgresql://...staging_db
+BASE_URL=https://staging.yourdomain.com
+```
+
+**Production Environment** (`.env.production`):
+```bash
+ENVIRONMENT=production
+REQUIRE_AUTH=true
+JWT_SECRET_KEY=production_secret  # Use secure random key
+DATABASE_URL=postgresql://...production_db
+BASE_URL=https://yourdomain.com
+```
+
+#### Quick Reference
+
+**Common Commands**:
+```bash
+# Check which branch you're on
+git branch --show-current
+
+# Run tests
+docker-compose exec api pytest tests/unit/ -v
+
+# Rebuild containers after code changes
+docker-compose up -d --build
+
+# View CI/CD workflow status
+gh run list
+gh run view <run-id>
+
+# Create PR via CLI
+gh pr create --base main --head staging --web
+
+# Check deployment logs
+docker logs ai-studio-api --tail 100
+```
+
+**Git Commit Format**:
+```
+<type>: <short description>
+
+<optional detailed description>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**Types**: `feat`, `fix`, `refactor`, `docs`, `test`, `perf`, `chore`
+
+**Branch Protection Rules** (configure on GitHub):
+- ✅ Require pull request reviews (main branch)
+- ✅ Require status checks to pass
+- ✅ Require conversation resolution
+- ✅ Do not allow force pushes
+
+#### Troubleshooting CI/CD
+
+**Tests failing in CI but passing locally**:
+```bash
+# Ensure you're on the right branch
+git checkout staging
+git pull origin staging
+
+# Run tests in fresh container
+docker-compose down
+docker-compose up -d --build
+docker-compose exec api pytest tests/unit/ -v
+```
+
+**Deployment blocked**:
+- Check GitHub Actions tab for error details
+- Ensure all required checks pass
+- Verify branch protection rules allow merge
+- Check if manual approval is needed
+
+**Sync issues between staging and main**:
+```bash
+# If staging is behind main
+git checkout staging
+git merge main --ff-only
+git push origin staging
+
+# If main is ahead and you need to reconcile
+git checkout staging
+git pull origin main
+# Resolve conflicts if any
+git push origin staging
+```
+
 ### Adding New Analyzers
 
 1. Create directory:
@@ -748,6 +1034,8 @@ mkdir -p ai_tools/my_analyzer
 4. Create __init__.py with exports
 5. Add spec to `ai_capabilities/specs.py`
 6. Update `configs/models.yaml`
+7. **Add tests** in `tests/unit/test_my_analyzer.py`
+8. **Update documentation** in this README
 
 ### Adding New Generators
 
