@@ -423,6 +423,11 @@ Your response must be ONLY the JSON object with real data values - no schema, no
                 if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                     json_text = response_text[start_idx:end_idx + 1]
                     response_data = json.loads(json_text)
+
+                    # If response is a single-item array, unwrap it
+                    # (LLM sometimes returns [{...}] instead of {...})
+                    if isinstance(response_data, list) and len(response_data) == 1:
+                        response_data = response_data[0]
                 else:
                     # Strategy 4: Parse markdown-style key-value format
                     # Example: **age:** young adult **skin_tone:** fair
@@ -647,6 +652,11 @@ Your response must be ONLY the JSON object with real data values - no schema, no
                 if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                     json_text = response_text[start_idx:end_idx + 1]
                     response_data = json.loads(json_text)
+
+                    # If response is a single-item array, unwrap it
+                    # (LLM sometimes returns [{...}] instead of {...})
+                    if isinstance(response_data, list) and len(response_data) == 1:
+                        response_data = response_data[0]
                 else:
                     # Strategy 4: Parse markdown-style key-value format
                     # Example: **age:** young adult **skin_tone:** fair
