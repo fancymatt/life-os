@@ -326,6 +326,13 @@ function HairStylePreview({ entity, onUpdate }) {
         }
       } catch (error) {
         console.error('Failed to poll job status:', error)
+        // If job not found (404) or other error, stop polling
+        if (error.response?.status === 404) {
+          console.warn('Job not found, stopping polling')
+        }
+        setGeneratingJobId(null)
+        setJobProgress(null)
+        setTrackingPresetId(null)
       }
     }, 1000) // Poll every second
 
