@@ -148,7 +148,25 @@ export const imagesConfig = {
       return labels[type] || type
     }
 
-    const getEntityRoute = (type) => {
+    const getEntityRoute = (type, entity) => {
+      // For presets, use the preset_category to determine the route
+      if ((type === 'preset' || type === 'visual_style') && entity.preset_category) {
+        const categoryRoutes = {
+          'visual_styles': '/entities/visual-styles',
+          'expressions': '/entities/expressions',
+          'accessories': '/entities/accessories',
+          'art_styles': '/entities/art-styles',
+          'hair_colors': '/entities/hair-colors',
+          'hair_styles': '/entities/hair-styles',
+          'makeup': '/entities/makeup',
+          'story_themes': '/entities/story-themes',
+          'story_prose_styles': '/entities/story-prose-styles',
+          'story_audiences': '/entities/story-audiences'
+        }
+        return categoryRoutes[entity.preset_category] || '/entities/visual-styles'
+      }
+
+      // Default routes for non-preset entities
       const routes = {
         'character': '/entities/characters',
         'clothing_item': '/entities/clothing-items',
@@ -194,7 +212,7 @@ export const imagesConfig = {
                   {image.entities[entityType].map((entity, idx) => (
                     <Link
                       key={idx}
-                      to={`${getEntityRoute(entityType)}/${entity.entity_id}`}
+                      to={`${getEntityRoute(entityType, entity)}/${entity.entity_id}`}
                       style={{
                         padding: '0.5rem 0.75rem',
                         background: 'rgba(255, 255, 255, 0.05)',

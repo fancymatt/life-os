@@ -340,6 +340,8 @@ class ImageService:
 
                 # Fetch entity name based on type
                 entity_name = rel.entity_id
+                preset_category = None  # Track which preset category for routing
+
                 if rel.entity_type == 'character':
                     result = await self.session.execute(
                         select(Character.name).where(Character.character_id == rel.entity_id)
@@ -355,24 +357,40 @@ class ImageService:
                     if item_name:
                         entity_name = item_name
                 elif rel.entity_type == 'visual_style' or rel.entity_type == 'preset':
-                    # Read preset file to get name
-                    preset_path = Path(f"/app/presets/visual_styles/{rel.entity_id}.json")
-                    if preset_path.exists():
-                        try:
-                            async with aiofiles.open(preset_path, 'r') as f:
-                                content = await f.read()
-                                preset_data = json.loads(content)
-                                # Try _metadata.display_name first, then fall back to name
-                                metadata = preset_data.get('_metadata', {})
-                                entity_name = metadata.get('display_name') or preset_data.get('name', rel.entity_id)
-                        except Exception as e:
-                            logger.warning(f"Failed to read preset {rel.entity_id}: {e}")
+                    # Read preset file to get name - check multiple preset categories
+                    preset_categories = [
+                        'visual_styles', 'expressions', 'accessories', 'art_styles',
+                        'hair_colors', 'hair_styles', 'makeup', 'story_themes',
+                        'story_prose_styles', 'story_audiences'
+                    ]
 
-                entities_by_type[rel.entity_type].append({
+                    for category in preset_categories:
+                        preset_path = Path(f"/app/presets/{category}/{rel.entity_id}.json")
+                        if preset_path.exists():
+                            try:
+                                async with aiofiles.open(preset_path, 'r') as f:
+                                    content = await f.read()
+                                    preset_data = json.loads(content)
+                                    # Try _metadata.display_name first, then fall back to name
+                                    metadata = preset_data.get('_metadata', {})
+                                    entity_name = metadata.get('display_name') or preset_data.get('name', rel.entity_id)
+                                    preset_category = category
+                                break
+                            except Exception as e:
+                                logger.warning(f"Failed to read preset {rel.entity_id} from {category}: {e}")
+                                continue
+
+                entity_dict = {
                     "entity_id": rel.entity_id,
                     "entity_name": entity_name,
                     "role": rel.role
-                })
+                }
+
+                # Add preset_category for presets so frontend knows where to route
+                if preset_category:
+                    entity_dict["preset_category"] = preset_category
+
+                entities_by_type[rel.entity_type].append(entity_dict)
 
             image_dict = self._image_to_dict(image)
             image_dict["entities"] = entities_by_type
