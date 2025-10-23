@@ -96,23 +96,25 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
         "output_dir": "output/generated"
     }
 
-    # Add preset IDs for enabled categories
-    if request.outfit:
-        kwargs["outfit"] = request.outfit
-    if request.visual_style:
-        kwargs["visual_style"] = request.visual_style
-    if request.art_style:
-        kwargs["art_style"] = request.art_style
-    if request.hair_style:
-        kwargs["hair_style"] = request.hair_style
-    if request.hair_color:
-        kwargs["hair_color"] = request.hair_color
-    if request.makeup:
-        kwargs["makeup"] = request.makeup
-    if request.expression:
-        kwargs["expression"] = request.expression
-    if request.accessories:
-        kwargs["accessories"] = request.accessories
+    # Add preset IDs and clothing item IDs for enabled categories
+    # Clothing item categories
+    clothing_categories = [
+        'headwear', 'eyewear', 'earrings', 'neckwear', 'tops', 'overtops',
+        'outerwear', 'one_piece', 'bottoms', 'belts', 'hosiery', 'footwear',
+        'bags', 'wristwear', 'handwear'
+    ]
+
+    # Style preset categories
+    style_categories = [
+        'visual_style', 'art_style', 'hair_style', 'hair_color',
+        'makeup', 'expression', 'accessories'
+    ]
+
+    # Add all categories dynamically
+    for category in clothing_categories + style_categories:
+        value = getattr(request, category, None)
+        if value is not None:
+            kwargs[category] = value
 
     # Define background task
     async def generate_variations():

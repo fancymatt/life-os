@@ -6,7 +6,24 @@ import { useLRUCache } from './hooks/useLRUCache'
 
 // Category configurations (static, moved outside component)
 const categoryConfig = [
-  { key: 'outfit', label: 'Outfit', apiCategory: 'outfits' },
+  // Clothing item categories
+  { key: 'headwear', label: 'Headwear', apiCategory: 'clothing_items', clothingCategory: 'headwear' },
+  { key: 'eyewear', label: 'Eyewear', apiCategory: 'clothing_items', clothingCategory: 'eyewear' },
+  { key: 'earrings', label: 'Earrings', apiCategory: 'clothing_items', clothingCategory: 'earrings' },
+  { key: 'neckwear', label: 'Neckwear', apiCategory: 'clothing_items', clothingCategory: 'neckwear' },
+  { key: 'tops', label: 'Tops', apiCategory: 'clothing_items', clothingCategory: 'tops' },
+  { key: 'overtops', label: 'Overtops', apiCategory: 'clothing_items', clothingCategory: 'overtops' },
+  { key: 'outerwear', label: 'Outerwear', apiCategory: 'clothing_items', clothingCategory: 'outerwear' },
+  { key: 'one_piece', label: 'One-Piece', apiCategory: 'clothing_items', clothingCategory: 'one_piece' },
+  { key: 'bottoms', label: 'Bottoms', apiCategory: 'clothing_items', clothingCategory: 'bottoms' },
+  { key: 'belts', label: 'Belts', apiCategory: 'clothing_items', clothingCategory: 'belts' },
+  { key: 'hosiery', label: 'Hosiery', apiCategory: 'clothing_items', clothingCategory: 'hosiery' },
+  { key: 'footwear', label: 'Footwear', apiCategory: 'clothing_items', clothingCategory: 'footwear' },
+  { key: 'bags', label: 'Bags', apiCategory: 'clothing_items', clothingCategory: 'bags' },
+  { key: 'wristwear', label: 'Wristwear', apiCategory: 'clothing_items', clothingCategory: 'wristwear' },
+  { key: 'handwear', label: 'Handwear', apiCategory: 'clothing_items', clothingCategory: 'handwear' },
+
+  // Style presets
   { key: 'visual_style', label: 'Visual Style', apiCategory: 'visual_styles' },
   { key: 'art_style', label: 'Art Style', apiCategory: 'art_styles' },
   { key: 'hair_style', label: 'Hair Style', apiCategory: 'hair_styles' },
@@ -53,34 +70,53 @@ function Composer() {
     setLoading(true)
 
     try {
-      // Use batch endpoint to load all presets in one request (~8x faster!)
-      const response = await api.get('/presets/batch')
       const presetsData = {}
 
-      // Map API category names to our internal keys
-      for (const cat of categoryConfig) {
-        presetsData[cat.key] = response.data[cat.apiCategory] || []
-      }
-
-      setPresets(presetsData)
-      setCategories(categoryConfig)
-      console.log('✅ Loaded all presets in single batch request')
-    } catch (err) {
-      console.error('Batch preset loading failed, falling back to individual requests:', err)
-
-      // Fallback to individual requests if batch fails
-      const presetsData = {}
-      for (const cat of categoryConfig) {
+      // Load clothing items by category
+      const clothingCategories = categoryConfig.filter(cat => cat.apiCategory === 'clothing_items')
+      for (const cat of clothingCategories) {
         try {
-          const response = await api.get(`/presets/${cat.apiCategory}`)
-          presetsData[cat.key] = response.data.presets || []
+          const response = await api.get(`/clothing-items?category=${cat.clothingCategory}`)
+          // Map clothing items to preset-like format
+          presetsData[cat.key] = (response.data.items || []).map(item => ({
+            preset_id: item.itemId,
+            display_name: `${item.item} - ${item.color}`,
+            category: item.category,
+            data: item
+          }))
         } catch (err) {
-          console.error(`Failed to load ${cat.key}:`, err)
+          console.error(`Failed to load ${cat.key} clothing items:`, err)
           presetsData[cat.key] = []
         }
       }
+
+      // Load style presets via batch endpoint
+      const styleCategories = categoryConfig.filter(cat => cat.apiCategory !== 'clothing_items')
+      try {
+        const response = await api.get('/presets/batch')
+        for (const cat of styleCategories) {
+          presetsData[cat.key] = response.data[cat.apiCategory] || []
+        }
+        console.log('✅ Loaded style presets in batch request')
+      } catch (err) {
+        console.error('Batch preset loading failed, falling back to individual requests:', err)
+        // Fallback to individual requests
+        for (const cat of styleCategories) {
+          try {
+            const response = await api.get(`/presets/${cat.apiCategory}`)
+            presetsData[cat.key] = response.data.presets || []
+          } catch (err) {
+            console.error(`Failed to load ${cat.key}:`, err)
+            presetsData[cat.key] = []
+          }
+        }
+      }
+
       setPresets(presetsData)
       setCategories(categoryConfig)
+      console.log('✅ Loaded all presets and clothing items')
+    } catch (err) {
+      console.error('Failed to load presets:', err)
     }
 
     setLoading(false)
@@ -220,17 +256,29 @@ function Composer() {
         variations: 1
       }
 
-      // Add presets to payload
+      // Add presets and clothing items to payload
       presetsToApply.forEach(preset => {
-        const categoryKey = categoryConfig.find(c => c.apiCategory === preset.category)?.key
-        if (categoryKey) {
-          // For outfit, support multiple presets
-          if (categoryKey === 'outfit') {
+        // Find the category configuration
+        const catConfig = categoryConfig.find(c => {
+          // For clothing items, match by category field
+          if (c.apiCategory === 'clothing_items') {
+            return preset.category === c.clothingCategory
+          }
+          // For style presets, match by apiCategory
+          return c.apiCategory === preset.category
+        })
+
+        if (catConfig) {
+          const categoryKey = catConfig.key
+
+          // Clothing items can be layered (multiple items per category)
+          if (catConfig.apiCategory === 'clothing_items') {
             if (!payload[categoryKey]) {
               payload[categoryKey] = []
             }
             payload[categoryKey].push(preset.preset_id)
           } else {
+            // Style presets replace (one per category)
             payload[categoryKey] = preset.preset_id
           }
         }
@@ -262,12 +310,22 @@ function Composer() {
   const addPreset = useCallback(async (preset) => {
     let newAppliedPresets
 
-    // Outfits can be layered, other categories replace
-    if (preset.category === 'outfits') {
-      // Always add outfits (they stack)
+    // Find category config to determine if items can be layered
+    const catConfig = categoryConfig.find(c => {
+      if (c.apiCategory === 'clothing_items') {
+        return preset.category === c.clothingCategory
+      }
+      return c.apiCategory === preset.category
+    })
+
+    // Clothing items can be layered (multiple items per category)
+    const canLayer = catConfig && catConfig.apiCategory === 'clothing_items'
+
+    if (canLayer) {
+      // Always add clothing items (they can layer/stack)
       newAppliedPresets = [...appliedPresets, preset]
     } else {
-      // For other categories, check if preset of same category already exists
+      // For style presets, check if preset of same category already exists
       const existingIndex = appliedPresets.findIndex(
         p => p.category === preset.category
       )
@@ -862,7 +920,11 @@ function PresetThumbnail({ preset, category, isFavorite, isSelected, onDragStart
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
 
-  const previewUrl = `/api/presets/${category}/${preset.preset_id}/preview?t=${Date.now()}`
+  // For clothing items, use preview_image_path; for style presets, use API endpoint
+  const isClothingItem = preset.data && preset.data.previewImagePath
+  const previewUrl = isClothingItem
+    ? preset.data.previewImagePath
+    : `/api/presets/${category}/${preset.preset_id}/preview?t=${Date.now()}`
 
   return (
     <div

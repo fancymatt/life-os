@@ -135,10 +135,28 @@ class PresetUpdate(BaseModel):
 
 
 class ModularGenerateRequest(BaseModel):
-    """Request for modular generation with preset IDs"""
+    """Request for modular generation with preset IDs and clothing items"""
     subject_image: str = Field(..., description="Path to subject image (e.g., jenny.png)")
     variations: int = Field(1, ge=1, le=10, description="Number of variations to generate")
-    outfit: Optional[Union[str, List[str]]] = Field(None, description="Outfit preset ID or list of IDs for amalgamation")
+
+    # Clothing item categories (individual items, can be layered)
+    headwear: Optional[Union[str, List[str]]] = Field(None, description="Headwear item ID(s)")
+    eyewear: Optional[Union[str, List[str]]] = Field(None, description="Eyewear item ID(s)")
+    earrings: Optional[Union[str, List[str]]] = Field(None, description="Earrings item ID(s)")
+    neckwear: Optional[Union[str, List[str]]] = Field(None, description="Neckwear item ID(s)")
+    tops: Optional[Union[str, List[str]]] = Field(None, description="Tops item ID(s)")
+    overtops: Optional[Union[str, List[str]]] = Field(None, description="Overtops item ID(s)")
+    outerwear: Optional[Union[str, List[str]]] = Field(None, description="Outerwear item ID(s)")
+    one_piece: Optional[Union[str, List[str]]] = Field(None, description="One-piece item ID(s)")
+    bottoms: Optional[Union[str, List[str]]] = Field(None, description="Bottoms item ID(s)")
+    belts: Optional[Union[str, List[str]]] = Field(None, description="Belts item ID(s)")
+    hosiery: Optional[Union[str, List[str]]] = Field(None, description="Hosiery item ID(s)")
+    footwear: Optional[Union[str, List[str]]] = Field(None, description="Footwear item ID(s)")
+    bags: Optional[Union[str, List[str]]] = Field(None, description="Bags item ID(s)")
+    wristwear: Optional[Union[str, List[str]]] = Field(None, description="Wristwear item ID(s)")
+    handwear: Optional[Union[str, List[str]]] = Field(None, description="Handwear item ID(s)")
+
+    # Style presets
     visual_style: Optional[str] = Field(None, description="Visual style preset ID")
     art_style: Optional[str] = Field(None, description="Art style preset ID")
     hair_style: Optional[str] = Field(None, description="Hair style preset ID")
@@ -152,7 +170,9 @@ class ModularGenerateRequest(BaseModel):
             "example": {
                 "subject_image": "jenny.png",
                 "variations": 2,
-                "outfit": ["casual-preset-id", "jacket-preset-id"],
+                "tops": "blue-shirt-id",
+                "bottoms": "black-pants-id",
+                "footwear": "sneakers-id",
                 "visual_style": "film-noir-id"
             }
         }
