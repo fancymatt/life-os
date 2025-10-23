@@ -63,7 +63,7 @@ function EntityBrowser({ config }) {
     }
   }, [id, entities, urlEntityLoaded, selectedEntity])
 
-  // Handle browser back/forward navigation
+  // Handle browser back/forward navigation and entity-to-entity navigation
   useEffect(() => {
     if (!id && view === 'detail') {
       // URL changed to list view (no ID), but we're still showing detail view
@@ -80,8 +80,17 @@ function EntityBrowser({ config }) {
       if (entity) {
         handleEntityClick(entity)
       }
+    } else if (id && view === 'detail' && selectedEntity && entities.length > 0) {
+      // URL ID changed while in detail view - user clicked a link to another entity
+      const currentEntityId = selectedEntity.id || selectedEntity.presetId || selectedEntity.characterId
+      if (id !== currentEntityId) {
+        const entity = entities.find(e => e.id === id || e.presetId === id || e.characterId === id)
+        if (entity) {
+          handleEntityClick(entity)
+        }
+      }
     }
-  }, [id, view, entities])
+  }, [id, view, entities, selectedEntity])
 
   // Filter entities based on search (memoized)
   const filteredEntities = useMemo(() => {
