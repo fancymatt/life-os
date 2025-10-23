@@ -117,3 +117,31 @@ async def delete_composition(
         "message": "Composition deleted successfully",
         "composition_id": composition_id
     }
+
+
+@router.post("/{composition_id}/archive")
+async def archive_composition(
+    composition_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """Archive a composition (soft delete)"""
+    service = CompositionServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.archive_composition(composition_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Composition not found: {composition_id}")
+    return {"message": "Composition archived successfully", "composition_id": composition_id}
+
+
+@router.post("/{composition_id}/unarchive")
+async def unarchive_composition(
+    composition_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """Unarchive a composition"""
+    service = CompositionServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.unarchive_composition(composition_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Composition not found: {composition_id}")
+    return {"message": "Composition unarchived successfully", "composition_id": composition_id}

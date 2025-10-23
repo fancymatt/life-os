@@ -284,6 +284,53 @@ async def delete_clothing_item(
     return {"message": f"Clothing item {item_id} deleted successfully"}
 
 
+@router.post("/{item_id}/archive")
+@invalidates_cache(entity_types=["clothing_items"])
+async def archive_clothing_item(
+    item_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Archive a clothing item (soft delete)
+
+    Archives the clothing item instead of permanently deleting it.
+    Archived items are hidden from default views but can be unarchived.
+
+    **Cache Invalidation**: Clears all clothing_items caches
+    """
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.archive_clothing_item(item_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+
+    return {"message": f"Clothing item {item_id} archived successfully"}
+
+
+@router.post("/{item_id}/unarchive")
+@invalidates_cache(entity_types=["clothing_items"])
+async def unarchive_clothing_item(
+    item_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Unarchive a clothing item
+
+    Restores an archived clothing item to active status.
+
+    **Cache Invalidation**: Clears all clothing_items caches
+    """
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.unarchive_clothing_item(item_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+
+    return {"message": f"Clothing item {item_id} unarchived successfully"}
+
+
 async def run_preview_generation_job(job_id: str, item_id: str):
     """Background task to generate preview and update job"""
     from api.services.job_queue import get_job_queue_manager

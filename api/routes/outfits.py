@@ -221,6 +221,36 @@ async def delete_outfit(
     return {"message": f"Outfit {outfit_id} deleted successfully"}
 
 
+@router.post("/{outfit_id}/archive")
+@invalidates_cache(entity_types=["outfits"])
+async def archive_outfit(
+    outfit_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """Archive an outfit (soft delete)"""
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.archive_outfit(outfit_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Outfit {outfit_id} not found")
+    return {"message": f"Outfit {outfit_id} archived successfully"}
+
+
+@router.post("/{outfit_id}/unarchive")
+@invalidates_cache(entity_types=["outfits"])
+async def unarchive_outfit(
+    outfit_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """Unarchive an outfit"""
+    service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.unarchive_outfit(outfit_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Outfit {outfit_id} not found")
+    return {"message": f"Outfit {outfit_id} unarchived successfully"}
+
+
 @router.post("/{outfit_id}/items", response_model=OutfitInfo)
 @invalidates_cache(entity_types=["outfits"])
 async def add_item_to_outfit(

@@ -202,3 +202,31 @@ async def delete_image(
             'error': str(e)
         }})
         raise HTTPException(status_code=500, detail=f"Failed to delete image: {str(e)}")
+
+
+@router.post("/{image_id}/archive")
+@invalidates_cache(entity_types=["images"])
+async def archive_image(
+    image_id: str,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, str]:
+    """Archive an image (soft delete)"""
+    image_service = ImageService(db)
+    success = await image_service.archive_image(image_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Image not found: {image_id}")
+    return {"message": f"Image {image_id} archived successfully"}
+
+
+@router.post("/{image_id}/unarchive")
+@invalidates_cache(entity_types=["images"])
+async def unarchive_image(
+    image_id: str,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, str]:
+    """Unarchive an image"""
+    image_service = ImageService(db)
+    success = await image_service.unarchive_image(image_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Image not found: {image_id}")
+    return {"message": f"Image {image_id} unarchived successfully"}

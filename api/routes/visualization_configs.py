@@ -408,6 +408,36 @@ async def delete_visualization_config(
     return {"message": f"Visualization config {config_id} deleted successfully"}
 
 
+@router.post("/{config_id}/archive")
+@invalidates_cache(entity_types=["visualization_configs"])
+async def archive_visualization_config(
+    config_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """Archive a visualization config (soft delete)"""
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.archive_config(config_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Visualization config {config_id} not found")
+    return {"message": f"Visualization config {config_id} archived successfully"}
+
+
+@router.post("/{config_id}/unarchive")
+@invalidates_cache(entity_types=["visualization_configs"])
+async def unarchive_visualization_config(
+    config_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """Unarchive a visualization config"""
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.unarchive_config(config_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Visualization config {config_id} not found")
+    return {"message": f"Visualization config {config_id} unarchived successfully"}
+
+
 @router.post("/{config_id}/upload-reference")
 @invalidates_cache(entity_types=["visualization_configs"])
 async def upload_reference_image(

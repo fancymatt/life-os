@@ -246,6 +246,53 @@ async def delete_board_game(
     return {"message": f"Board game {game_id} deleted successfully"}
 
 
+@router.post("/{game_id}/archive")
+@invalidates_cache(entity_types=["board_games"])
+async def archive_board_game(
+    game_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Archive a board game (soft delete)
+
+    Archives the board game instead of permanently deleting it.
+    Archived games are hidden from default views but can be unarchived.
+
+    **Cache Invalidation**: Clears all board_games caches
+    """
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.archive_board_game(game_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
+
+    return {"message": f"Board game {game_id} archived successfully"}
+
+
+@router.post("/{game_id}/unarchive")
+@invalidates_cache(entity_types=["board_games"])
+async def unarchive_board_game(
+    game_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Unarchive a board game
+
+    Restores an archived board game to active status.
+
+    **Cache Invalidation**: Clears all board_games caches
+    """
+    service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.unarchive_board_game(game_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
+
+    return {"message": f"Board game {game_id} unarchived successfully"}
+
+
 @router.get("/{game_id}/documents", response_model=DocumentListResponse)
 @cached(cache_type="list", include_user=True)
 async def list_game_documents(
