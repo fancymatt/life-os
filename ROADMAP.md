@@ -682,11 +682,179 @@ steps:
     parallel: true  # Generate all images in parallel
 ```
 
+**Scheduled Workflows & Automation**:
+- [ ] Schedule entity (cron-like scheduling)
+  ```json
+  {
+    "schedule_id": "uuid",
+    "name": "Morning Image Generation",
+    "workflow_id": "random-image-gen",
+    "cron": "0 6 * * *",  // Every day at 6 AM
+    "enabled": true,
+    "parameters": {
+      "count": 10,
+      "character": "random",
+      "presets": "random"
+    },
+    "resource_limits": {
+      "max_cost": 0.50,
+      "max_duration": "10m"
+    }
+  }
+  ```
+- [ ] Scheduler backend (APScheduler or Celery Beat)
+  - [ ] Parse cron expressions
+  - [ ] Trigger workflows at scheduled times
+  - [ ] Handle timezone conversions
+  - [ ] Pause/resume schedules
+  - [ ] Skip execution if previous run still active
+- [ ] Random parameter generation
+  - [ ] Random character selection (from user's characters)
+  - [ ] Random preset combinations (weighted by favorites)
+  - [ ] Smart constraints (ensure coherent combinations)
+  - [ ] Diversity scoring (avoid repetitive results)
+  - [ ] Parameter evolution (learn from user feedback)
+- [ ] Execution history & results
+  - [ ] Track all scheduled executions
+  - [ ] Success/failure rates per schedule
+  - [ ] Generated content gallery (view all scheduled outputs)
+  - [ ] Cost tracking per schedule
+- [ ] Notification & delivery
+  - [ ] Email digest ("Your 10 new images are ready!")
+  - [ ] Desktop notifications (optional)
+  - [ ] In-app notifications feed
+  - [ ] RSS feed for new content (optional)
+- [ ] Resource management
+  - [ ] Budget limits per schedule (max $1/day)
+  - [ ] Queue management (max 5 concurrent schedules)
+  - [ ] Throttling (respect API rate limits)
+  - [ ] Cost warnings (alert before expensive runs)
+
+**Use Cases**:
+
+**1. Random Image Generation** (Morning Surprise)
+```yaml
+schedule: daily_image_generation
+cron: "0 6 * * *"  # 6 AM daily
+workflow: generate_random_images
+parameters:
+  count: 10
+  character: random  # Pick from user's characters
+  clothing: random   # Random clothing combinations
+  visual_style: random
+  art_style: weighted_random  # Favor user's favorites
+budget: $0.50/day
+notification: email_digest
+```
+
+**2. Clothing Discovery** (Weekly Exploration)
+```yaml
+schedule: clothing_item_discovery
+cron: "0 2 * * 0"  # 2 AM every Sunday
+workflow: discover_clothing_items
+parameters:
+  search_queries: [
+    "avant-garde fashion",
+    "vintage streetwear",
+    "cyberpunk outfits"
+  ]
+  max_items: 20
+  auto_import: false  # Review before adding
+budget: $0.10/week
+notification: in_app
+```
+
+**3. Code Optimization** (Nightly Analysis)
+```yaml
+schedule: code_quality_check
+cron: "0 1 * * *"  # 1 AM daily
+workflow: analyze_and_optimize_code
+parameters:
+  repository: /path/to/project
+  checks: [
+    "unused_code",
+    "complexity_analysis",
+    "security_scan",
+    "documentation_gaps"
+  ]
+  auto_fix: false  # Generate suggestions only
+budget: $0.20/day
+notification: email_summary
+```
+
+**4. Story Generation** (Weekly Creative Output)
+```yaml
+schedule: weekly_story
+cron: "0 9 * * 1"  # 9 AM every Monday
+workflow: generate_complete_story
+parameters:
+  character: random
+  theme: random
+  length: "short"  # 500-1000 words
+  illustrations: 3
+budget: $2.00/week
+notification: email_with_attachment
+```
+
+**API Routes**:
+- [ ] `POST /api/schedules/` (create schedule)
+- [ ] `GET /api/schedules/` (list all schedules)
+- [ ] `GET /api/schedules/{id}` (get schedule details)
+- [ ] `PUT /api/schedules/{id}` (update schedule)
+- [ ] `DELETE /api/schedules/{id}` (delete schedule)
+- [ ] `POST /api/schedules/{id}/pause` (pause schedule)
+- [ ] `POST /api/schedules/{id}/resume` (resume schedule)
+- [ ] `POST /api/schedules/{id}/execute-now` (manual trigger)
+- [ ] `GET /api/schedules/{id}/executions` (execution history)
+- [ ] `GET /api/schedules/{id}/results` (gallery of outputs)
+
+**Frontend**:
+- [ ] Schedules page (`/schedules`)
+  - [ ] List view (active, paused, disabled)
+  - [ ] Create schedule wizard
+    - [ ] Step 1: Choose workflow template
+    - [ ] Step 2: Configure schedule (cron builder UI)
+    - [ ] Step 3: Set parameters (with "random" options)
+    - [ ] Step 4: Set resource limits and notifications
+  - [ ] Edit schedule (inline or modal)
+  - [ ] Execution history timeline
+  - [ ] Results gallery (view scheduled outputs)
+  - [ ] Cost tracking per schedule
+- [ ] Cron expression builder (visual scheduler)
+  - [ ] Presets: Daily, Weekly, Monthly, Custom
+  - [ ] Visual calendar preview
+  - [ ] Human-readable description ("Every day at 6 AM")
+- [ ] Random parameter configurator
+  - [ ] "Random" checkbox per parameter
+  - [ ] Weights/preferences (favor favorites)
+  - [ ] Constraints (ensure valid combinations)
+
+**Smart Randomization Strategies**:
+- [ ] Character randomization
+  - [ ] Weighted by usage frequency
+  - [ ] Exclude recently used (diversity)
+  - [ ] Favor user favorites
+- [ ] Preset randomization
+  - [ ] Coherent combinations (match style genres)
+  - [ ] Weighted by user ratings
+  - [ ] Ensure variety (track recent selections)
+- [ ] Prompt randomization
+  - [ ] Theme variations (noir, vintage, futuristic, etc.)
+  - [ ] Mood variations (dark, cheerful, mysterious, etc.)
+  - [ ] Setting variations (urban, nature, indoor, etc.)
+- [ ] Learning from feedback
+  - [ ] Track which random outputs user favorites
+  - [ ] Adjust weights based on user preferences
+  - [ ] Avoid patterns user dislikes
+
 **Success Criteria**:
-- Workflows support conditionals, parallelism, retries
-- Visual workflow builder functional
-- Workflow templates working
-- Workflow monitoring dashboard shows progress
+- Can create schedules with cron expressions
+- Workflows execute on schedule reliably
+- Random parameters generate coherent results
+- Notifications delivered on completion
+- Resource limits enforced (no surprise bills)
+- Execution history queryable and browsable
+- User wakes up to 10 new images as expected
 
 ---
 
