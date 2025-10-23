@@ -491,6 +491,8 @@ export const clothingItemsConfig = {
       sourceImage: item.source_image,
       previewImage: item.preview_image_path,  // Add preview image path
       createdAt: item.created_at,
+      archived: item.archived || false,
+      archivedAt: item.archived_at,
       // Wrap editable fields in data property for EntityBrowser
       data: {
         category: item.category,
@@ -523,8 +525,26 @@ export const clothingItemsConfig = {
           ? `url(${item.previewImage}) center/cover`
           : 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
         borderRadius: '8px 8px 0 0',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        opacity: item.archived ? 0.6 : 1
       }}>
+        {item.archived && (
+          <div style={{
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0.5rem',
+            background: 'rgba(255, 152, 0, 0.9)',
+            color: 'white',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            zIndex: 10,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            📦 ARCHIVED
+          </div>
+        )}
         {!item.previewImage && (
           <div style={{
             position: 'absolute',
@@ -703,7 +723,15 @@ export const clothingItemsConfig = {
   },
 
   deleteEntity: async (item) => {
-    await api.delete(`/clothing-items/${item.itemId}`)
+    await api.post(`/clothing-items/${item.itemId}/archive`)
+  },
+
+  archiveEntity: async (item) => {
+    await api.post(`/clothing-items/${item.itemId}/archive`)
+  },
+
+  unarchiveEntity: async (item) => {
+    await api.post(`/clothing-items/${item.itemId}/unarchive`)
   }
 }
 

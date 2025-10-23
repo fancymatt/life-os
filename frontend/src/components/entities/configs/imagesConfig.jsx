@@ -39,7 +39,9 @@ export const imagesConfig = {
       height: img.height,
       entities: img.entities || {},
       createdAt: img.created_at,
-      metadata: img.generation_metadata || {}
+      metadata: img.generation_metadata || {},
+      archived: img.archived || false,
+      archivedAt: img.archived_at
     }))
   },
 
@@ -57,7 +59,28 @@ export const imagesConfig = {
 
     return (
       <div className="entity-card">
-        <div className="entity-card-image" style={{ height: '280px' }}>
+        <div className="entity-card-image" style={{
+          height: '280px',
+          position: 'relative',
+          opacity: image.archived ? 0.6 : 1
+        }}>
+          {image.archived && (
+            <div style={{
+              position: 'absolute',
+              top: '0.5rem',
+              right: '0.5rem',
+              background: 'rgba(255, 152, 0, 0.9)',
+              color: 'white',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              zIndex: 10,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+            }}>
+              📦 ARCHIVED
+            </div>
+          )}
           <LazyImage
             src={image.imageUrl}
             alt={image.title}
@@ -270,5 +293,17 @@ export const imagesConfig = {
         </a>
       </div>
     )
+  },
+
+  deleteEntity: async (image) => {
+    await api.post(`/images/${image.imageId}/archive`)
+  },
+
+  archiveEntity: async (image) => {
+    await api.post(`/images/${image.imageId}/archive`)
+  },
+
+  unarchiveEntity: async (image) => {
+    await api.post(`/images/${image.imageId}/unarchive`)
   }
 }

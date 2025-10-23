@@ -305,6 +305,8 @@ export const visualizationConfigsConfig = {
       config_id: config.config_id,
       entity_type: config.entity_type,
       createdAt: config.created_at,
+      archived: config.archived || false,
+      archivedAt: config.archived_at,
       data: config // Store full config data
     }))
   },
@@ -321,7 +323,29 @@ export const visualizationConfigsConfig = {
 
   renderCard: (entity) => (
     <div className="entity-card">
-      <div className="entity-card-image" style={{ height: '280px', background: 'rgba(0, 0, 0, 0.3)' }}>
+      <div className="entity-card-image" style={{
+        height: '280px',
+        background: 'rgba(0, 0, 0, 0.3)',
+        position: 'relative',
+        opacity: entity.archived ? 0.6 : 1
+      }}>
+        {entity.archived && (
+          <div style={{
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0.5rem',
+            background: 'rgba(255, 152, 0, 0.9)',
+            color: 'white',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            zIndex: 10,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            📦 ARCHIVED
+          </div>
+        )}
         {entity.data.reference_image_path ? (
           <LazyImage
             src={entity.data.reference_image_path}
@@ -470,6 +494,14 @@ export const visualizationConfigsConfig = {
   },
 
   deleteEntity: async (entity) => {
-    await api.delete(`/visualization-configs/${entity.config_id}`)
+    await api.post(`/visualization-configs/${entity.config_id}/archive`)
+  },
+
+  archiveEntity: async (entity) => {
+    await api.post(`/visualization-configs/${entity.config_id}/archive`)
+  },
+
+  unarchiveEntity: async (entity) => {
+    await api.post(`/visualization-configs/${entity.config_id}/unarchive`)
   }
 }

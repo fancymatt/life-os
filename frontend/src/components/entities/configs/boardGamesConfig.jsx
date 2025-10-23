@@ -37,6 +37,8 @@ export const boardGamesConfig = {
       complexity: game.complexity,
       createdAt: game.created_at,
       metadata: game.metadata || {},
+      archived: game.archived || false,
+      archivedAt: game.archived_at,
       // Wrap editable fields in data property for EntityBrowser
       data: {
         name: game.name,
@@ -60,7 +62,29 @@ export const boardGamesConfig = {
 
   renderCard: (game) => (
     <div className="entity-card">
-      <div className="entity-card-image" style={{ height: '180px', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2))' }}>
+      <div className="entity-card-image" style={{
+        height: '180px',
+        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2))',
+        position: 'relative',
+        opacity: game.archived ? 0.6 : 1
+      }}>
+        {game.archived && (
+          <div style={{
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0.5rem',
+            background: 'rgba(255, 152, 0, 0.9)',
+            color: 'white',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            zIndex: 10,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            📦 ARCHIVED
+          </div>
+        )}
         <div className="entity-card-placeholder" style={{ fontSize: '5rem' }}>🎲</div>
       </div>
       <div className="entity-card-content">
@@ -437,6 +461,14 @@ export const boardGamesConfig = {
   },
 
   deleteEntity: async (game) => {
-    await api.delete(`/board-games/${game.gameId}`)
+    await api.post(`/board-games/${game.gameId}/archive`)
+  },
+
+  archiveEntity: async (game) => {
+    await api.post(`/board-games/${game.gameId}/archive`)
+  },
+
+  unarchiveEntity: async (game) => {
+    await api.post(`/board-games/${game.gameId}/unarchive`)
   }
 }
