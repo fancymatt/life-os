@@ -1,125 +1,166 @@
-# Life-OS Development Roadmap
+# Life-OS Development Roadmap (Consolidated)
 
 **Last Updated**: 2025-10-23
-**Status**: Phase 1 COMPLETE ✅ - Archive feature 80% complete
-**Version**: 4.0 - **Comprehensive Personal AI Assistant**
+**Current Phase**: Phase 1 ✅ COMPLETE → Starting Phase 2.0
+**Version**: 5.0 - Comprehensive Personal AI Assistant
 
 ---
 
 ## Overview
 
-Life-OS is evolving from a specialized **AI image generation platform** into a **comprehensive personal AI assistant** with autonomous task execution across multiple domains. This roadmap consolidates all future development into clear phases, from critical fixes → infrastructure → creative tools → daily operating system → full autonomy.
+Life-OS is evolving from a specialized **AI image generation platform** into a **comprehensive personal AI assistant** with autonomous task execution across multiple domains.
 
 **Current State** (October 2025):
-- ✅ **Database Foundation**: PostgreSQL with 12 tables, Alembic migrations
-- ✅ **17 Entity Types**: Characters, Stories, Clothing Items, Outfits, Board Games, etc.
+- ✅ **Phase 1 Complete**: PostgreSQL database, 158 tests, CI/CD, 17 entity types
+- ✅ **Archive System**: 95% complete (database + backend + frontend UI done, filter toggle pending)
+- ✅ **Local LLM**: 95% complete (backend + 120B model running, frontend UI pending)
 - ✅ **24 AI Tools**: 8 analyzers + 6 generators + workflow orchestration
-- ✅ **Testing Infrastructure**: 158 backend tests, CI/CD with GitHub Actions
-- ✅ **Archive System**: 80% complete (database + backend done, frontend pending)
-- ✅ **Local LLM Integration**: Ollama backend complete, 120B model in production use
 
-**Vision** (12-18 months):
+**Vision** (18-24 months):
 - 🎯 **Daily Operating System**: Morning brief, rolling feed, auto-prep/tidy
 - 🎯 **Creative Intelligence**: Taste graph, variant exploration, recipe reuse
 - 🎯 **Reproducible Assets**: Full provenance, one-click reproduce
-- 🎯 **Developer Autopilot**: Complete ticket via MCP, nightly PR factory
+- 🎯 **Developer Autopilot**: Complete tickets via MCP, nightly PR factory
 - 🎯 **Policy-Bound Autonomy**: Propose-first agents with guardrails
 - 🎯 **Cross-Domain Taste**: Unified taste across creative, media, and knowledge
 
 ---
 
-## Implementation Priorities (Updated 2025-10-23)
+## Phase Organization Principles
 
-### 🔥 ACTIVE WORK (This Week)
-1. ✅ Archive Instead of Delete (80% complete - database + backend done, frontend pending)
-   - ✅ Alembic migration applied (archived + archived_at columns)
-   - ✅ Character repository + service with archive/unarchive
-   - ✅ Archive/unarchive API endpoints
-   - ⏳ Update remaining CharacterInfo response fields
-   - ⏳ Frontend: Archive button, archived badge, filter toggle
-   - ⏳ Apply pattern to other entities (ClothingItem, BoardGame, etc.)
-
-### 📋 NEXT 2 WEEKS (Critical Fixes)
-2. Mobile Responsiveness Basics (2 days)
-   - Viewport meta tag fixes
-   - Collapsible sidebar on mobile
-   - Touch-friendly buttons and spacing
-
-3. UI Theme System (3 days)
-   - Dark/light/auto modes
-   - CSS variable architecture
-   - Persistent user preference
-
-4. Visualization Config Linking (1 day)
-   - Link visualization configs to entities
-   - Batch generation with configs
-
-### 📅 NEXT 4-6 WEEKS (High-Value Features)
-5. Tagging System (3-4 days)
-   - Multi-select tags on all entities
-   - Tag-based filtering and search
-   - Tag analytics and suggestions
-
-6. Entity Merge Tool (1 week)
-   - AI-assisted merging with reference migration
-   - Preview merged entity before committing
-   - Archive source entity with merge metadata
-
-7. Alterations Entity (1 week)
-   - New entity type for body modifications
-   - Analyzer to extract alterations from images
-   - Integration with story workflow
-
-8. TasteProfile Foundation (2-3 weeks)
-   - Embedding model for favorites/tags
-   - Similarity search across entities
-   - Basic taste-based ranker
+**Infrastructure Before Features**: Build foundations before complexity
+**Easy Before Hard**: Prioritize features that work with current infrastructure
+**Value Before Polish**: High-value features before nice-to-haves
+**Maintenance Built In**: Regular refactoring phases to prevent technical debt
 
 ---
 
-## User-Requested Features (Organized by Category)
+## Phase 1: Foundation & Critical Fixes ✅ **COMPLETE**
 
-*Note: These features are organized by theme with priority/complexity estimates. Features from Phases are detailed below.*
+**Duration**: 8 weeks (Completed October 2025)
+**Goal**: Stable, scalable foundation
 
-### 🗂️ Category: Data Management & Integrity
+### What We Built:
+- ✅ PostgreSQL database with 12 tables
+- ✅ Pagination + caching (60s list, 5min detail, 1hr static)
+- ✅ Clean logging infrastructure (zero print() in production)
+- ✅ GitHub Actions CI/CD
+- ✅ 158 backend tests
+- ✅ All 8 preset entities unified
+- ✅ Pydantic v2 migration complete
+- ✅ Archive system (80% - database + backend)
+- ✅ Local LLM backend (Ollama + 120B model)
 
-#### Archive Instead of Delete ⏳ **80% COMPLETE**
-**Priority**: CRITICAL
-**Complexity**: Medium (2-3 days)
-**Status**: Database + backend complete, frontend pending
-**Phase**: 1
-
-Replace entity deletion with archiving to maintain referential integrity.
-
-**✅ Completed**:
-- Database migration (archived + archived_at columns on 9 tables)
-- SQLAlchemy models updated
-- Character repository with archive/unarchive methods
-- Character service with include_archived parameters
-- Archive/unarchive API endpoints
-- CharacterInfo response model with archived fields
-
-**⏳ Remaining**:
-- Update remaining 5 CharacterInfo instantiations in routes
-- Frontend Archive button (replace Delete)
-- Archived badge/visual indicator
-- Filter toggle to show/hide archived
-- Apply pattern to 8 other entities
-
-**Benefits**:
-- Prevents broken links (images with archived characters still show names)
-- Reversible operation (unarchive capability)
-- Better data integrity and audit trail
+**Test Results**: 73 passing, 16 failing (fixture issues, not production bugs)
+**Production Ready**: Yes
 
 ---
 
-#### Entity Merge Tool
-**Priority**: HIGH
-**Complexity**: High (1 week)
-**Status**: Planned
-**Phase**: 2
+## Phase 2: User Experience & Core Features (4-6 weeks)
 
-AI-assisted merging of similar entities with reference migration.
+**Goal**: Polish existing features, complete high-value user requests
+**Why Now**: These features work with current infrastructure and deliver immediate value
+
+### 2.1 Complete Archive System (2 days) ✅ **95% COMPLETE**
+**Status**: 95% complete - database + backend + frontend UI done, filter toggle pending
+**Priority**: CRITICAL - Prevents broken links
+
+**Completed Work** (Oct 23, 2025):
+- ✅ Database: Added archived/archived_at columns to all 12 entity tables
+- ✅ Backend: Archive/unarchive methods in 6 repositories (ClothingItem, BoardGame, Image, Outfit, Composition, VisualizationConfig)
+- ✅ Backend: Archive/unarchive endpoints in 6 API routes
+- ✅ Frontend: Changed "Delete" button to "Archive" in EntityBrowser
+- ✅ Frontend: Orange "📦 ARCHIVED" badge on archived items in 4 configs (ClothingItem, BoardGame, Image, VisualizationConfig)
+- ✅ Frontend: Dimmed archived items (opacity: 0.6)
+- ✅ Frontend: archive/unarchive functions in entity configs
+
+**Remaining Work**:
+- [ ] Filter toggle to show/hide archived items (UI + API param)
+- [ ] Apply archived badges to preset-based entities (if needed)
+
+**Success Criteria**:
+- ✅ Zero broken links from deleted entities (archive replaces delete)
+- ✅ Archive/unarchive works on all database entities
+- ⏸️ Archived filter shows/hides correctly (pending)
+
+---
+
+### 2.2 Mobile Responsiveness (3 days)
+**Priority**: HIGH - Current mobile experience is poor
+**Complexity**: Medium
+
+**Critical Fixes**:
+- [ ] Add viewport meta tag to `frontend/index.html`
+- [ ] Collapsible sidebar on mobile (<768px)
+- [ ] Touch-friendly buttons (44x44px minimum)
+- [ ] Spacing from edges (16px minimum padding)
+- [ ] Floating jobs badge repositioning
+
+**Success Criteria**:
+- Mobile experience rating >8/10
+- All touch targets >44px
+- Comfortable reading on mobile
+
+---
+
+### 2.3 UI Theme System (3 days)
+**Priority**: HIGH - Foundation for all future UI work
+**Complexity**: Medium
+
+**Implementation**:
+- [ ] Create `frontend/src/theme.js` (colors, spacing, typography, shadows)
+- [ ] Dark/light/auto mode toggle
+- [ ] CSS variable architecture
+- [ ] Persistent user preference (localStorage)
+- [ ] Update EntityBrowser to use theme
+- [ ] Create component library: Button, Card, Modal, Input, Badge, Tabs
+
+**Success Criteria**:
+- Seamless dark/light switching
+- Consistent look and feel everywhere
+- Reusable component library
+
+---
+
+### 2.4 Tagging System (3-4 days)
+**Priority**: HIGH - Improves organization across all entities
+**Complexity**: Medium
+
+**Database Schema**:
+```sql
+CREATE TABLE tags (
+  tag_id UUID PRIMARY KEY,
+  name VARCHAR(100) UNIQUE,
+  category VARCHAR(50),  -- material, style, season, genre
+  color VARCHAR(20),
+  created_at TIMESTAMP
+);
+
+CREATE TABLE entity_tags (
+  entity_type VARCHAR(50),
+  entity_id UUID,
+  tag_id UUID,
+  PRIMARY KEY (entity_type, entity_id, tag_id)
+);
+```
+
+**Features**:
+- [ ] Tag autocomplete (suggest existing)
+- [ ] Create new tags inline
+- [ ] Filter entity lists by tag(s)
+- [ ] Multi-tag filtering (AND/OR logic)
+- [ ] Tag cloud visualization
+
+**Success Criteria**:
+- Tagging adoption >60% of entities
+- Tag filtering fast (<300ms)
+- Tag suggestions helpful
+
+---
+
+### 2.5 Entity Merge Tool (1 week)
+**Priority**: HIGH - Reduces duplicates
+**Complexity**: High
 
 **Workflow**:
 1. User selects Entity A (keep) and Entity B (merge into A)
@@ -129,176 +170,111 @@ AI-assisted merging of similar entities with reference migration.
 5. Update all references from B → A
 6. Archive Entity B with `merged_into: entity_a_id` metadata
 
-**Example**: Merge two similar jacket clothing items into one comprehensive entity.
+**UI**:
+- [ ] "Merge into..." button in entity actions
+- [ ] Side-by-side comparison view
+- [ ] AI-generated merge preview (editable)
+- [ ] Confirmation dialog showing affected references
+
+**Success Criteria**:
+- Merge preserves all unique information
+- All references updated correctly
+- Merge reversible via unarchive
 
 ---
 
-### 🎨 Category: Creative Intelligence & Exploration
-
-#### TasteProfile (Taste Graph)
-**Priority**: HIGH - Foundation for many other features
-**Complexity**: High (2-3 weeks for v1)
-**Status**: Planned
-**Phase**: 3
-
-Embedding-based taste model that learns from favorites, tags, accepted outputs, and reuse patterns.
-
-**v1 Features**:
-- Embedding model for all entity types (characters, styles, outfits, stories, media)
-- "Find Similar" based on embedding distance
-- Simple aesthetic heuristics (color harmony, composition balance, contrast)
-- Taste-based ranking for sweeps and suggestions
-
-**Data Sources**:
-- Favorites (explicit positive signal)
-- Tags applied by user (categorization preferences)
-- Accepted vs rejected outputs (implicit feedback)
-- Re-use patterns (what gets used in compositions/stories)
-- Modification history (what changes user makes)
-
-**Powers**:
-- Variant Orchards ranker
-- Daily Brief personalization
-- Auto-Prep content selection
-- Media Companion shortlists
-- Better defaults everywhere
+### 2.6 Visualization Config Linking (1 day)
+**Priority**: MEDIUM - Better discoverability
+**Complexity**: Low
 
 **Implementation**:
-- Use SentenceTransformers or OpenAI embeddings
-- Store vectors in PostgreSQL with pgvector extension
-- Cosine similarity search for "find similar"
-- Logistic regression or simple neural net for preference predictor
+- [ ] Add `visualization_config_id` field to entities
+- [ ] Show config name with entity data
+- [ ] Link to config detail page
+- [ ] Fallback to default if not set
+- [ ] "Set Visualization Config" button when missing
+
+**Success Criteria**:
+- Config linking visible on all entities
+- Easy to change config
+- Clear which config is used
 
 ---
 
-#### Variant Orchards
-**Priority**: MEDIUM - Creative exploration tool
-**Complexity**: High (1-2 weeks)
-**Status**: Planned
-**Phase**: 3
-**Depends on**: TasteProfile foundation
+### 2.7 Clothing Modification Tools (2-3 days)
+**Priority**: HIGH - Iterative design
+**Complexity**: Low-Medium
 
-Structured exploration instead of ad-hoc retries: batch sweeps across controllable axes.
+**Two Tools**:
 
-**Concept**:
-- Generate variants along multiple axes (palette, lighting, angle, style intensity)
-- Auto-rank with aesthetic heuristics + LLM rubric
-- Browse as "branches" you can prune and promote
+**1. Modify Existing** (in-place update):
+- Text input: "Make these shoulder-length" or "Change to red"
+- AI updates description
+- Mark as `manually_modified: true`
 
-**Example Workflow**:
-1. User selects base image/prompt
-2. Choose exploration axes:
-   - Palette: warm/cool/vibrant/muted
-   - Lighting: soft/dramatic/natural/studio
-   - Angle: front/side/three-quarter/overhead
-   - Style intensity: subtle/moderate/extreme
-3. Generate grid of variants (2-4 per axis = 16-64 images)
-4. Auto-rank by:
-   - Composition balance (rule of thirds, golden ratio)
-   - Color harmony (complementary, analogous, triadic)
-   - Contrast and readability
-   - LLM rubric: "Rate aesthetic quality 1-10, explain reasoning"
-   - TasteProfile similarity to user's favorites
-5. Present as tree view: prune weak branches, promote winners
-6. Winners become new base for next iteration
+**2. Create Variant** (copy with changes):
+- Same input, creates new entity
+- Keep `source_entity_id` reference
+- Name: "{original_name} (Variant)"
 
-**UI**:
-- Tree/grid toggle view
-- Filter by rank threshold
-- Quick compare mode (side-by-side)
-- One-click "explore this branch deeper"
-
-**Cost Control**:
-- Batch generation API calls (cheaper)
-- Local LLM for ranking rubric (zero cost)
-- User-set budget cap per orchard
-- Cache embeddings for variants
+**Success Criteria**:
+- Modifications applied correctly
+- Variants preserve lineage
+- Preview before applying
 
 ---
 
-#### Recipe Builder & Reuse
-**Priority**: MEDIUM - Improves workflow efficiency
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 3
+### 2.8 Alterations Entity (1 week)
+**Priority**: HIGH - Expands creative possibilities
+**Complexity**: High
 
-Every winning run becomes a reusable "recipe" you can re-apply or evolve.
+**What are Alterations?**
+- Physical transformations: horns, wings, tail, pointed ears
+- Skin modifications: color changes, scales, fur
+- Proportional changes: extreme musculature, height
+- Facial features: fangs, glowing eyes
 
-**What is a Recipe**:
-- Inputs: entity IDs, parameters, model settings
-- Process: tool chain, workflow steps
-- Outputs: generated entities, images, stories
-- Provenance: full lineage for reproducibility
+**Database Schema**:
+```sql
+CREATE TABLE alterations (
+  alteration_id UUID PRIMARY KEY,
+  name VARCHAR(255),
+  description TEXT,
+  category VARCHAR(50),  -- skin, appendages, proportions, facial_features
+  intensity VARCHAR(50), -- subtle, moderate, extreme
+  source_image VARCHAR(500),
+  preview_image_path VARCHAR(500),
+  tags TEXT[],
+  user_id INTEGER,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP,
+  metadata JSONB,
+  archived BOOLEAN DEFAULT FALSE,
+  archived_at TIMESTAMP
+);
+```
 
-**Features**:
-- Save any successful generation as recipe
-- Name and tag recipes
-- Browse recipe library
-- Apply recipe to new inputs (e.g., different character, same visual style)
-- Compare recipes (diff viewer for inputs/params)
-- Evolve recipe (modify params, save as new version)
-- Recipe templates (common patterns like "character portrait in style X")
+**Implementation**:
+- [ ] Create database table + migration
+- [ ] Create `AlterationServiceDB`
+- [ ] Create API routes (`/api/alterations/`)
+- [ ] Create analyzer tool (`alteration_analyzer`)
+- [ ] Create frontend entity config
+- [ ] Integrate with Image Composer
 
-**UI**:
-- "Save as Recipe" button after generation
-- Recipe library page with search/filter
-- Recipe detail view with full provenance
-- "Apply to..." action to reuse recipe
-
-**Backend**:
-- Store recipe JSON with entity references
-- Track recipe usage (which recipes are most popular)
-- Version recipes (recipe_v1, recipe_v2)
-
-**Think CI for Prompts**: Capture, compare, replay winning configurations.
-
----
-
-#### Inspiration Ingestion
-**Priority**: MEDIUM
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 3
-
-Web/screenshot clipper and Inspiration Inbox that turns references into presets/styles.
-
-**Features**:
-- Browser extension: "Save to LifeOS" button
-- Screenshot hotkey (system-wide)
-- Mobile share target (iOS/Android)
-- Inspiration Inbox: staging area for clipped content
-- Auto-analyze with outfit/style/character analyzers
-- Convert to entities with one click
-- Link to TasteProfile (these influenced your taste)
-
-**Example Workflow**:
-1. User sees great outfit on Pinterest
-2. Clicks "Save to LifeOS" browser button
-3. Image appears in Inspiration Inbox
-4. System suggests: "Looks like an outfit - analyze?"
-5. User clicks "Analyze"
-6. Creates clothing item entities for each piece
-7. Links to TasteProfile as "inspiration source"
-8. Available in future searches/suggestions
-
-**Backend**:
-- Inbox entity type (image + URL + notes)
-- Auto-analyzer dispatcher based on content type
-- Entity creation from inbox items
-- Track provenance: created_from_inspiration
+**Success Criteria**:
+- Can analyze images for alterations
+- Alterations work in Image Composer
+- Alterations work in Story Generator
 
 ---
 
-#### Extremify Tool
+### 2.9 Extremify Tool (2-3 days)
 **Priority**: LOW - Fun creative feature
-**Complexity**: Medium (2-3 days)
-**Status**: Planned
-**Phase**: 3
-
-Generate avant-garde versions of clothing items by amplifying unique features.
+**Complexity**: Medium
 
 **Input**:
-- Clothing item entity
+- Clothing item or alteration entity
 - Intensity multiplier (1-5x)
 
 **AI Prompt**:
@@ -311,43 +287,242 @@ Amplify all unique features by {intensity}:
 - Decorative elements → {intensity}x more pronounced
 ```
 
-**Use Cases**:
-- Avant-garde fashion exploration
-- Costume design
-- Design boundary testing
+**Success Criteria**:
+- Generates believable extremified versions
+- Intensity slider feels natural
+- Fun to use
+- Works with both clothing and alterations
 
 ---
 
-#### Clothing Item Modification Tools
-**Priority**: HIGH - Iterative design
-**Complexity**: Medium (2-3 days)
-**Status**: Planned
-**Phase**: 2
+### Phase 2 Success Metrics
 
-**Modify Existing** (in-place update):
-- Text input: "Make these shoulder-length" or "Change to red"
-- AI updates description in place
-- Mark as `manually_modified: true`
+- ✅ Archive system 95% complete (filter toggle pending)
+- ✅ Zero broken entity links (archive replaces delete)
+- [ ] Archive filter toggle implemented
+- [ ] Mobile experience rating >8/10
+- [ ] Tagging adoption >60% of entities
+- [ ] Theme switching works flawlessly
+- [ ] All high-value UX features delivered
 
-**Create Variant** (copy with changes):
-- Same input, but creates new entity
-- Keep `source_entity_id` reference
-- Name: "{original_name} (Variant)"
-
-**Backend**: Single endpoint handles both
-**UI**: Modal with text input and action selector
+**Total Duration**: 4-6 weeks
+**Total Features**: 9 major features
 
 ---
 
-### 🔄 Category: Reproducibility & Asset Management
+## Phase 3: Creative Intelligence & Maintenance (7-9 weeks)
 
-#### One-Asset Model with Provenance & Reproduce
-**Priority**: HIGH - Core feature for reproducibility
-**Complexity**: High (2-3 weeks)
-**Status**: Planned
-**Phase**: 4
+**Goal**: Build taste learning, creative exploration tools, and clean up technical debt
+**Why Now**: Foundation for many future features (autopilot, brief, suggestions) + prevent compound interest on technical debt
 
-Unify images, docs, audio, video under canonical Asset with full lineage.
+### 3.1 Component Refactoring (3 days)
+**Priority**: HIGH - Prevent technical debt
+**Complexity**: Medium
+
+- [ ] Split Composer.jsx (910 lines → 300 + subcomponents)
+  - [ ] PresetLibrary.jsx (200 lines)
+  - [ ] PresetCanvas.jsx (200 lines)
+  - [ ] AppliedPresetsStack.jsx (150 lines)
+  - [ ] CompositionManager.jsx (150 lines)
+- [ ] Unify OutfitAnalyzer + GenericAnalyzer (eliminate 500 line duplication)
+  - [ ] Create BaseAnalyzer.jsx (shared logic)
+  - [ ] OutfitAnalyzer extends BaseAnalyzer
+  - [ ] GenericAnalyzer extends BaseAnalyzer
+
+**Success Criteria**:
+- No component over 500 lines
+- Code duplication eliminated
+
+---
+
+### 3.2 Frontend Testing (2 days)
+**Priority**: HIGH - Critical path coverage
+**Complexity**: Medium
+
+- [ ] EntityBrowser component tests
+- [ ] Character import flow tests (critical path)
+- [ ] Story workflow UI tests (critical path)
+- [ ] Target: 40% coverage overall
+
+**Success Criteria**:
+- Frontend coverage >40%
+- Critical paths tested
+
+---
+
+### 3.3 Code Quality Cleanup (2 days)
+**Priority**: MEDIUM - Error handling
+**Complexity**: Low
+
+- [ ] Standardized error response models
+- [ ] Error codes for programmatic handling
+- [ ] Global error handler middleware
+- [ ] Fix remaining 16 test failures (fixture data)
+
+**Success Criteria**:
+- All tests passing (100%)
+- Consistent error handling
+
+---
+
+### 3.4 TasteProfile v1 (2-3 weeks) 🌟 **FOUNDATIONAL**
+**Priority**: HIGH - Powers many other features
+**Complexity**: High
+
+**Core Features**:
+- [ ] Embedding model for all entity types (SentenceTransformers or OpenAI)
+- [ ] PostgreSQL pgvector extension
+- [ ] Store vectors in database
+- [ ] "Find Similar" based on embedding distance
+- [ ] Simple aesthetic heuristics:
+  - Color harmony (complementary, analogous, triadic)
+  - Composition balance (rule of thirds, golden ratio)
+  - Contrast and readability
+- [ ] Taste-based ranking for suggestions
+
+**Data Sources**:
+- Favorites (explicit positive signal)
+- Tags applied by user
+- Accepted vs rejected outputs
+- Re-use patterns (what gets used in compositions/stories)
+- Modification history
+
+**Success Criteria**:
+- "Find Similar" accuracy >80%
+- TasteProfile learns from 100+ interactions
+- Similarity search <300ms
+- Powers variant ranking
+
+---
+
+### 3.5 Variant Orchards (1-2 weeks)
+**Priority**: MEDIUM - Creative exploration
+**Complexity**: High
+**Depends on**: TasteProfile
+
+**Concept**: Structured exploration across controllable axes
+
+**Workflow**:
+1. User selects base image/prompt
+2. Choose exploration axes:
+   - Palette: warm/cool/vibrant/muted
+   - Lighting: soft/dramatic/natural/studio
+   - Angle: front/side/three-quarter/overhead
+   - Style intensity: subtle/moderate/extreme
+3. Generate grid of variants (2-4 per axis = 16-64 images)
+4. Auto-rank by:
+   - Composition balance
+   - Color harmony
+   - Contrast
+   - LLM rubric: "Rate aesthetic quality 1-10"
+   - TasteProfile similarity
+5. Present as tree view: prune weak branches, promote winners
+
+**UI**:
+- [ ] Tree/grid toggle view
+- [ ] Filter by rank threshold
+- [ ] Quick compare mode (side-by-side)
+- [ ] One-click "explore this branch deeper"
+
+**Cost Control**:
+- Batch generation (cheaper)
+- Local LLM for ranking (zero cost)
+- User-set budget cap per orchard
+
+**Success Criteria**:
+- Can explore 50+ variants efficiently
+- Ranking helpful (user agrees >70% of time)
+- Cost per orchard <$5
+
+---
+
+### 3.6 Recipe Builder & Reuse (1 week)
+**Priority**: MEDIUM - Improves workflow efficiency
+**Complexity**: Medium
+
+**What is a Recipe**:
+- Inputs: entity IDs, parameters, model settings
+- Process: tool chain, workflow steps
+- Outputs: generated entities, images, stories
+- Provenance: full lineage for reproducibility
+
+**Features**:
+- [ ] Save any successful generation as recipe
+- [ ] Name and tag recipes
+- [ ] Browse recipe library
+- [ ] Apply recipe to new inputs
+- [ ] Compare recipes (diff viewer)
+- [ ] Evolve recipe (modify params, save as new version)
+- [ ] Recipe templates (common patterns)
+
+**UI**:
+- [ ] "Save as Recipe" button after generation
+- [ ] Recipe library page with search/filter
+- [ ] Recipe detail view with full provenance
+- [ ] "Apply to..." action to reuse recipe
+
+**Success Criteria**:
+- Recipe library has 20+ saved recipes
+- Recipes reusable and evolvable
+- Recipe application success rate >90%
+
+---
+
+### 3.7 Inspiration Ingestion (1 week)
+**Priority**: MEDIUM - Content capture
+**Complexity**: Medium
+
+**Features**:
+- [ ] Browser extension: "Save to LifeOS" button
+- [ ] Screenshot hotkey (system-wide)
+- [ ] Mobile share target (iOS/Android)
+- [ ] Inspiration Inbox (staging area)
+- [ ] Auto-analyze with analyzers
+- [ ] Convert to entities with one click
+- [ ] Link to TasteProfile
+
+**Workflow**:
+1. User sees great outfit on Pinterest
+2. Clicks "Save to LifeOS" browser button
+3. Image appears in Inspiration Inbox
+4. System suggests: "Looks like an outfit - analyze?"
+5. User clicks "Analyze"
+6. Creates clothing item entities
+7. Links to TasteProfile as inspiration source
+
+**Success Criteria**:
+- Can save from any device
+- Auto-categorization >80% accurate
+- One-click entity creation
+
+---
+
+### Phase 3 Success Metrics
+
+- [ ] No component over 500 lines
+- [ ] Frontend coverage >40%
+- [ ] All tests passing (100%)
+- [ ] Consistent error handling
+- [ ] TasteProfile learns from 100+ interactions
+- [ ] "Find Similar" accuracy >80%
+- [ ] Recipe library has 20+ saved recipes
+- [ ] Variant Orchards used weekly
+- [ ] Inspiration Inbox captures 50+ items
+- [ ] All creative exploration and maintenance tasks complete
+
+**Total Duration**: 7-9 weeks
+**Total Features**: 7 major features (3 maintenance + 4 creative intelligence)
+
+---
+
+## Phase 4: Reproducibility & Provenance (3-4 weeks)
+
+**Goal**: Full asset lineage, one-click reproduce
+**Why Now**: Foundation for debugging, cost tracking, commercial work
+
+### 4.1 One-Asset Model (2-3 weeks) 🌟 **FOUNDATIONAL**
+**Priority**: HIGH - Core reproducibility feature
+**Complexity**: High
 
 **Asset Schema**:
 ```python
@@ -368,7 +543,7 @@ class Asset:
     # Relationships
     derived_from: List[UUID]  # Parent assets
     inspired_by: List[UUID]   # Reference assets
-    illustrates: List[UUID]   # Story scenes, etc.
+    illustrates: List[UUID]   # Story scenes
 
     # Metadata
     created_at: datetime
@@ -376,28 +551,98 @@ class Asset:
 ```
 
 **Features**:
-- "Reproduce" button on every asset
-- Side-by-side input diff viewer
-- Lineage graph visualization
-- Cost rollup (this asset + all dependencies)
-- "Why does this look this way?" explanation
+- [ ] Unify images, docs, audio, video under canonical Asset
+- [ ] Track full provenance for every asset
+- [ ] "Reproduce" button on every asset
+- [ ] Side-by-side input diff viewer
+- [ ] Lineage graph visualization
+- [ ] Cost rollup (asset + all dependencies)
+- [ ] "Why does this look this way?" explanation
 
-**Powers**:
-- Exact reproduction months later
-- Understanding creative decisions
-- Debugging unexpected outputs
-- Audit trail for commercial work
+**Success Criteria**:
+- Can reproduce any generation from 6 months ago
+- Asset relations navigable
+- Full cost attribution
+- Provenance explanations clear
 
 ---
 
-#### Asset Relations as First-Class Graph
-**Priority**: MEDIUM
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 4
+### 4.2 One-Click Image Restore (3-5 days)
+**Priority**: HIGH - Continue from where you left off
+**Complexity**: Medium
 **Depends on**: One-Asset Model
 
-Explicit relations for smarter navigation.
+**Concept**: Restore Image Composer state from any generated image
+
+**Features**:
+- [ ] "Restore in Composer" button on every generated image
+- [ ] Extract all applied presets/entities from generation metadata:
+  - Subject (character)
+  - Applied clothing items
+  - Applied alterations
+  - Visual styles
+  - Expression, hair color, makeup, accessories
+  - Visualization config used
+- [ ] Re-open Image Composer with all components loaded
+- [ ] Do NOT re-render automatically
+- [ ] User can:
+  - See exactly what was used to create the image
+  - Modify any component (swap outfit, change expression, etc.)
+  - Generate new variations from this starting point
+  - Save as new composition
+
+**Implementation**:
+- [ ] Store complete generation context in asset metadata:
+  ```json
+  {
+    "generation_params": {
+      "subject_id": "uuid",
+      "presets_applied": [
+        {"category": "clothing_items", "id": "uuid", "order": 1},
+        {"category": "expressions", "id": "uuid", "order": 2},
+        // ...
+      ],
+      "visualization_config_id": "uuid",
+      "additional_instructions": "text"
+    }
+  }
+  ```
+- [ ] API endpoint: `POST /api/images/{image_id}/restore-to-composer`
+  - Returns: Complete state object for Image Composer
+- [ ] Frontend: Restore state in Image Composer
+  - Load subject
+  - Apply presets in correct order
+  - Set visualization config
+  - Fill additional instructions
+  - Ready to modify/regenerate
+
+**UI Flow**:
+1. User views generated image in gallery
+2. Clicks "Restore in Composer" button
+3. Image Composer opens with all components loaded
+4. User sees the exact recipe that created the image
+5. User modifies any component
+6. User generates new variation
+
+**Success Criteria**:
+- Can restore any generated image to Image Composer
+- All components load correctly in the right order
+- State matches exactly what was used in original generation
+- User can immediately modify and regenerate
+- Works for images from 6+ months ago (if provenance tracked)
+
+**Why This Matters**:
+- **Iterative Design**: Continue refining without starting from scratch
+- **Recipe Discovery**: See exactly what combination worked well
+- **Learning**: Understand how components interact
+- **Efficiency**: Skip composition setup, jump straight to variations
+
+---
+
+### 4.3 Asset Relations Graph (1 week)
+**Priority**: MEDIUM - Smart navigation
+**Complexity**: Medium
+**Depends on**: One-Asset Model
 
 **Relation Types**:
 - `inspired_by`: This outfit inspired by that Pinterest save
@@ -405,72 +650,234 @@ Explicit relations for smarter navigation.
 - `illustrates`: This image illustrates that story scene
 - `references`: This generation references that style preset
 
-**Powers**:
-- "Show everything derived from this style ref"
-- "What inspired this outfit?"
-- "Find all illustrations for this story"
-- Orphan detection (assets with no incoming relations = might be duplicates)
+**Features**:
+- [ ] Relation graph visualization (D3.js)
+- [ ] Relation panel in detail view
+- [ ] "Add relation" modal with search
+- [ ] Auto-suggested relations based on metadata
+- [ ] Orphan detection (assets with no incoming relations)
 
 **UI**:
-- Relation graph visualization (D3.js)
-- Relation panel in detail view
-- "Add relation" modal with search
-- Auto-suggested relations based on metadata
+- [ ] Graph visualization page
+- [ ] "Show everything derived from this style ref"
+- [ ] "What inspired this outfit?"
+- [ ] "Find all illustrations for this story"
+
+**Success Criteria**:
+- Relations easy to add and navigate
+- Graph visualization performant with 1000+ assets
+- Auto-suggestions helpful
 
 ---
 
-### 🛠️ Category: Developer Velocity & Quality
+### Phase 4 Success Metrics
 
-#### Claude Code "Complete Ticket" via MCP
-**Priority**: HIGH - Major productivity multiplier
-**Complexity**: High (2-3 weeks)
-**Status**: Planned
-**Phase**: 5
+- [ ] Can reproduce any generation from 6 months ago
+- [ ] Can restore any image to Image Composer
+- [ ] Asset relations navigable and useful
+- [ ] Full cost attribution working
+- [ ] Provenance explanations clear
+- [ ] One-Asset Model adopted for all new generations
 
-Expose LifeOS dev tools as MCP endpoints for orchestrated development.
+**Total Duration**: 4-5 weeks
+**Total Features**: 3 major features
+
+---
+
+## Phase 5: Infrastructure Hardening (3-4 weeks)
+
+**Goal**: Robust, secure, observable infrastructure
+**Why Now**: Before adding autonomy, need solid monitoring and security
+
+### 5.1 Monitoring & Observability (1 week)
+
+**Metrics & Monitoring**:
+- [ ] Prometheus metrics endpoint (`/metrics`)
+- [ ] Track key metrics:
+  - Request count/latency by endpoint
+  - Error rate by endpoint
+  - LLM API costs (by provider, tool, user)
+  - Database query latency
+  - Job queue depth
+  - Cache hit rate
+- [ ] Grafana dashboards:
+  - System health overview
+  - API performance
+  - LLM cost breakdown
+  - Job queue status
+  - Error rate trends
+- [ ] Alerting (email, Slack):
+  - Error rate >5% (critical)
+  - p95 latency >1s (warning)
+  - Job queue depth >100 (warning)
+  - LLM costs >$50/day (warning)
+
+**Distributed Tracing**:
+- [ ] OpenTelemetry integration
+- [ ] Trace request flows (frontend → API → LLM)
+- [ ] Identify slow operations
+- [ ] Correlation IDs across services
+
+**Health Checks**:
+- [ ] `/health/ready` (service ready)
+- [ ] `/health/live` (service alive)
+- [ ] Database connectivity check
+- [ ] Redis connectivity check
+- [ ] External API connectivity check
+
+**Success Criteria**:
+- Prometheus scraping every 15s
+- Grafana dashboards visualize all metrics
+- Alerts trigger within 1 minute
+- Cost tracking accurate to $0.10/day
+
+---
+
+### 7.2 Security Hardening (1 week)
+
+**SQL Injection Prevention**:
+- [ ] Audit all database queries (parameterized only)
+- [ ] Add SQL injection tests (sqlmap)
+- [ ] Input validation on all endpoints
+- [ ] Query complexity limits
+
+**XSS & CSRF Protection**:
+- [ ] Content Security Policy (CSP) headers
+- [ ] X-Frame-Options header
+- [ ] X-Content-Type-Options header
+- [ ] XSS vulnerability scanning (OWASP ZAP)
+- [ ] CSRF token validation
+
+**Authentication & Authorization**:
+- [ ] JWT token expiration testing
+- [ ] Refresh token implementation
+- [ ] Session management (logout invalidates tokens)
+- [ ] Password complexity requirements
+- [ ] Rate limiting on login endpoint
+
+**API Rate Limiting**:
+- [ ] Add slowapi middleware
+- [ ] Rate limits:
+  - 10 generations/minute per user
+  - 100 API calls/minute per user
+  - 1000 API calls/hour per IP
+- [ ] Rate limit headers
+- [ ] Clear error messages when rate limited
+
+**Success Criteria**:
+- No SQL injection vulnerabilities
+- No XSS vulnerabilities
+- All security headers present
+- Rate limiting effective
+
+---
+
+### 7.3 Backup & Disaster Recovery (1 week)
+
+**Automated Backups**:
+- [ ] PostgreSQL backups:
+  - Daily full backups (retain 30 days)
+  - Hourly incremental backups (retain 7 days)
+  - Point-in-time recovery capability
+- [ ] File backups:
+  - Images, presets, configs
+  - Daily snapshots (retain 14 days)
+- [ ] Backup testing (restore monthly)
+
+**Disaster Recovery**:
+- [ ] Recovery Time Objective (RTO): <4 hours
+- [ ] Recovery Point Objective (RPO): <1 hour
+- [ ] Documented recovery procedures
+- [ ] Tested restore from backup
+- [ ] Off-site backup storage
+
+**Success Criteria**:
+- Backups run automatically daily
+- Restore tested and working
+- Recovery procedures documented
+- RTO/RPO targets met
+
+---
+
+### 6.4 Local LLM Frontend (2-3 days)
+
+**Complete Local LLM Integration** (95% → 100%):
+- [ ] Local Models page (`/local-models`)
+- [ ] List downloaded models with metadata
+- [ ] Pull models with progress tracking
+- [ ] Delete models
+- [ ] Test model interface
+- [ ] Disk usage display and warnings
+- [ ] Model catalog with recommendations
+- [ ] Clear labeling (local vs cloud in tool configs)
+
+**Success Criteria**:
+- Frontend UI for model management
+- Non-technical users can download models
+- Disk usage visible and warnings work
+
+---
+
+### Phase 7 Success Metrics
+
+- [ ] Prometheus + Grafana operational
+- [ ] All security scans passing
+- [ ] Backups automated and tested
+- [ ] Local LLM frontend complete (100%)
+- [ ] Infrastructure ready for autonomy
+
+**Total Duration**: 3-4 weeks
+**Total Features**: 4 major infrastructure improvements
+
+---
+
+## Phase 7: Developer Autopilot (6-8 weeks)
+
+**Goal**: MCP-powered development, quality gates
+**Why Now**: Build developer tools before general autonomy
+
+### 7.1 MCP Integration (2-3 weeks) 🌟 **FOUNDATIONAL**
+**Priority**: HIGH - Enables ticket completion
+**Complexity**: High
 
 **MCP Endpoints**:
-- `repo.survey`: Analyze codebase for ticket context
-- `change.plan`: Generate implementation plan
-- `patch.generate`: Create code changes
-- `tests.run`: Execute test suite
-- `review.report`: Generate review report
-- `pr.open`: Open pull request
+- [ ] `repo.survey` - Analyze codebase for ticket context
+- [ ] `change.plan` - Generate implementation plan
+- [ ] `patch.generate` - Create code changes
+- [ ] `tests.run` - Execute test suite
+- [ ] `review.report` - Generate review report
+- [ ] `pr.open` - Open pull request
 
-**Workflow**:
+**"Complete Ticket" Workflow**:
 1. User: "Claude, complete ticket #42: Add dark mode"
 2. Claude Code via MCP:
-   - Calls `repo.survey` → understands codebase structure
-   - Calls `change.plan` → generates implementation plan
-   - Calls `patch.generate` → creates code changes
-   - Calls `tests.run` → runs test suite
+   - Calls `repo.survey` → understands codebase
+   - Calls `change.plan` → generates plan
+   - Calls `patch.generate` → creates changes
+   - Calls `tests.run` → runs tests
    - If tests fail → fixes and reruns
-   - Calls `review.report` → generates review report
-   - Calls `pr.open` → opens PR with checks green
+   - Calls `review.report` → generates report
+   - Calls `pr.open` → opens PR with green checks
 
 **Policy Enforcement**:
-- Path limits (only modify approved directories)
-- Diff size limits (max 500 lines per PR)
-- Cost limits (max $5 in API calls per ticket)
-- Approval required before merge
+- [ ] Path limits (only approved directories)
+- [ ] Diff size limits (max 500 lines per PR)
+- [ ] Cost limits (max $5 per ticket)
+- [ ] Approval required before merge
 
-**Benefits**:
-- Complete tickets in chat without context switching
-- Always green checks before PR
-- Consistent code quality
-- Faster iteration cycles
+**Success Criteria**:
+- Can complete ticket via chat
+- Tests always green before PR
+- Policy limits enforced
+- PR quality high
 
 ---
 
-#### Small-PR Factory (Nightly)
-**Priority**: MEDIUM
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 5
+### 7.2 Small-PR Factory (1 week)
+**Priority**: MEDIUM - Nightly improvements
+**Complexity**: Medium
 
-Opinionated nightly PRs for docs/tests/tiny refactors.
-
-**Examples**:
+**Nightly PRs** (opinionated):
 - Add missing docstrings
 - Add tests for uncovered functions
 - Extract magic numbers to constants
@@ -492,22 +899,23 @@ Opinionated nightly PRs for docs/tests/tiny refactors.
 - Must have green checks
 - Only safe refactors (no behavior changes)
 
+**Success Criteria**:
+- Nightly PRs always green
+- PR merge rate >90%
+- Code quality improving
+
 ---
 
-#### Default-On Quality Gates
+### 7.3 Default-On Quality Gates (1 week)
 **Priority**: HIGH - Prevents regressions
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 5
-
-Non-negotiable quality checks in PRs.
+**Complexity**: Medium
 
 **Gates**:
-- Tests pass (backend + frontend)
-- Coverage floor (80% backend, 40% frontend)
-- Linting (zero warnings)
-- a11y checks (WCAG AA compliance)
-- Design System compliance (no ad-hoc styles)
+- [ ] Tests pass (backend + frontend)
+- [ ] Coverage floor (80% backend, 40% frontend)
+- [ ] Linting (zero warnings)
+- [ ] a11y checks (WCAG AA compliance)
+- [ ] Design System compliance (no ad-hoc styles)
 
 **Autopilot Fixes**:
 - Common test failures → auto-fix and amend PR
@@ -522,15 +930,16 @@ Non-negotiable quality checks in PRs.
 5. CI reruns with fixes
 6. If still failing → blocks merge
 
+**Success Criteria**:
+- Quality gates enforced on all PRs
+- Auto-fix success rate >80%
+- Zero regressions
+
 ---
 
-#### Prompt-Eval Guardrails
-**Priority**: MEDIUM
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 5
-
-Keep prompt regressions in check.
+### 6.4 Prompt-Eval Guardrails (1 week)
+**Priority**: MEDIUM - Prevent prompt regressions
+**Complexity**: Medium
 
 **Golden Set**:
 - 10-20 test cases per tool
@@ -538,7 +947,7 @@ Keep prompt regressions in check.
 - Stored as fixtures
 
 **Checks**:
-- Structured output parsing (does JSON match schema?)
+- Structured output parsing (JSON matches schema?)
 - Semantic quality (model-graded rubric)
 - Consistency (same input → similar output)
 - Cost (prompt token count within budget)
@@ -551,19 +960,36 @@ Keep prompt regressions in check.
   - Cost increases >20%
 - Shows before/after comparison
 
+**Success Criteria**:
+- Zero prompt regressions
+- Quality stable
+- Cost stable
+
 ---
 
-### 🎨 Category: Design System & Design Intelligence
+### Phase 7 Success Metrics
 
-#### Design System 2.0: Figma ↔ Tokens ↔ React
-**Priority**: MEDIUM
-**Complexity**: High (2-3 weeks)
-**Status**: Planned
-**Phase**: 6
+- [ ] Can complete ticket via chat
+- [ ] Nightly PRs always green
+- [ ] Zero prompt regressions
+- [ ] Quality gates enforced
+- [ ] Developer velocity increased
 
-Sync design tokens from Figma to code.
+**Total Duration**: 6-8 weeks
+**Total Features**: 4 major developer tools
 
-**Process**:
+---
+
+## Phase 7: Design System Intelligence (4-5 weeks)
+
+**Goal**: Figma sync, component registry, critique
+**Why Now**: Design consistency becomes critical as UI grows
+
+### 7.1 Design System 2.0 (2-3 weeks)
+**Priority**: MEDIUM - Single source of truth
+**Complexity**: High
+
+**Figma ↔ Tokens ↔ React Sync**:
 1. Designer updates Figma variables (colors, spacing, typography)
 2. Export design tokens as JSON
 3. Generate CSS variables + TypeScript types
@@ -576,32 +1002,34 @@ Sync design tokens from Figma to code.
 - Automated consistency
 - Easy theme switching
 
+**Success Criteria**:
+- Design tokens auto-sync from Figma
+- Ad-hoc styles rejected by linter
+- Theme switching seamless
+
 ---
 
-#### Component Registry + Usage Telemetry
-**Priority**: LOW
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 6
-
-Track component usage to find dead code and over-customization.
+### 7.2 Component Registry + Telemetry (1 week)
+**Priority**: LOW - Maintenance tool
+**Complexity**: Medium
 
 **Features**:
-- `@lifeos/ui` package with semver
-- Storybook documentation
-- Usage telemetry (which components used where)
-- Dead variant detection
-- Over-customization warnings
+- [ ] `@lifeos/ui` package with semver
+- [ ] Storybook documentation
+- [ ] Usage telemetry (which components used where)
+- [ ] Dead variant detection
+- [ ] Over-customization warnings
+
+**Success Criteria**:
+- Dead components detected
+- Component usage tracked
+- Storybook documentation complete
 
 ---
 
-#### Pattern Ingestion & "Argue-Back" Critique
+### 7.3 Pattern Ingestion & Critique (1 week)
 **Priority**: LOW - Creative tool
-**Complexity**: High (2 weeks)
-**Status**: Planned
-**Phase**: 6
-
-Paste URL/screenshot → extract patterns + critique.
+**Complexity**: High
 
 **Features**:
 - Upload screenshot or URL
@@ -618,36 +1046,115 @@ Paste URL/screenshot → extract patterns + critique.
 - Input: Dribbble screenshot
 - Output:
   - "Layout: 3-column grid, 16px gap"
-  - "Typography: 32px heading, 16px body, 1.5 line-height"
+  - "Typography: 32px heading, 16px body"
   - "⚠️ Contrast ratio 3.2:1 (fails WCAG AA)"
-  - "⚠️ No focus states on interactive elements"
   - "💡 Suggest: Use Card component with Grid layout"
+
+**Success Criteria**:
+- Pattern critique actionable
+- Contrast checks accurate
+- Design System suggestions helpful
 
 ---
 
-### 🌅 Category: Daily Operating Layer & Context
+### Phase 7 Success Metrics
 
-#### 5:00 AM Daily Brief + Rolling Feed
+- [ ] Design tokens auto-sync from Figma
+- [ ] Dead components detected
+- [ ] Pattern critique actionable
+- [ ] Design System compliance high
+
+**Total Duration**: 4-5 weeks
+**Total Features**: 3 design system tools
+
+---
+
+## Phase 7: Daily Operating System (8-10 weeks) 🌟 **MAJOR MILESTONE**
+
+**Goal**: Morning brief, rolling feed, auto-prep
+**Why Now**: Foundation complete, ready for daily OS features
+
+### 7.1 Event + Context Bus (2 weeks) 🌟 **FOUNDATIONAL**
+**Priority**: HIGH - Foundation for Brief and Auto-Prep
+**Complexity**: High
+
+**Events**:
+- `image_generated` - Image generation completes
+- `story_published` - Story workflow finishes
+- `pr_opened` - PR created
+- `entity_archived` - Entity archived
+- `recipe_used` - Recipe applied
+- `favorite_added` - User favorites something
+
+**Context Slices**:
+- **Recent & Relevant**: Last 24 hours of activity
+- **Pending**: Drafts, open PRs, queued jobs
+- **Maintenance**: Backups needed, disk space, cache size
+- **Creative Packs**: Generated but not reviewed
+
+**Consumers**:
+- Daily Brief (primary)
+- Auto-Prep (schedules work)
+- TasteProfile (learns from events)
+- Recipe Builder (detects patterns)
+
+**Implementation**:
+- [ ] Redis pub/sub for event bus
+- [ ] PostgreSQL for event store (audit trail)
+- [ ] Context manager assembles slices
+- [ ] Subscribers register handlers
+
+**Success Criteria**:
+- Events emitted reliably
+- Context slices accurate
+- Consumers receive events
+- Event store queryable
+
+---
+
+### 7.2 5:00 AM Daily Brief (3-4 weeks) 🌟 **CORE FEATURE**
 **Priority**: HIGH - Core user experience
-**Complexity**: High (3-4 weeks)
-**Status**: Planned
-**Phase**: 7 - **Daily Operating System**
-
-First-screen brief with personalized cards and rolling feed.
+**Complexity**: High
+**Depends on**: Event Bus, TasteProfile
 
 **Daily Brief (5:00 AM)**:
 - 5 cards: 2 work, 1 life, 1 creative pack, 1 maintenance
 - Each card includes:
-  - What: Brief description
-  - Why: Reason this surfaced
-  - Action: One-tap action button
-  - Provenance: Drawer showing full reasoning
-- Examples:
-  - "Review PR #42" (work) - why: Checks green, awaiting review
-  - "Finish 'Dark Knight' story" (creative) - why: Draft saved 3 days ago, 80% complete
-  - "Backup database" (maintenance) - why: Last backup 7 days ago
+  - **What**: Brief description
+  - **Why**: Reason this surfaced
+  - **Action**: One-tap action button
+  - **Provenance**: Drawer showing full reasoning
 
-**Rolling Feed (Throughout Day)**:
+**Examples**:
+- "Review PR #42" (work) - Checks green, awaiting review
+- "Finish 'Dark Knight' story" (creative) - Draft 80% complete
+- "Backup database" (maintenance) - Last backup 7 days ago
+
+**Backend**:
+- [ ] Event bus emits domain events
+- [ ] Card generator subscribes to events
+- [ ] Ranking algorithm (TasteProfile + recency + context)
+- [ ] Card storage (brief history)
+
+**UI**:
+- [ ] Dedicated `/brief` page
+- [ ] Card components with provenance drawer
+- [ ] One-tap actions (approve, dismiss, snooze)
+
+**Success Criteria**:
+- Brief surfaces every morning at 5:00 AM
+- Card acceptance rate >70%
+- "Why surfaced" reasoning clear
+- One-tap actions work reliably
+
+---
+
+### 7.3 Rolling Feed (1 week)
+**Priority**: MEDIUM - Throughout-day context
+**Complexity**: Medium
+**Depends on**: Event Bus, Daily Brief
+
+**Features**:
 - Context changes → new cards surface
 - Examples:
   - Story published → "Share on social?"
@@ -656,116 +1163,22 @@ First-screen brief with personalized cards and rolling feed.
 - Lightweight notifications (not intrusive)
 - Grouped by context (work, creative, life, maintenance)
 
-**Backend**:
-- Event bus emits domain events
-- Card generator subscribes to events
-- Ranking algorithm (TasteProfile + recency + context)
-- Card storage (brief history)
-
 **UI**:
-- Dedicated `/brief` page
-- Card components with provenance drawer
-- Rolling feed sidebar or banner
-- One-tap actions (approve, dismiss, snooze)
+- [ ] Rolling feed sidebar or banner
+- [ ] Card components (same as Brief)
+- [ ] Dismiss/snooze actions
+- [ ] Do not disturb mode
+
+**Success Criteria**:
+- Cards surface at right time
+- Not intrusive/spammy
+- Dismissible and snoozable
 
 ---
 
-#### Event + Context Bus
-**Priority**: HIGH - Foundation for Brief and Auto-Prep
-**Complexity**: High (2 weeks)
-**Status**: Planned
-**Phase**: 7
-**Depends on**: None (foundational)
-
-Tiny event system that emits domain events and assembles context slices.
-
-**Events**:
-- `image_generated`: When image generation completes
-- `story_published`: When story workflow finishes
-- `pr_opened`: When PR created
-- `entity_archived`: When entity archived
-- `recipe_used`: When recipe applied
-- `favorite_added`: When user favorites something
-
-**Context Slices**:
-- Recent & Relevant: Last 24 hours of user activity
-- Pending: Drafts, open PRs, queued jobs
-- Maintenance: Backups needed, disk space, cache size
-- Creative Packs: Generated but not reviewed
-
-**Consumers**:
-- Daily Brief (primary consumer)
-- Auto-Prep (schedules work based on context)
-- TasteProfile (learns from events)
-- Recipe Builder (detects patterns in events)
-
-**Implementation**:
-- Redis pub/sub for event bus
-- PostgreSQL for event store (audit trail)
-- Context manager assembles slices from events
-- Subscribers register handlers for event types
-
----
-
-#### Auto-Prep / Auto-Tidy Modes
-**Priority**: MEDIUM
-**Complexity**: High (2-3 weeks)
-**Status**: Planned
-**Phase**: 7
-**Depends on**: Event Bus, Policy System
-
-Hands-off nightly preparation and post-session tidying.
-
-**Auto-Prep (Runs Nightly)**:
-- Draft tomorrow's creative packs (based on TasteProfile)
-- Prepare PR review queue (green checks first)
-- Queue maintenance tasks (backups, cache clear)
-- Generate morning brief cards
-- All under policy caps (max spend, max time)
-
-**Auto-Tidy (Runs Post-Session)**:
-- File generated images into collections
-- Tag entities based on content
-- Link related assets (inspired_by, derived_from)
-- Archive unused drafts (7+ days old, never opened)
-- All reversible (can undo any tidying action)
-
-**Policy Caps**:
-- Max $5 spend per night
-- Max 1 hour compute time
-- Max 50 actions per session
-- Always produce Brief cards (never silent)
-
-**Example Auto-Prep**:
-- 11:00 PM: Auto-Prep runs
-- Generates 3 creative packs aligned with taste
-- Drafts 2 outfit compositions
-- Queues 1 variant orchard for morning
-- Prepares PR review for most urgent ticket
-- Total cost: $2.30, time: 15 min
-- Morning Brief: "3 packs ready, 2 outfits drafted, 1 PR to review"
-
-**Example Auto-Tidy**:
-- User finishes creative session
-- Generated 12 images
-- Auto-Tidy runs:
-  - Files 10 images into "Character Portraits" collection
-  - Tags 2 images as "Needs Review"
-  - Links 5 images as derived_from source image
-  - Archives 3 draft outfits (unused for 10 days)
-- Brief card: "Tidied 12 images, archived 3 stale drafts"
-
----
-
-### 🤖 Category: Policy-Bound Autonomy
-
-#### Policy as Data
+### 7.4 Policy as Data (1 week) 🌟 **FOUNDATIONAL**
 **Priority**: HIGH - Foundation for all autonomy
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 8
-
-Simple, editable policy model applied uniformly across agents.
+**Complexity**: Medium
 
 **Policy Schema**:
 ```yaml
@@ -793,27 +1206,116 @@ policies:
 ```
 
 **Features**:
-- Visual policy editor (YAML with schema validation)
-- Policy versioning (track changes)
-- Per-user policies (different users, different caps)
-- Policy override (admin can bypass)
-- Policy audit log (all policy decisions logged)
+- [ ] Visual policy editor (YAML with schema validation)
+- [ ] Policy versioning (track changes)
+- [ ] Per-user policies
+- [ ] Policy override (admin can bypass)
+- [ ] Policy audit log
 
 **Enforcement**:
 - Every agent action checks policy
 - Policy violations → log + block + notify
-- Policy changes → immediate effect (no restart)
+- Policy changes → immediate effect
+
+**Success Criteria**:
+- Policies easy to edit
+- Enforcement 100% reliable
+- Audit log complete
 
 ---
 
-#### Visual Autopilot (Propose-First)
-**Priority**: MEDIUM
-**Complexity**: High (2-3 weeks)
-**Status**: Planned
-**Phase**: 8
-**Depends on**: TasteProfile, Policy System, Event Bus
+### 7.5 Auto-Prep Mode (2-3 weeks)
+**Priority**: MEDIUM - Hands-off preparation
+**Complexity**: High
+**Depends on**: Event Bus, Policy System, TasteProfile
 
-Nightly taste-aligned image packs under budget cap.
+**Auto-Prep (Runs Nightly)**:
+- Draft tomorrow's creative packs (based on TasteProfile)
+- Prepare PR review queue (green checks first)
+- Queue maintenance tasks (backups, cache clear)
+- Generate morning brief cards
+- All under policy caps (max spend, max time)
+
+**Policy Caps**:
+- Max $5 spend per night
+- Max 1 hour compute time
+- Max 50 actions per session
+- Always produce Brief cards
+
+**Example**:
+- 11:00 PM: Auto-Prep runs
+- Generates 3 creative packs aligned with taste
+- Drafts 2 outfit compositions
+- Queues 1 variant orchard for morning
+- Prepares PR review for most urgent ticket
+- Total cost: $2.30, time: 15 min
+- Morning Brief: "3 packs ready, 2 outfits drafted, 1 PR to review"
+
+**Success Criteria**:
+- Auto-Prep stays under budget 95% of days
+- Prepared content useful (acceptance >70%)
+- No unwanted actions
+
+---
+
+### 7.6 Auto-Tidy Mode (1 week)
+**Priority**: LOW - Post-session cleanup
+**Complexity**: Medium
+**Depends on**: Event Bus, Policy System
+
+**Auto-Tidy (Runs Post-Session)**:
+- File generated images into collections
+- Tag entities based on content
+- Link related assets (inspired_by, derived_from)
+- Archive unused drafts (7+ days old, never opened)
+- All reversible (can undo any tidying action)
+
+**Policy Caps**:
+- All actions reversible
+- No deletions (archive only)
+- Max 50 actions per session
+
+**Example**:
+- User finishes creative session
+- Generated 12 images
+- Auto-Tidy runs:
+  - Files 10 images into "Character Portraits" collection
+  - Tags 2 images as "Needs Review"
+  - Links 5 images as derived_from source image
+  - Archives 3 draft outfits (unused for 10 days)
+- Brief card: "Tidied 12 images, archived 3 stale drafts"
+
+**Success Criteria**:
+- Auto-Tidy reversal rate <10%
+- Actions sensible and helpful
+- No unwanted changes
+
+---
+
+### Phase 7 Success Metrics 🌟
+
+- [ ] Brief surfaces 5 cards every morning at 5:00 AM
+- [ ] Card acceptance rate >70%
+- [ ] Auto-Prep stays under budget 95% of days
+- [ ] Auto-Tidy reversal rate <10%
+- [ ] User reports "indispensable" rating
+- [ ] LifeOS becomes daily operating system
+
+**Total Duration**: 8-10 weeks
+**Total Features**: 6 major features
+**Impact**: LifeOS becomes your **daily operating system**
+
+---
+
+## Phase 8: Policy-Bound Autonomy (6-8 weeks)
+
+**Goal**: Propose-first agents with guardrails
+**Why Now**: Infrastructure ready, policies in place
+
+### 8.1 Visual Autopilot (2-3 weeks)
+**Priority**: MEDIUM - Nightly creative packs
+**Complexity**: High
+**Depends on**: TasteProfile, Policy System, Event Bus
 
 **Process**:
 1. Nightly scheduler triggers at 2:00 AM
@@ -833,21 +1335,22 @@ Nightly taste-aligned image packs under budget cap.
 - User approval required
 
 **UI**:
-- Brief card with 3 thumbnails
-- Tap to see full previews
-- "Approve All" or individual approval
-- "Regenerate" if taste misaligned
+- [ ] Brief card with 3 thumbnails
+- [ ] Tap to see full previews
+- [ ] "Approve All" or individual approval
+- [ ] "Regenerate" if taste misaligned
+
+**Success Criteria**:
+- Autopilot approval rate >80%
+- Generated packs aligned with taste
+- Never exceeds budget
 
 ---
 
-#### Dev Autopilot (Docs/Tests Only)
-**Priority**: MEDIUM
-**Complexity**: High (2-3 weeks)
-**Status**: Planned
-**Phase**: 8
+### 8.2 Dev Autopilot (2-3 weeks)
+**Priority**: MEDIUM - Docs/tests only
+**Complexity**: High
 **Depends on**: MCP Tools, Policy System
-
-Constrained to safe scopes, opens PRs with green checks.
 
 **Allowed Actions**:
 - Add missing docstrings
@@ -874,24 +1377,136 @@ Constrained to safe scopes, opens PRs with green checks.
 - Graduates to small refactors
 - Still requires approval, just wider scope
 
+**Success Criteria**:
+- Dev Autopilot PR merge rate >90%
+- Zero policy violations
+- Agents graduate to wider scope
+
 ---
 
-### 📺 Category: Media Companion (Jellyfin & Friends)
-
-#### Library Mirror & Embeddings
-**Priority**: LOW - Nice to have
-**Complexity**: High (2 weeks)
-**Status**: Planned
-**Phase**: 9
-
-Mirror Jellyfin items into MediaAsset entities with embeddings.
+### 8.3 Policy Enforcement Framework (1 week)
+**Priority**: HIGH - Safety critical
+**Complexity**: Medium
 
 **Features**:
-- Sync Jellyfin library → MediaAsset entities
-- Generate embeddings for titles, descriptions, genres
-- "Find similar" based on embedding distance
-- Curated lists aligned with TasteProfile
-- "Tonight's Shortlist" card in Brief
+- [ ] Policy versioning (track all changes)
+- [ ] Policy audit log (all decisions logged)
+- [ ] Policy override (admin emergency bypass)
+- [ ] Policy violation alerts (immediate notification)
+- [ ] Graduation system (expand scope after trust)
+
+**Success Criteria**:
+- Zero policy violations in production
+- Audit log complete and queryable
+- Graduation system working
+
+---
+
+### Phase 8 Success Metrics
+
+- [ ] Visual Autopilot approval rate >80%
+- [ ] Dev Autopilot PR merge rate >90%
+- [ ] Zero policy violations in production
+- [ ] Agents graduate to wider scope
+- [ ] User trust in autonomy high
+
+**Total Duration**: 6-8 weeks
+**Total Features**: 3 autonomy features
+
+---
+
+## Phase 9: Board Game Assistant (3-4 weeks)
+
+**Goal**: Rules gathering, document RAG, Q&A
+**Why Now**: Can leverage existing infrastructure (database, LLM, embeddings)
+
+### 9.1 Rules Gatherer (1 week)
+**Priority**: MEDIUM - BGG integration
+**Complexity**: Medium
+
+**Features**:
+- [ ] BGG API integration (download rulebooks)
+- [ ] Manual PDF upload (fallback)
+- [ ] Document entity creation
+- [ ] Metadata extraction (page count, file size)
+- [ ] Store PDFs in `data/downloads/pdfs/{game_id}/`
+
+**Success Criteria**:
+- Can download rules from BGG
+- Manual upload works for BGG failures
+- Documents stored reliably
+
+---
+
+### 9.2 Document RAG Preparer (1-2 weeks)
+**Priority**: HIGH - Core functionality
+**Complexity**: High
+
+**Features**:
+- [ ] Docling integration (PDF → markdown + layout)
+- [ ] ChromaDB vector store
+- [ ] Document chunking (semantic)
+- [ ] Embedding generation (SentenceTransformers or OpenAI)
+- [ ] Vector storage with metadata
+
+**Success Criteria**:
+- PDFs processed reliably
+- Embeddings stored correctly
+- Semantic search working
+
+---
+
+### 9.3 Document Q&A System (1 week)
+**Priority**: HIGH - User-facing feature
+**Complexity**: Medium
+
+**Features**:
+- [ ] Semantic search (ChromaDB)
+- [ ] Context assembly (top-k chunks)
+- [ ] LLM answer generation (with citations)
+- [ ] Citation linking (page numbers, sections)
+- [ ] Q&A history (track questions asked)
+
+**UI**:
+- [ ] Chat interface for questions
+- [ ] Answer with citations
+- [ ] Click citation → jump to page
+- [ ] Q&A history sidebar
+
+**Success Criteria**:
+- Answers accurate (>85% helpful)
+- Citations correct
+- Fast response (<3s)
+
+---
+
+### Phase 9 Success Metrics
+
+- [ ] Can download rules from BGG
+- [ ] Document Q&A helpful (>85%)
+- [ ] Citations accurate
+- [ ] Board game assistant usable
+
+**Total Duration**: 3-4 weeks
+**Total Features**: 3 board game tools
+
+---
+
+## Phase 10: Media Companion (4-5 weeks)
+
+**Goal**: Jellyfin integration, cross-modal taste
+**Why Now**: TasteProfile mature, embeddings working
+
+### 10.1 Library Mirror & Embeddings (2 weeks)
+**Priority**: LOW - Nice to have
+**Complexity**: High
+
+**Features**:
+- [ ] Sync Jellyfin library → MediaAsset entities
+- [ ] Generate embeddings for titles, descriptions, genres
+- [ ] "Find similar" based on embedding distance
+- [ ] Curated lists aligned with TasteProfile
+- [ ] "Tonight's Shortlist" card in Brief
 
 **Example**:
 - User watches "Blade Runner 2049"
@@ -900,308 +1515,86 @@ Mirror Jellyfin items into MediaAsset entities with embeddings.
   - "You might like: Ghost in the Shell, Akira"
   - "Based on your style preferences: Neon aesthetic films"
 
+**Success Criteria**:
+- Jellyfin library mirrored
+- Suggestions aligned with taste
+- "Find similar" helpful
+
 ---
 
-#### Opportunistic Downloads (Read-Only)
-**Priority**: LOW
-**Complexity**: Medium (1 week)
-**Status**: Planned
-**Phase**: 9
-
-Read-only awareness of Sonarr/Radarr/yt-dlp.
+### 10.2 Opportunistic Downloads (1 week)
+**Priority**: LOW - Read-only awareness
+**Complexity**: Medium
 
 **Features**:
-- If services detected → surface in Brief
+- If Sonarr/Radarr/yt-dlp detected → surface in Brief
 - Propose wishlists based on taste
 - See queue health
-- Surface relevant items
 - Actions are propose-first (never auto-downloads)
 
+**Success Criteria**:
+- Read-only awareness working
+- Wishlists sensible
+- Never auto-downloads
+
 ---
 
-#### Cross-Modal Taste
+### 10.3 Cross-Modal Taste (1-2 weeks)
 **Priority**: LOW - Advanced feature
-**Complexity**: High (2 weeks)
-**Status**: Planned
-**Phase**: 9
+**Complexity**: High
 **Depends on**: TasteProfile, Media Companion
 
-Blend creative and media taste.
-
 **Concept**:
-- User favorites noir visual style
-- System suggests noir films
-- User watches cyberpunk anime
-- System suggests cyberpunk visual styles
-- Bidirectional influence
+- User favorites noir visual style → System suggests noir films
+- User watches cyberpunk anime → System suggests cyberpunk visual styles
+- Bidirectional influence between creative and media taste
+
+**Success Criteria**:
+- Cross-domain suggestions helpful
+- Bidirectional influence working
+- Taste learning improved
 
 ---
 
-### 📊 Category: Cost & Performance Optimizer
+### Phase 10 Success Metrics
 
-#### Self-Observation to Actionable Deltas
-**Priority**: MEDIUM
-**Complexity**: Medium (1-2 weeks)
-**Status**: Planned
-**Phase**: 10
+- [ ] Jellyfin library mirrored
+- [ ] Cross-domain taste influences work
+- [ ] Media suggestions helpful
+- [ ] Media Companion integrated
 
-Weekly card with three concrete improvements.
+**Total Duration**: 4-5 weeks
+**Total Features**: 3 media features
 
-**Examples**:
-- "Batch these 5 API calls → save $2.30/week"
-- "Raise cache TTL on presets → save 200ms/request"
-- "Switch outfit_analyzer to local → save $15/week"
+---
+
+## Phase 11: Cost & Performance Optimizer (2-3 weeks)
+
+**Goal**: Self-improving efficiency
+**Why Now**: System mature, metrics available
+
+### 11.1 Self-Observation to Actionable Deltas (2-3 weeks)
+**Priority**: MEDIUM - Cost savings
+**Complexity**: Medium
 
 **Features**:
 - Analyzes metrics and run histories
 - Proposes specific optimizations
+- Examples:
+  - "Batch these 5 API calls → save $2.30/week"
+  - "Raise cache TTL on presets → save 200ms/request"
+  - "Switch outfit_analyzer to local → save $15/week"
 - One-click config change or PR
 - Shows projected savings
 - Tracks actual savings after change
 
 **UI**:
-- Weekly Brief card: "3 optimizations available"
-- Each with:
+- [ ] Weekly Brief card: "3 optimizations available"
+- [ ] Each optimization:
   - What: Brief description
   - Impact: Projected savings (cost/time)
   - Action: One-click apply
   - Provenance: Full analysis
-
----
-
-### 📝 Category: Capture & Knowledge Mesh
-
-#### Everywhere Capture
-**Priority**: MEDIUM
-**Complexity**: Medium (1-2 weeks)
-**Status**: Planned
-**Phase**: 11
-
-Ubiquitous capture to Inbox.
-
-**Capture Methods**:
-- Mobile share target (iOS/Android)
-- Browser extension button
-- Screenshot hotkey
-- Email forwarding address
-- API endpoint (for integrations)
-
-**Inbox**:
-- Staging area for captured content
-- Auto-categorize (image → style ref, link → article, text → note)
-- Promote to entities with one tap
-- Archive or delete unwanted captures
-
----
-
-#### Personal Knowledge Connectors (Private, Opt-In)
-**Priority**: LOW - Privacy-sensitive
-**Complexity**: High (2-3 weeks)
-**Status**: Planned
-**Phase**: 11
-
-**Connectors** (All Opt-In, All Private):
-- Gmail: Unread emails needing response, calendar reminders
-- Calendar: Upcoming meetings, prep briefs
-- Notes: Unfinished drafts
-- GitHub: Open PRs, issues assigned to you
-
-**Features**:
-- Clear toggle to pause any source
-- Brief-quality cards only (no noise)
-- Citations and provenance
-- Never stores content (ephemeral context only)
-
-**Example**:
-- Brief card: "Meeting in 1 hour: Design Review"
-- Provenance: Google Calendar event + related docs
-- Action: "Prepare brief" → generates summary of docs
-
----
-
-## Phase Roadmap (Revised with New Features)
-
-### Phase 1: Foundation ✅ **COMPLETE**
-**Duration**: 8 weeks (Completed October 2025)
-**Goal**: Stable, scalable foundation
-
-**Completed**:
-- ✅ PostgreSQL migration (12 tables)
-- ✅ Testing infrastructure (158 tests)
-- ✅ CI/CD (GitHub Actions)
-- ✅ Entity unification (17 types)
-- ✅ Local LLM backend (Ollama)
-- ✅ Archive system (80% - backend complete)
-
----
-
-### Phase 2: User Experience & Core Features
-**Duration**: 4-6 weeks
-**Goal**: Polish existing features, high-value user requests
-
-**Features**:
-- [ ] Complete Archive system (frontend)
-- [ ] Apply Archive to all entities
-- [ ] Mobile responsiveness
-- [ ] UI theme system (dark/light)
-- [ ] Tagging system
-- [ ] Entity merge tool
-- [ ] Alterations entity
-- [ ] Clothing modification tools
-- [ ] Visualization config linking
-
-**Success Criteria**:
-- Zero broken links from deleted entities
-- Mobile experience matches desktop
-- All entities taggable and mergeable
-- User can theme UI
-
----
-
-### Phase 3: Creative Intelligence
-**Duration**: 6-8 weeks
-**Goal**: TasteProfile, exploration tools, reuse
-
-**Features**:
-- [ ] TasteProfile v1 (embeddings + similarity)
-- [ ] Variant Orchards
-- [ ] Recipe Builder & Reuse
-- [ ] Inspiration Ingestion
-- [ ] Extremify tool
-- [ ] Enhanced outfit composer
-
-**Success Criteria**:
-- "Find Similar" works across all entities
-- Can explore 50+ variants efficiently
-- Recipes reusable and evolvable
-- Taste-based ranking functional
-
----
-
-### Phase 4: Reproducibility & Provenance
-**Duration**: 3-4 weeks
-**Goal**: Full asset lineage, one-click reproduce
-
-**Features**:
-- [ ] One-Asset Model unified
-- [ ] Provenance tracking
-- [ ] "Reproduce" button
-- [ ] Asset Relations graph
-- [ ] Lineage visualization
-
-**Success Criteria**:
-- Can reproduce any generation from 6 months ago
-- Asset relations navigable
-- Full cost attribution
-- Provenance explanations clear
-
----
-
-### Phase 5: Developer Autopilot
-**Duration**: 6-8 weeks
-**Goal**: MCP-powered development, quality gates
-
-**Features**:
-- [ ] MCP endpoints (repo.survey, patch.generate, etc.)
-- [ ] "Complete Ticket" workflow
-- [ ] Small-PR Factory (nightly)
-- [ ] Default-On Quality Gates
-- [ ] Prompt-Eval Guardrails
-- [ ] Auto-fix common failures
-
-**Success Criteria**:
-- Can complete ticket via chat
-- Nightly PRs always green
-- Zero regressions in prompts
-- Quality gates enforced
-
----
-
-### Phase 6: Design System Intelligence
-**Duration**: 4-5 weeks
-**Goal**: Figma sync, component registry, critique
-
-**Features**:
-- [ ] Figma ↔ Tokens ↔ React sync
-- [ ] Component Registry + Telemetry
-- [ ] Pattern Ingestion
-- [ ] "Argue-Back" Critique
-- [ ] Design System compliance lint
-
-**Success Criteria**:
-- Design tokens auto-sync from Figma
-- Dead components detected
-- Pattern critique actionable
-- Ad-hoc styles rejected
-
----
-
-### Phase 7: Daily Operating System 🌟 **MAJOR MILESTONE**
-**Duration**: 8-10 weeks
-**Goal**: Morning brief, rolling feed, auto-prep
-
-**Features**:
-- [ ] Event + Context Bus
-- [ ] 5:00 AM Daily Brief
-- [ ] Rolling Feed
-- [ ] Auto-Prep (nightly)
-- [ ] Auto-Tidy (post-session)
-- [ ] Policy as Data
-
-**Success Criteria**:
-- Brief surfaces 5 cards every morning
-- Cards have clear "why surfaced" reasoning
-- Auto-Prep runs under budget cap
-- Auto-Tidy actions reversible
-- Policy editor functional
-
----
-
-### Phase 8: Policy-Bound Autonomy
-**Duration**: 6-8 weeks
-**Goal**: Propose-first agents with guardrails
-
-**Features**:
-- [ ] Policy enforcement framework
-- [ ] Visual Autopilot
-- [ ] Dev Autopilot
-- [ ] Policy versioning + audit log
-- [ ] Graduation system (expand scope after trust)
-
-**Success Criteria**:
-- Agents never exceed policy caps
-- All actions logged and auditable
-- User approval required for risky actions
-- Autopilot trust score increases with approvals
-
----
-
-### Phase 9: Media Companion
-**Duration**: 4-5 weeks
-**Goal**: Jellyfin integration, cross-modal taste
-
-**Features**:
-- [ ] Library Mirror & Embeddings
-- [ ] "Tonight's Shortlist" card
-- [ ] Opportunistic Downloads (read-only)
-- [ ] Cross-Modal Taste
-
-**Success Criteria**:
-- Jellyfin library mirrored
-- Taste-aligned media suggestions
-- Cross-domain taste influences work
-
----
-
-### Phase 10: Cost & Performance Optimizer
-**Duration**: 2-3 weeks
-**Goal**: Self-improving efficiency
-
-**Features**:
-- [ ] Self-Observation analysis
-- [ ] Weekly optimization cards
-- [ ] One-click config/PR for optimizations
-- [ ] Savings tracking
 
 **Success Criteria**:
 - Proposes 3 optimizations/week
@@ -1210,178 +1603,331 @@ Ubiquitous capture to Inbox.
 
 ---
 
-### Phase 11: Capture & Knowledge Mesh
-**Duration**: 4-5 weeks
-**Goal**: Everywhere capture, private connectors
+### Phase 11 Success Metrics
 
-**Features**:
-- [ ] Everywhere Capture (mobile, web, screenshot)
-- [ ] Inspiration Inbox
-- [ ] Personal Knowledge Connectors (opt-in)
-- [ ] Brief-quality card generation
+- [ ] Proposes 3 optimizations/week
+- [ ] Savings accurate
+- [ ] Acceptance rate >50%
+- [ ] System self-improving
+
+**Total Duration**: 2-3 weeks
+**Total Features**: 1 optimizer tool
+
+---
+
+## Phase 12: Capture & Knowledge Mesh (4-5 weeks)
+
+**Goal**: Everywhere capture, private connectors
+**Why Now**: Daily OS mature, ready for knowledge integration
+
+### 12.1 Everywhere Capture (1-2 weeks)
+**Priority**: MEDIUM - Ubiquitous capture
+**Complexity**: Medium
+
+**Capture Methods**:
+- [ ] Mobile share target (iOS/Android)
+- [ ] Browser extension button
+- [ ] Screenshot hotkey
+- [ ] Email forwarding address
+- [ ] API endpoint (for integrations)
+
+**Inbox**:
+- [ ] Staging area for captured content
+- [ ] Auto-categorize (image → style ref, link → article, text → note)
+- [ ] Promote to entities with one tap
+- [ ] Archive or delete unwanted captures
 
 **Success Criteria**:
-- Can save to LifeOS from any device
+- Can save from any device
+- Auto-categorization >80% accurate
+- One-tap promotion
+
+---
+
+### 12.2 Personal Knowledge Connectors (2-3 weeks)
+**Priority**: LOW - Privacy-sensitive
+**Complexity**: High
+
+**Connectors** (All Opt-In, All Private):
+- [ ] Gmail: Unread emails needing response, calendar reminders
+- [ ] Calendar: Upcoming meetings, prep briefs
+- [ ] Notes: Unfinished drafts
+- [ ] GitHub: Open PRs, issues assigned to you
+
+**Features**:
+- [ ] Clear toggle to pause any source
+- [ ] Brief-quality cards only (no noise)
+- [ ] Citations and provenance
+- [ ] Never stores content (ephemeral context only)
+
+**Example**:
+- Brief card: "Meeting in 1 hour: Design Review"
+- Provenance: Google Calendar event + related docs
+- Action: "Prepare brief" → generates summary of docs
+
+**Success Criteria**:
 - Connectors surface relevant context only
 - Privacy controls clear and effective
 - No noise in Brief
 
 ---
 
-## Success Metrics by Phase
+### Phase 12 Success Metrics
 
-**Phase 2 (UX & Core)**:
-- [ ] Archive system 100% complete
-- [ ] Mobile experience rating >8/10
-- [ ] Zero broken entity links
-- [ ] Tagging adoption >60% of entities
+- [ ] Can save to LifeOS from any device
+- [ ] Connectors surface relevant context
+- [ ] Privacy controls effective
+- [ ] Knowledge mesh integrated
 
-**Phase 3 (Creative Intelligence)**:
-- [ ] TasteProfile learns from 100+ interactions
-- [ ] "Find Similar" accuracy >80%
-- [ ] Recipe library has 20+ saved recipes
-- [ ] Variant Orchards used weekly
-
-**Phase 7 (Daily OS)** 🌟:
-- [ ] Brief surfaces every morning at 5:00 AM
-- [ ] Card acceptance rate >70%
-- [ ] Auto-Prep stays under budget 95% of days
-- [ ] Auto-Tidy reversal rate <10%
-- [ ] User reports "indispensable" rating
-
-**Phase 8 (Autonomy)**:
-- [ ] Visual Autopilot approval rate >80%
-- [ ] Dev Autopilot PR merge rate >90%
-- [ ] Zero policy violations in production
-- [ ] Agents graduate to wider scope
+**Total Duration**: 4-5 weeks
+**Total Features**: 2 capture/knowledge tools
 
 ---
 
-## Timeline Overview (12-18 Months)
+## Phase 13: Advanced Features & Polish (Ongoing)
 
-**Months 1-2**: Phase 2 (UX & Core) - Polish and high-value features
-**Months 3-4**: Phase 3 (Creative Intelligence) - TasteProfile and exploration
-**Month 5**: Phase 4 (Reproducibility) - Provenance and lineage
-**Months 6-8**: Phase 5 (Dev Autopilot) - MCP and quality gates
-**Months 9-10**: Phase 6 (Design System) - Figma sync and critique
-**Months 11-13**: Phase 7 (Daily OS) - **MAJOR MILESTONE** - Brief, feed, auto-prep 🌟
-**Months 14-16**: Phase 8 (Autonomy) - Policy-bound agents
-**Month 17**: Phase 9 (Media Companion) - Jellyfin integration
-**Month 18**: Phases 10-11 (Optimizer + Capture) - Self-improvement and knowledge mesh
+**Goal**: Nice-to-have features, experimental tools
+**Why Now**: Core complete, time for exploration
 
-**By Month 13**: LifeOS becomes your **daily operating system** - you wake up to a personalized brief, context-aware agents prepare work overnight, and autonomous actions stay within policy guardrails.
+### Features (No Specific Order):
 
-**By Month 18**: LifeOS is a **comprehensive personal AI assistant** spanning creative work, software development, media consumption, and knowledge capture—all unified by taste, policy, and provenance.
+**Outfit Composer Improvements**:
+- [ ] Show preview images in Outfit Composer
+- [ ] "Save as Outfit" button in Image Composer
+- [ ] Auto-create outfit from image upload
+
+**Jobs Manager Improvements**:
+- [ ] Clear completed jobs button
+- [ ] Hierarchical job display
+- [ ] Remove fake progress indicators
+
+**LLM Observability**:
+- [ ] LangSmith integration
+- [ ] LLM traces page
+- [ ] Cost tracking dashboard
+
+**Plugin Architecture** (Extensibility):
+- [ ] Plugin discovery and loading system
+- [ ] Plugin API with versioning
+- [ ] Sandboxed plugin execution
+- [ ] Plugin marketplace/registry
+- [ ] Hot reload for plugin development
+
+**Workflow Engine Enhancements**:
+- [ ] Visual workflow editor (drag-and-drop)
+- [ ] Conditional branching in workflows
+- [ ] Loop/iteration support
+- [ ] Parallel execution branches
+- [ ] Workflow templates library
+
+**Context Management System**:
+- [ ] Sliding context window for long sessions
+- [ ] Context compression strategies
+- [ ] Relevant context retrieval (RAG for session history)
+- [ ] Context budget management
+
+**API Versioning**:
+- [ ] Versioned API endpoints (/v1/, /v2/)
+- [ ] Deprecation warnings for old versions
+- [ ] Migration guides for breaking changes
+- [ ] Backwards compatibility layer
+
+**Load & Performance Testing**:
+- [ ] Load test suite (100+ concurrent users)
+- [ ] Performance regression tests
+- [ ] Stress testing (failure scenarios)
+- [ ] Benchmark tracking over time
+
+**Voice Synthesis Service** (Experimental):
+- [ ] Local voice cloning (Coqui TTS, XTTS)
+- [ ] Character voice assignment
+- [ ] Story narration generation
+- [ ] Character dialogue TTS
+- [ ] Separate Docker container for voice services
+
+**Tool Configuration UI**:
+- [ ] Visual tool configuration editor
+- [ ] Model selection per tool
+- [ ] Template customization interface
+- [ ] Parameter tuning with live preview
+- [ ] Configuration versioning
+
+**TypeScript Migration** (Optional):
+- [ ] Add TypeScript to Vite config
+- [ ] Type definitions for API responses
+- [ ] Migrate shared utilities
+- [ ] Migrate components incrementally
+- [ ] Target: 80% type coverage
+
+**Video Generation** (Domain Expansion):
+- [ ] Sora API integration (OpenAI)
+- [ ] Video prompt enhancement
+- [ ] Video editing workflows
+- [ ] Video asset management
+- [ ] Video preview generation
+
+**Code Management** (Domain Expansion):
+- [ ] Repository analysis tools
+- [ ] Code generation assistants
+- [ ] Documentation generation
+- [ ] Refactoring suggestions
+- [ ] Code review automation
+
+**Home Automation** (Domain Expansion):
+- [ ] Smart home device integration
+- [ ] Automation routine creation
+- [ ] Scene management
+- [ ] Energy usage tracking
+- [ ] Voice control integration
+
+**Educational Content** (Domain Expansion):
+- [ ] Course material generation
+- [ ] Quiz and assessment creation
+- [ ] Video script creation for tutorials
+- [ ] Interactive learning paths
+- [ ] Progress tracking
+
+---
+
+## Timeline Overview (18-24 Months)
+
+**Completed**: Phase 1 (8 weeks) ✅
+
+**Month 1-2**: Phase 2 (UX & Core Features)
+**Month 2-3**: Phase 2.5 (Maintenance & Refactoring)
+**Month 3-5**: Phase 3 (Creative Intelligence)
+**Month 5-6**: Phase 4 (Reproducibility)
+**Month 6-8**: Phase 4.5 (Infrastructure Hardening)
+**Month 8-10**: Phase 5 (Developer Autopilot)
+**Month 10-12**: Phase 6 (Design System Intelligence)
+**Month 12-15**: Phase 7 (Daily Operating System) 🌟 **MAJOR MILESTONE**
+**Month 15-17**: Phase 8 (Policy-Bound Autonomy)
+**Month 17-18**: Phase 9 (Board Game Assistant)
+**Month 18-20**: Phase 10 (Media Companion)
+**Month 20-21**: Phase 11 (Cost Optimizer)
+**Month 21-23**: Phase 12 (Capture & Knowledge)
+**Month 23-24**: Phase 13 (Advanced Features)
+
+---
+
+## Critical Milestones
+
+**Month 2** (Phase 2 Complete): All high-value UX features delivered
+**Month 5** (Phase 3 Complete): TasteProfile learning, creative exploration working
+**Month 8** (Phase 4.5 Complete): Infrastructure rock-solid, ready for autonomy
+**Month 12** (Phase 6 Complete): Design system mature, developer tools working
+**Month 15** (Phase 7 Complete): 🌟 **LifeOS becomes daily operating system**
+**Month 17** (Phase 8 Complete): Agents autonomous within policy guardrails
+**Month 24**: **LifeOS is comprehensive personal AI assistant**
+
+---
+
+## Success Metrics Summary
+
+**Phase 2**: Archive 100%, Mobile >8/10, Tagging >60%, Theme working
+**Phase 3**: TasteProfile >100 interactions, "Find Similar" >80%, Recipes >20
+**Phase 4**: Reproduce from 6 months ago, Full cost attribution
+**Phase 4.5**: Monitoring operational, Security scans passing, Backups automated
+**Phase 5**: Complete ticket via chat, Nightly PRs green, Zero prompt regressions
+**Phase 6**: Design tokens auto-sync, Dead components detected
+**Phase 7** 🌟: Brief surfaces daily, Auto-Prep <$5/night, "Indispensable" rating
+**Phase 8**: Autopilot approval >80%, PR merge >90%, Zero policy violations
+**Phase 9**: Document Q&A >85% helpful, Citations accurate
+**Phase 10**: Jellyfin mirrored, Cross-domain taste working
+**Phase 11**: 3 optimizations/week, Savings accurate
+**Phase 12**: Capture from any device, Privacy controls effective
 
 ---
 
 ## Architectural Principles
 
-1. **Infrastructure Before Features**: Build solid foundations first
-2. **Policy Before Autonomy**: No agent action without policy approval
-3. **Propose Before Act**: Surface cards in Brief, get user approval
-4. **Provenance Always**: Full lineage for reproducibility
-5. **Taste as Foundation**: TasteProfile influences everything
-6. **Reversible Actions**: Auto-Tidy and Autopilot can be undone
-7. **Privacy by Default**: Personal connectors opt-in only
-8. **Cost Awareness**: Track and optimize every dollar spent
-
----
-
-## Feature Priority Matrix
-
-**CRITICAL (Do First)**:
-- Archive Instead of Delete (80% done)
-- Mobile Responsiveness
-- Tagging System
-- TasteProfile Foundation
-
-**HIGH (Do Soon)**:
-- Entity Merge Tool
-- Clothing Modification
-- Event + Context Bus
-- Daily Brief
-
-**MEDIUM (Do Later)**:
-- Variant Orchards
-- Recipe Builder
-- Visual Autopilot
-- MCP "Complete Ticket"
-
-**LOW (Nice to Have)**:
-- Extremify Tool
-- Media Companion
-- Pattern Critique
-- Knowledge Connectors
+1. **Infrastructure Before Features** - Build solid foundations first
+2. **Policy Before Autonomy** - No agent action without policy approval
+3. **Propose Before Act** - Surface cards in Brief, get user approval
+4. **Provenance Always** - Full lineage for reproducibility
+5. **Taste as Foundation** - TasteProfile influences everything
+6. **Reversible Actions** - Auto-Tidy and Autopilot can be undone
+7. **Privacy by Default** - Personal connectors opt-in only
+8. **Cost Awareness** - Track and optimize every dollar spent
+9. **Maintenance Built In** - Regular refactoring prevents technical debt
+10. **Easy Before Hard** - Build foundations incrementally
 
 ---
 
 ## Cost Estimates by Phase
 
-**Phase 2 (UX & Core)**: Minimal ($0 - mostly UI work)
-**Phase 3 (Creative Intelligence)**: Medium ($200-500 for embeddings, variant testing)
-**Phase 4 (Reproducibility)**: Minimal ($0 - data modeling)
-**Phase 5 (Dev Autopilot)**: Medium ($300-600 for MCP testing)
-**Phase 6 (Design System)**: Minimal ($0 - code generation)
-**Phase 7 (Daily OS)**: High ($500-1000 for brief generation, auto-prep testing)
-**Phase 8 (Autonomy)**: Medium ($400-800 for autopilot testing with caps)
-**Phase 9 (Media Companion)**: Low ($100-200 for embedding generation)
-**Phase 10-11 (Optimizer + Capture)**: Low ($100-300 for optimization analysis)
+**Phase 2**: Minimal ($0 - mostly UI work)
+**Phase 2.5**: Minimal ($0 - refactoring)
+**Phase 3**: Medium ($200-500 for embeddings, variant testing)
+**Phase 4**: Minimal ($0 - data modeling)
+**Phase 4.5**: Low ($100-200 for security scanning, monitoring tools)
+**Phase 5**: Medium ($300-600 for MCP testing)
+**Phase 6**: Minimal ($0 - code generation)
+**Phase 7**: High ($500-1000 for brief generation, auto-prep testing)
+**Phase 8**: Medium ($400-800 for autopilot testing with caps)
+**Phase 9**: Low ($100-200 for document processing)
+**Phase 10**: Low ($100-200 for embedding generation)
+**Phase 11-12**: Low ($100-300 for optimization analysis)
 
-**Total Estimated Development Cost**: $1,600 - $3,500 over 18 months
-
----
-
-## Questions & Open Issues
-
-**TasteProfile**:
-- Which embedding model? (SentenceTransformers vs OpenAI)
-- How to handle multi-modal taste? (images + text + media)
-- What's the update frequency? (real-time vs batch)
-
-**Daily Brief**:
-- How to prevent notification fatigue?
-- What's the card ranking algorithm?
-- How to handle Brief on weekends/vacation?
-
-**Auto-Prep**:
-- How to detect "successful" vs "failed" prep?
-- What's the feedback loop for improvement?
-- How to handle conflicting policies (spend cap vs prepare 5 packs)?
-
-**Policy System**:
-- How granular should policies be?
-- How to override policy in emergencies?
-- How to version policies without breaking agents?
-
-**MCP Integration**:
-- Which MCP tools to expose first?
-- How to handle MCP endpoint failures?
-- What's the fallback if MCP unavailable?
+**Total Estimated Development Cost**: $1,900 - $4,000 over 24 months
 
 ---
 
-## Appendix: Full Feature List
+## Feature Priority Matrix
 
-This roadmap incorporates **50+ features** across 11 categories. See detailed feature specs in the category sections above.
+**CRITICAL** (Do First):
+- Complete Archive system
+- Mobile responsiveness
+- Tagging system
+- TasteProfile foundation
+- Event + Context Bus
+- Policy as Data
 
-**Categories**:
-1. Data Management & Integrity (2 features)
-2. Creative Intelligence & Exploration (5 features)
-3. Reproducibility & Asset Management (2 features)
-4. Developer Velocity & Quality (4 features)
-5. Design System & Design Intelligence (3 features)
-6. Daily Operating Layer & Context (3 features)
-7. Policy-Bound Autonomy (3 features)
-8. Media Companion (3 features)
-9. Cost & Performance Optimizer (1 feature)
-10. Capture & Knowledge Mesh (2 features)
-11. Miscellaneous Tools & Entities (3 features)
+**HIGH** (Do Soon):
+- Entity merge tool
+- Clothing modification
+- One-Asset Model
+- Daily Brief
+- Visual Autopilot
+- Dev Autopilot
+- MCP Integration
 
-**Total**: 31 major features + 20+ minor enhancements = 50+ feature requests tracked
+**MEDIUM** (Do Later):
+- Variant Orchards
+- Recipe Builder
+- Auto-Prep/Auto-Tidy
+- Monitoring & Observability
+- Security Hardening
+- Board Game Assistant
+- Design System 2.0
+
+**LOW** (Nice to Have):
+- Extremify Tool
+- Media Companion
+- Pattern Critique
+- Knowledge Connectors
+- Outfit Composer Polish
 
 ---
 
-**Last Updated**: 2025-10-23
+## Next Steps
+
+**Immediate** (This Week):
+1. ✅ Complete Archive system UI (95% done - Oct 23, 2025)
+2. Add filter toggle for archived items (1 day)
+3. Start mobile responsiveness (3 days)
+
+**Next 2 Weeks**:
+1. UI theme system (3 days)
+2. Tagging system (3-4 days)
+3. Visualization config linking (1 day)
+
+**Next Month**:
+1. Complete Phase 2 (all UX features)
+2. Start Phase 2.5 (refactoring)
+
+---
+
+**Last Updated**: 2025-10-23 (Archive System: 95% complete)
 **Next Review**: After Phase 2 completion
 **Maintained By**: Life-OS development team
