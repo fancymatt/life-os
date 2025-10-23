@@ -5,6 +5,7 @@ Handles database operations for BoardGame entities.
 """
 
 from typing import Optional, List
+from datetime import datetime
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,13 +39,18 @@ class BoardGameRepository:
         self,
         user_id: Optional[int] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[BoardGame]:
         """Get all board games, optionally filtered by user with pagination support"""
         query = select(BoardGame).order_by(BoardGame.name)
 
         if user_id is not None:
             query = query.where(BoardGame.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(BoardGame.archived == False)
 
         if limit is not None:
             query = query.limit(limit)
@@ -71,16 +77,35 @@ class BoardGameRepository:
         return game
 
     async def delete(self, game_id: str) -> bool:
-        """Delete board game by ID"""
+        """Archive board game by ID (soft delete)"""
+        return await self.archive(game_id)
+
+    async def archive(self, game_id: str) -> bool:
+        """Archive board game by ID (soft delete)"""
         game = await self.get_by_id(game_id)
 
         if not game:
             return False
 
-        await self.session.delete(game)
+        game.archived = True
+        game.archived_at = datetime.utcnow()
         await self.session.flush()
 
-        logger.info(f"Deleted board game from database: {game_id}")
+        logger.info(f"Archived board game in database: {game_id}")
+        return True
+
+    async def unarchive(self, game_id: str) -> bool:
+        """Unarchive board game by ID"""
+        game = await self.get_by_id(game_id)
+
+        if not game:
+            return False
+
+        game.archived = False
+        game.archived_at = None
+        await self.session.flush()
+
+        logger.info(f"Unarchived board game in database: {game_id}")
         return True
 
     async def search(
@@ -89,7 +114,8 @@ class BoardGameRepository:
         designer: Optional[str] = None,
         min_players: Optional[int] = None,
         max_players: Optional[int] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        include_archived: bool = False
     ) -> List[BoardGame]:
         """
         Search board games with optional filters
@@ -100,11 +126,16 @@ class BoardGameRepository:
             min_players: Filter by minimum player count
             max_players: Filter by maximum player count
             user_id: Filter by user ID
+            include_archived: If True, include archived games. Default False.
         """
         stmt = select(BoardGame)
 
         if user_id is not None:
             stmt = stmt.where(BoardGame.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            stmt = stmt.where(BoardGame.archived == False)
 
         if query:
             # Case-insensitive search in name, designer, or publisher
@@ -141,12 +172,16 @@ class BoardGameRepository:
         game = await self.get_by_bgg_id(bgg_id)
         return game is not None
 
-    async def count(self, user_id: Optional[int] = None) -> int:
+    async def count(self, user_id: Optional[int] = None, include_archived: bool = False) -> int:
         """Count board games"""
         query = select(func.count()).select_from(BoardGame)
 
         if user_id is not None:
             query = query.where(BoardGame.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(BoardGame.archived == False)
 
         result = await self.session.execute(query)
         return result.scalar_one()

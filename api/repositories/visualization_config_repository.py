@@ -6,6 +6,7 @@ Provides clean separation between business logic and data access.
 """
 
 from typing import Optional, List
+from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,7 +34,8 @@ class VisualizationConfigRepository:
         entity_type: Optional[str] = None,
         user_id: Optional[int] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[VisualizationConfig]:
         """Get all visualization configs, optionally filtered by entity_type and user with pagination support"""
         query = select(VisualizationConfig).order_by(VisualizationConfig.updated_at.desc())
@@ -43,6 +45,10 @@ class VisualizationConfigRepository:
 
         if user_id is not None:
             query = query.where(VisualizationConfig.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(VisualizationConfig.archived == False)
 
         if limit is not None:
             query = query.limit(limit)
@@ -91,16 +97,35 @@ class VisualizationConfigRepository:
         return config
 
     async def delete(self, config_id: str) -> bool:
-        """Delete visualization config by ID"""
+        """Archive visualization config by ID (soft delete)"""
+        return await self.archive(config_id)
+
+    async def archive(self, config_id: str) -> bool:
+        """Archive visualization config by ID (soft delete)"""
         config = await self.get_by_id(config_id)
 
         if not config:
             return False
 
-        await self.session.delete(config)
+        config.archived = True
+        config.archived_at = datetime.utcnow()
         await self.session.flush()
 
-        logger.info(f"Deleted visualization config from database: {config_id}")
+        logger.info(f"Archived visualization config in database: {config_id}")
+        return True
+
+    async def unarchive(self, config_id: str) -> bool:
+        """Unarchive visualization config by ID"""
+        config = await self.get_by_id(config_id)
+
+        if not config:
+            return False
+
+        config.archived = False
+        config.archived_at = None
+        await self.session.flush()
+
+        logger.info(f"Unarchived visualization config in database: {config_id}")
         return True
 
     async def unmark_all_defaults_for_entity_type(
@@ -145,7 +170,8 @@ class VisualizationConfigRepository:
     async def count(
         self,
         entity_type: Optional[str] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        include_archived: bool = False
     ) -> int:
         """Count visualization configs, optionally filtered by entity_type and user"""
         from sqlalchemy import func
@@ -157,6 +183,10 @@ class VisualizationConfigRepository:
 
         if user_id is not None:
             query = query.where(VisualizationConfig.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(VisualizationConfig.archived == False)
 
         result = await self.session.execute(query)
         return result.scalar_one()

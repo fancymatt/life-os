@@ -5,6 +5,7 @@ Handles database operations for Image entities.
 """
 
 from typing import Optional, List
+from datetime import datetime
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,13 +32,18 @@ class ImageRepository:
         self,
         user_id: Optional[int] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Image]:
         """Get all images, optionally filtered by user"""
         query = select(Image).order_by(Image.created_at.desc())
 
         if user_id is not None:
             query = query.where(Image.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(Image.archived == False)
 
         if offset:
             query = query.offset(offset)
@@ -64,16 +70,35 @@ class ImageRepository:
         return image
 
     async def delete(self, image_id: str) -> bool:
-        """Delete image by ID"""
+        """Archive image by ID (soft delete)"""
+        return await self.archive(image_id)
+
+    async def archive(self, image_id: str) -> bool:
+        """Archive image by ID (soft delete)"""
         image = await self.get_by_id(image_id)
 
         if not image:
             return False
 
-        await self.session.delete(image)
+        image.archived = True
+        image.archived_at = datetime.utcnow()
         await self.session.flush()
 
-        logger.info(f"Deleted image from database: {image_id}")
+        logger.info(f"Archived image in database: {image_id}")
+        return True
+
+    async def unarchive(self, image_id: str) -> bool:
+        """Unarchive image by ID"""
+        image = await self.get_by_id(image_id)
+
+        if not image:
+            return False
+
+        image.archived = False
+        image.archived_at = None
+        await self.session.flush()
+
+        logger.info(f"Unarchived image in database: {image_id}")
         return True
 
     async def exists(self, image_id: str) -> bool:
@@ -81,12 +106,16 @@ class ImageRepository:
         image = await self.get_by_id(image_id)
         return image is not None
 
-    async def count(self, user_id: Optional[int] = None) -> int:
+    async def count(self, user_id: Optional[int] = None, include_archived: bool = False) -> int:
         """Count images"""
         query = select(func.count()).select_from(Image)
 
         if user_id is not None:
             query = query.where(Image.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(Image.archived == False)
 
         result = await self.session.execute(query)
         return result.scalar_one()
