@@ -239,3 +239,55 @@ p {
   letter-spacing: 0.5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
+/* Mobile Touch-Friendly Enhancements */
+@media (max-width: 768px) {
+  /* Ensure all buttons meet 44px minimum touch target */
+  button,
+  .button,
+  a.button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Ensure proper spacing from edges */
+  .container {
+    padding: 1rem; /* 16px minimum */
+  }
+
+  /* Touch-friendly logout and gallery buttons */
+  .logout-button,
+  .gallery-button {
+    padding: 0.75rem 1.25rem;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  /* Touch-friendly composer back button */
+  .composer-back-button {
+    min-height: 44px;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    bottom: 1rem; /* Better positioning for mobile */
+    right: 1rem;
+  }
+
+  /* Increase tool card touch targets */
+  .tool-card.clickable {
+    min-height: 120px;
+  }
+
+  /* Better spacing for mobile */
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  .tools-list {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

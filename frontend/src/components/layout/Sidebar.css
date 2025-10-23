@@ -163,6 +163,7 @@
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
+    width: 280px; /* Slightly wider for better touch targets */
   }
 
   .sidebar.open {
@@ -171,6 +172,9 @@
 
   .sidebar-close {
     display: block;
+    /* Ensure touch-friendly close button */
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .sidebar-overlay {
@@ -181,6 +185,45 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 999;
+  }
+
+  /* Increase touch targets for nav sections */
+  .nav-section-header {
+    min-height: 44px;
+    padding: 0.75rem 1rem 0.75rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .nav-subsection-header {
+    min-height: 44px;
+    padding: 0.75rem 1rem 0.75rem 1.5rem;
+  }
+
+  /* Ensure all nav links meet 44px minimum */
+  .nav-link {
+    min-height: 44px;
+    padding: 0.75rem 1rem 0.75rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .nav-link-nested {
+    min-height: 44px;
+    padding-left: 2.5rem;
+  }
+
+  .nav-link-sibling {
+    min-height: 44px;
+    padding-left: 1.5rem;
+  }
+
+  /* Larger icons for better touch feedback */
+  .nav-icon {
+    font-size: 1.25rem;
+    width: 24px;
+  }
+
+  .nav-section-icon {
+    font-size: 1.1rem;
   }
 }
 

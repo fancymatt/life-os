@@ -388,14 +388,70 @@
 }
 
 /* Responsive */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .task-panel {
-    right: 1rem;
+    right: 1rem; /* 16px from edge */
     left: 1rem;
     width: auto;
+    bottom: 5rem; /* Better spacing from floating button */
+    max-height: calc(100vh - 10rem); /* Leave room for header and button */
   }
 
   .task-manager-button {
+    right: 1rem; /* 16px from edge */
+    bottom: 1.5rem; /* 24px from bottom */
+    /* Button size already 60px - exceeds 44px minimum ✓ */
+  }
+
+  /* Ensure filter tabs are touch-friendly */
+  .filter-tab {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Ensure action buttons are touch-friendly */
+  .task-action-btn {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 0.5rem 1rem;
+  }
+
+  .task-action-btn.dismiss {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Close button touch-friendly */
+  .close-panel-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Better spacing for task items */
+  .task-item-header {
+    padding: 1rem;
+    min-height: 60px; /* Comfortable touch target */
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .task-panel {
+    bottom: 4.5rem;
+    max-height: calc(100vh - 8rem);
+  }
+
+  .task-manager-button {
+    width: 56px;
+    height: 56px;
     right: 1rem;
+    bottom: 1rem;
+  }
+
+  .task-badge {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
   }
 }
