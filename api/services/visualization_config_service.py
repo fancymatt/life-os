@@ -229,7 +229,7 @@ class VisualizationConfigService:
 
         # Define which fields are allowed to be updated
         allowed_fields = {
-            'display_name', 'composition_style', 'framing', 'angle',
+            'display_name', 'entity_type', 'composition_style', 'framing', 'angle',
             'background', 'lighting', 'art_style_id', 'reference_image_path',
             'additional_instructions', 'image_size', 'model', 'is_default'
         }
