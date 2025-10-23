@@ -27,6 +27,7 @@ from ai_capabilities.specs import (
 from ai_tools.shared.router import LLMRouter
 from ai_tools.shared.preset import PresetManager
 from api.logging_config import get_logger
+from api.utils.file_paths import validate_file_exists, normalize_container_path
 
 logger = get_logger(__name__)
 
@@ -451,17 +452,38 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
         elif "gemini" in model.lower():
             # Gemini REQUIRES a reference image for image generation
             # If no reference image, fall back to DALL-E
-            if reference_image and Path(reference_image).exists():
-                logger.info(f"Using Gemini with reference image: {reference_image}")
-                image_bytes = self.router.generate_image(
-                    prompt=prompt,
-                    model=model,
-                    provider="gemini",
-                    size=size,
-                    image_path=reference_image
-                )
+            if reference_image:
+                try:
+                    # Validate and normalize the reference image path
+                    validated_path = validate_file_exists(
+                        reference_image,
+                        description="Reference image",
+                        auto_normalize=True
+                    )
+                    logger.info(f"Using Gemini with reference image: {validated_path}")
+                    image_bytes = self.router.generate_image(
+                        prompt=prompt,
+                        model=model,
+                        provider="gemini",
+                        size=size,
+                        image_path=str(validated_path)
+                    )
+                except Exception as e:
+                    # Log detailed error about why reference image couldn't be used
+                    logger.error(f"Failed to load reference image: {e}")
+                    logger.warning(f"Falling back to DALL-E without reference image")
+                    # Fall back to DALL-E when no reference image
+                    if len(prompt) > 3900:
+                        prompt = prompt[:3900] + "..."
+                    image_bytes = self.router.generate_image(
+                        prompt=prompt,
+                        model="dall-e-3",
+                        provider="dalle",
+                        size="1024x1024",
+                        quality="standard"
+                    )
             else:
-                logger.warning(f"No reference image found for Gemini model - falling back to DALL-E")
+                logger.warning(f"No reference image provided for Gemini model - falling back to DALL-E")
                 # Fall back to DALL-E when no reference image
                 if len(prompt) > 3900:
                     prompt = prompt[:3900] + "..."
@@ -571,7 +593,14 @@ ART STYLE:
 
         # Build minimal custom prompt
         # If reference image will be included, tell the model to match its style
-        has_reference = viz_config.get("reference_image_path") and Path(viz_config.get("reference_image_path")).exists()
+        ref_path = viz_config.get("reference_image_path")
+        has_reference = False
+        if ref_path:
+            try:
+                validated_ref = validate_file_exists(ref_path, "Reference image", auto_normalize=True)
+                has_reference = True
+            except Exception:
+                has_reference = False
         logger.info(f"🎨 ART STYLE GUIDANCE: {art_style_guidance if art_style_guidance else '(none)'}")
         logger.info(f"📝 ADDITIONAL INSTRUCTIONS: {additional_instructions if additional_instructions else '(none)'}")
         logger.info(f"🖼️  HAS REFERENCE IMAGE: {has_reference}")
