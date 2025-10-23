@@ -6,11 +6,8 @@ set -e
 
 echo "🚀 Starting AI-Studio API..."
 
-# Run preview generation in background (non-blocking)
-if [ -f "/app/scripts/startup_generate_previews.py" ]; then
-    echo "🔍 Checking for missing preview images (background task)..."
-    python /app/scripts/startup_generate_previews.py > /dev/null 2>&1 &
-fi
+# Preview generation removed - was causing OOM issues on startup
+# Use POST /api/clothing-items/batch-generate-previews endpoint instead
 
 # Start the API server
 echo "✅ Starting FastAPI server..."
