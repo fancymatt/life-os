@@ -158,17 +158,15 @@ function ToolConfigPage() {
 
       const data = response.data
 
-      // Async mode: job queued, show success and navigate
+      // Async mode: job queued, SSE will update task panel automatically
       if (data.job_id) {
-        console.log('Analysis queued:', data.job_id)
+        console.log('✅ Analysis queued:', data.job_id)
         setTesting(false)
-
-        // Show success message
-        const message = data.message || `Analysis started! Job ID: ${data.job_id}`
-        alert(`✅ ${message}\n\nNavigating to jobs page to monitor progress...`)
-
-        // Navigate to jobs page to see progress
-        navigate('/jobs')
+        // Clear the test image to allow another test
+        setTestImage(null)
+        setTestImagePreview(null)
+        setError(null)
+        // SSE stream will automatically add job to task panel
         return
       }
 
