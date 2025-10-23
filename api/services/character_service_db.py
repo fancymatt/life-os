@@ -54,6 +54,8 @@ class CharacterServiceDB:
             "tags": character.tags,
             "created_at": character.created_at.isoformat() if character.created_at else None,
             "updated_at": character.updated_at.isoformat() if character.updated_at else None,
+            "archived": character.archived,
+            "archived_at": character.archived_at.isoformat() if character.archived_at else None,
             "metadata": character.meta,  # Note: 'meta' in DB, 'metadata' in API
             "age": character.age,
             "skin_tone": character.skin_tone,
@@ -143,7 +145,8 @@ class CharacterServiceDB:
     async def list_characters(
         self,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """
         List all characters (filtered by user if specified)
@@ -151,6 +154,7 @@ class CharacterServiceDB:
         Args:
             limit: Maximum number of characters to return
             offset: Number of characters to skip
+            include_archived: If True, include archived characters. Default False.
 
         Returns:
             List of character data dicts
@@ -158,7 +162,8 @@ class CharacterServiceDB:
         characters = await self.repository.get_all(
             user_id=self.user_id,
             limit=limit,
-            offset=offset
+            offset=offset,
+            include_archived=include_archived
         )
         return [self._character_to_dict(char) for char in characters]
 
@@ -411,7 +416,8 @@ class CharacterServiceDB:
     async def search_characters(
         self,
         query: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """
         Search characters with filters
@@ -419,6 +425,7 @@ class CharacterServiceDB:
         Args:
             query: Text search query
             tags: Filter by tags
+            include_archived: If True, include archived characters. Default False.
 
         Returns:
             List of matching character data dicts
@@ -426,16 +433,72 @@ class CharacterServiceDB:
         characters = await self.repository.search(
             query=query,
             user_id=self.user_id,
-            tags=tags
+            tags=tags,
+            include_archived=include_archived
         )
 
         return [self._character_to_dict(char) for char in characters]
 
-    async def count_characters(self) -> int:
+    async def count_characters(self, include_archived: bool = False) -> int:
         """
         Count total characters (filtered by user if specified)
+
+        Args:
+            include_archived: If True, include archived characters. Default False.
 
         Returns:
             Total number of characters
         """
-        return await self.repository.count(user_id=self.user_id)
+        return await self.repository.count(user_id=self.user_id, include_archived=include_archived)
+
+    async def archive_character(self, character_id: str) -> bool:
+        """
+        Archive a character (soft delete)
+
+        Args:
+            character_id: Character ID
+
+        Returns:
+            True if archived, False if not found or permission denied
+        """
+        character = await self.repository.get_by_id(character_id)
+
+        if not character:
+            return False
+
+        # Check user permission
+        if self.user_id and character.user_id != self.user_id:
+            return False
+
+        success = await self.repository.archive(character_id)
+
+        if success:
+            await self.session.commit()
+
+        return success
+
+    async def unarchive_character(self, character_id: str) -> bool:
+        """
+        Unarchive a character
+
+        Args:
+            character_id: Character ID
+
+        Returns:
+            True if unarchived, False if not found or permission denied
+        """
+        character = await self.repository.get_by_id(character_id)
+
+        if not character:
+            return False
+
+        # Check user permission
+        if self.user_id and character.user_id != self.user_id:
+            return False
+
+        success = await self.repository.unarchive(character_id)
+
+        if success:
+            await self.session.commit()
+
+        return success
