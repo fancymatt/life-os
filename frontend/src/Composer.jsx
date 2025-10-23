@@ -58,6 +58,7 @@ function Composer() {
   const [compositionName, setCompositionName] = useState('')
   const [showCompositions, setShowCompositions] = useState(false)
   const [mobileTab, setMobileTab] = useState('canvas') // 'library', 'canvas', 'applied'
+  const [autoGenerate, setAutoGenerate] = useState(true) // Toggle for automatic regeneration
 
   useEffect(() => {
     loadPresets()
@@ -366,9 +367,11 @@ function Composer() {
       setMobileTab('canvas')
     }
 
-    // Auto-generate with new preset combination
-    await generateImage(newAppliedPresets)
-  }, [appliedPresets, generateImage])
+    // Auto-generate with new preset combination (if enabled)
+    if (autoGenerate) {
+      await generateImage(newAppliedPresets)
+    }
+  }, [appliedPresets, generateImage, autoGenerate])
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
@@ -404,13 +407,15 @@ function Composer() {
     const newAppliedPresets = appliedPresets.filter((_, i) => i !== index)
     setAppliedPresets(newAppliedPresets)
 
-    // Regenerate without removed preset
-    if (newAppliedPresets.length > 0) {
-      await generateImage(newAppliedPresets)
-    } else {
-      setGeneratedImage(null)
+    // Regenerate without removed preset (if auto-generate enabled)
+    if (autoGenerate) {
+      if (newAppliedPresets.length > 0) {
+        await generateImage(newAppliedPresets)
+      } else {
+        setGeneratedImage(null)
+      }
     }
-  }, [appliedPresets, generateImage])
+  }, [appliedPresets, generateImage, autoGenerate])
 
   const toggleFavorite = useCallback(async (preset, category) => {
     try {
@@ -730,6 +735,25 @@ function Composer() {
                 )}
               </select>
             </div>
+          </div>
+          <div className="canvas-controls">
+            <button
+              className={`auto-generate-toggle ${autoGenerate ? 'active' : 'paused'}`}
+              onClick={() => setAutoGenerate(!autoGenerate)}
+              title={autoGenerate ? 'Pause auto-generation' : 'Resume auto-generation'}
+            >
+              {autoGenerate ? '⏸️ Pause Generation' : '▶️ Auto-Generate'}
+            </button>
+            {appliedPresets.length > 0 && (
+              <button
+                className={`generate-now-btn ${!autoGenerate ? 'highlighted' : ''}`}
+                onClick={() => generateImage(appliedPresets)}
+                disabled={generating}
+                title="Generate image with current presets"
+              >
+                {generating ? '⏳ Generating...' : '🎨 Generate Now'}
+              </button>
+            )}
           </div>
         </div>
 
