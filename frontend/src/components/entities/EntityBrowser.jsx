@@ -31,6 +31,7 @@ function EntityBrowser({ config }) {
   const [selectedEntity, setSelectedEntity] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState(config.defaultSort || 'newest')
+  const [showArchived, setShowArchived] = useState(false)
 
   // Edit state (always in edit mode when viewing an entity)
   const [editedData, setEditedData] = useState(null)
@@ -92,9 +93,14 @@ function EntityBrowser({ config }) {
     }
   }, [id, view, entities, selectedEntity])
 
-  // Filter entities based on search (memoized)
+  // Filter entities based on search and archived status (memoized)
   const filteredEntities = useMemo(() => {
     return entities.filter(entity => {
+      // Filter out archived items unless showArchived is true
+      if (!showArchived && entity.archived) {
+        return false
+      }
+
       if (!searchTerm) return true
       const searchLower = searchTerm.toLowerCase()
 
@@ -112,7 +118,7 @@ function EntityBrowser({ config }) {
 
       return false
     })
-  }, [entities, searchTerm, config.searchFields])
+  }, [entities, searchTerm, showArchived, config.searchFields])
 
   // Sort entities (memoized)
   const sortedEntities = useMemo(() => {
@@ -138,10 +144,10 @@ function EntityBrowser({ config }) {
     return sortedEntities.slice(0, displayedCount)
   }, [sortedEntities, displayedCount])
 
-  // Reset pagination when search or sort changes
+  // Reset pagination when search, sort, or archived filter changes
   useEffect(() => {
     setDisplayedCount(ITEMS_PER_PAGE)
-  }, [searchTerm, sortBy])
+  }, [searchTerm, sortBy, showArchived])
 
   const loadMore = () => {
     setDisplayedCount(prev => prev + ITEMS_PER_PAGE)
@@ -576,6 +582,17 @@ function EntityBrowser({ config }) {
               </select>
             </div>
           )}
+          <div className="archived-filter">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Show archived</span>
+            </label>
+          </div>
         </div>
       )}
 
