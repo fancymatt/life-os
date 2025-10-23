@@ -22,8 +22,6 @@ Return a JSON object with these fields:
 
   "eyebrows": "DETAILED description of eyebrow position, tension, and shape. Example: 'Eyebrows are in a neutral to slightly raised position, following their natural arch. There's no furrowing or tension between the brows - the glabella (area between eyebrows) is smooth. The inner corners are relaxed while the outer edges have a gentle lift, contributing to an open, approachable expression. Brow muscles show no signs of strain or forced positioning.'",
 
-  "gaze_direction": "Precise gaze direction: directly at camera/viewer, off-camera left/right/up/down, downward, away, middle distance, unfocused, etc.",
-
   "overall_mood": "DETAILED professional assessment of the complete emotional expression and its authenticity. Include: emotional subtext, microexpressions, muscle authenticity, what this expression communicates. Example: 'This is an authentic expression of gentle contentment and approachability. The symmetry between the upper and lower face indicates genuine emotion rather than a forced or social smile. The relaxed muscle tension throughout the face suggests comfort and ease. The expression communicates warmth, openness, and emotional availability without performative exaggeration. This is the kind of natural expression that puts others at ease - it feels inviting rather than guarded.'"
 }
 ```
@@ -31,10 +29,10 @@ Return a JSON object with these fields:
 ## Suggested Name
 
 Generate a short, descriptive name (2-4 words) that describes the expression:
-- Combine emotion and intensity (e.g., "Soft Gentle Smile", "Confident Direct Gaze")
+- Combine emotion and intensity (e.g., "Soft Gentle Smile", "Joyful Laugh")
 - Focus on the mood conveyed (e.g., "Playful Happy Look", "Serious Focused Expression")
 - Keep it emotion-focused
-- Examples: "Warm Genuine Smile", "Intense Thoughtful Gaze", "Relaxed Easy Expression", "Bright Joyful Smile"
+- Examples: "Warm Genuine Smile", "Intense Thoughtful Look", "Relaxed Easy Expression", "Bright Joyful Smile"
 
 ## Professional Guidelines - Acting Coach Perspective
 

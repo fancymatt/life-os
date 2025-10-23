@@ -262,7 +262,6 @@ Expression Details to Show:
 - Mouth: {spec.mouth}
 - Eyes: {spec.eyes}
 - Eyebrows: {spec.eyebrows}
-- Gaze: {spec.gaze_direction}
 
 **FACE MODEL SPECIFICATIONS (MUST BE IDENTICAL ACROSS ALL PREVIEWS):**
 - Neutral, averaged human face (medium skin tone, androgynous features)
@@ -579,8 +578,7 @@ Intensity: {spec.intensity}
 Mood: {spec.overall_mood}
 Mouth: {spec.mouth}
 Eyes: {spec.eyes}
-Eyebrows: {spec.eyebrows}
-Gaze: {spec.gaze_direction}"""
+Eyebrows: {spec.eyebrows}"""
 
         elif spec_type == "makeup":
             colors = ", ".join(spec.color_palette[:5]) if spec.color_palette else "varied"

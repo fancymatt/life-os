@@ -2,7 +2,7 @@
 """
 Expression Analyzer
 
-Analyzes facial expression including primary emotion, intensity, mouth/eyes/eyebrows position, gaze direction.
+Analyzes facial expression including primary emotion, intensity, mouth/eyes/eyebrows position.
 
 Usage:
     python ai_tools/expression_analyzer/tool.py <image_path> [--save-as <preset_name>]
@@ -317,7 +317,6 @@ Examples:
         logger.info(f"Mouth: {result.mouth}")
         logger.info(f"Eyes: {result.eyes}")
         logger.info(f"Eyebrows: {result.eyebrows}")
-        logger.info(f"Gaze Direction: {result.gaze_direction}")
         logger.info(f"Overall Mood: {result.overall_mood}")
         logger.info("\n" + "="*70)
 

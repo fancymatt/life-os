@@ -248,13 +248,12 @@ class MakeupSpec(BaseModel):
 class ExpressionSpec(BaseModel):
     """Facial expression analysis"""
     _metadata: Optional[SpecMetadata] = None
-    suggested_name: str = Field(..., description="Short descriptive name for this expression (2-4 words, e.g., 'Soft Gentle Smile', 'Confident Direct Gaze')")
+    suggested_name: str = Field(..., description="Short descriptive name for this expression (2-4 words, e.g., 'Soft Gentle Smile', 'Joyful Laugh')")
     primary_emotion: str = Field(..., description="Main emotional expression")
     intensity: str = Field(..., description="Subtle/moderate/strong")
     mouth: str = Field(..., description="Mouth position and shape")
     eyes: str = Field(..., description="Eye expression")
     eyebrows: str = Field(..., description="Eyebrow position")
-    gaze_direction: str = Field(..., description="Where subject is looking")
     overall_mood: str = Field(..., description="Overall emotional impression")
 
 
