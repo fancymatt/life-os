@@ -72,12 +72,15 @@ async def run_preview_generation_job(job_id: str, category: str, preset_id: str)
         job_manager.update_progress(job_id, 0.3, "Generating preview image...")
         logger.info(f"Starting visualization for {category}/{preset_id}")
 
+        # Get correct output directory from preset manager
+        preset_dir = preset_service.preset_manager._get_preset_dir(category)
+
         # Generate preview image
         output_path = await asyncio.to_thread(
             visualizer.visualize,
             category,
             spec,
-            f"output/{category}",
+            str(preset_dir),
             preset_id,
             "standard"
         )
