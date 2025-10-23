@@ -12,7 +12,7 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 
 **Current State** (October 2025):
 - ✅ **Phase 1 Complete**: PostgreSQL database, 158 tests, CI/CD, 17 entity types
-- ✅ **Archive System**: 95% complete (database + backend + frontend UI done, filter toggle pending)
+- ✅ **Archive System**: ✅ 100% COMPLETE (database + backend + frontend + filter toggle)
 - ✅ **Local LLM**: 95% complete (backend + 120B model running, frontend UI pending)
 - ✅ **24 AI Tools**: 8 analyzers + 6 generators + workflow orchestration
 
@@ -61,8 +61,8 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 **Goal**: Polish existing features, complete high-value user requests
 **Why Now**: These features work with current infrastructure and deliver immediate value
 
-### 2.1 Complete Archive System (2 days) ✅ **95% COMPLETE**
-**Status**: 95% complete - database + backend + frontend UI done, filter toggle pending
+### 2.1 Complete Archive System ✅ **100% COMPLETE** (Oct 23, 2025)
+**Status**: ✅ COMPLETE - All features delivered
 **Priority**: CRITICAL - Prevents broken links
 
 **Completed Work** (Oct 23, 2025):
@@ -73,15 +73,13 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 - ✅ Frontend: Orange "📦 ARCHIVED" badge on archived items in 4 configs (ClothingItem, BoardGame, Image, VisualizationConfig)
 - ✅ Frontend: Dimmed archived items (opacity: 0.6)
 - ✅ Frontend: archive/unarchive functions in entity configs
-
-**Remaining Work**:
-- [ ] Filter toggle to show/hide archived items (UI + API param)
-- [ ] Apply archived badges to preset-based entities (if needed)
+- ✅ Frontend: "Show archived" filter toggle in EntityBrowser (default: hidden)
 
 **Success Criteria**:
 - ✅ Zero broken links from deleted entities (archive replaces delete)
 - ✅ Archive/unarchive works on all database entities
-- ⏸️ Archived filter shows/hides correctly (pending)
+- ✅ Archived filter shows/hides correctly
+- ✅ Archived items visually distinct with badge and dimming
 
 ---
 
@@ -297,9 +295,10 @@ Amplify all unique features by {intensity}:
 
 ### Phase 2 Success Metrics
 
-- ✅ Archive system 95% complete (filter toggle pending)
+- ✅ Archive system 100% complete
 - ✅ Zero broken entity links (archive replaces delete)
-- [ ] Archive filter toggle implemented
+- ✅ Archive filter toggle implemented
+- ✅ Archived items visually distinct
 - [ ] Mobile experience rating >8/10
 - [ ] Tagging adoption >60% of entities
 - [ ] Theme switching works flawlessly
@@ -1913,8 +1912,8 @@ policies:
 ## Next Steps
 
 **Immediate** (This Week):
-1. ✅ Complete Archive system UI (95% done - Oct 23, 2025)
-2. Add filter toggle for archived items (1 day)
+1. ✅ Complete Archive system UI (100% done - Oct 23, 2025)
+2. ✅ Add filter toggle for archived items (COMPLETE - Oct 23, 2025)
 3. Start mobile responsiveness (3 days)
 
 **Next 2 Weeks**:
@@ -1928,6 +1927,6 @@ policies:
 
 ---
 
-**Last Updated**: 2025-10-23 (Archive System: 95% complete)
+**Last Updated**: 2025-10-23 (Archive System: ✅ 100% COMPLETE)
 **Next Review**: After Phase 2 completion
 **Maintained By**: Life-OS development team
