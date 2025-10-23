@@ -405,10 +405,13 @@ async def gather_game_and_rules(
 
     **Cache Invalidation**: Clears all board_games caches (if entities created)
     """
-    tool = BoardGameRulesGatherer()
+    tool = BoardGameRulesGatherer(
+        db_session=db,
+        user_id=current_user.id if current_user else None
+    )
 
     try:
-        result = tool.gather_game_and_rules(bgg_id, create_entities=create_entities)
+        result = await tool.gather_game_and_rules(bgg_id, create_entities=create_entities)
 
         if result['status'] == 'failed':
             raise HTTPException(status_code=404, detail=result.get('error', 'Unknown error'))
@@ -441,10 +444,13 @@ async def gather_from_search(
 
     **Cache Invalidation**: Clears all board_games caches (if entities created)
     """
-    tool = BoardGameRulesGatherer()
+    tool = BoardGameRulesGatherer(
+        db_session=db,
+        user_id=current_user.id if current_user else None
+    )
 
     try:
-        result = tool.gather_from_search(
+        result = await tool.gather_from_search(
             query=query,
             exact=exact,
             auto_select_first=auto_select_first,

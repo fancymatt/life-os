@@ -18,7 +18,7 @@ from ai_tools.board_game_rules_gatherer import BoardGameRulesGatherer
 
 tool = BoardGameRulesGatherer()
 
-# Search for a game
+# Search for a game (synchronous - no DB needed)
 results = tool.search_games("Wingspan")
 # Returns: [{"bgg_id": 266192, "name": "Wingspan", "year": 2019, "type": "boardgame"}]
 ```
@@ -26,11 +26,16 @@ results = tool.search_games("Wingspan")
 ### Gather Game and Rules
 
 ```python
+from api.database import get_session
+
 # Get game details and download rulebook
-result = tool.gather_game_and_rules(
-    bgg_id=266192,
-    create_entities=True  # Creates Board Game + Document entities
-)
+async with get_session() as session:
+    tool = BoardGameRulesGatherer(db_session=session, user_id=1)
+
+    result = await tool.gather_game_and_rules(
+        bgg_id=266192,
+        create_entities=True  # Creates Board Game + Document entities
+    )
 
 # Returns:
 # {
@@ -45,13 +50,18 @@ result = tool.gather_game_and_rules(
 ### Search and Auto-Gather
 
 ```python
+from api.database import get_session
+
 # Search and automatically download first result
-result = tool.gather_from_search(
-    query="Wingspan",
-    exact=True,
-    auto_select_first=True,
-    create_entities=True
-)
+async with get_session() as session:
+    tool = BoardGameRulesGatherer(db_session=session, user_id=1)
+
+    result = await tool.gather_from_search(
+        query="Wingspan",
+        exact=True,
+        auto_select_first=True,
+        create_entities=True
+    )
 ```
 
 ## API Endpoints

@@ -14,7 +14,8 @@ import time
 
 from api.core.simple_agent import Agent, AgentConfig
 from ai_tools.shared.router import LLMRouter, RouterConfig
-from api.services.character_service import CharacterService
+from api.services.character_service_db import CharacterServiceDB
+from api.database import get_session
 from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
 from api.logging_config import get_logger
 
@@ -50,7 +51,6 @@ class StoryIllustratorAgent(Agent):
         # Use Gemini Flash 2.5 for image generation
         model = config.get_model_for_tool("modular_image_generator")  # gemini-2.0-flash-exp
         self.router = LLMRouter(model=model)
-        self.character_service = CharacterService()
         self.appearance_analyzer = CharacterAppearanceAnalyzer()
 
     def get_default_config(self) -> AgentConfig:
@@ -109,35 +109,37 @@ class StoryIllustratorAgent(Agent):
 
         if character_id:
             try:
-                # Get character data
-                character_data = self.character_service.get_character(character_id)
+                # Get character data using database session
+                async with get_session() as session:
+                    character_service = CharacterServiceDB(session, user_id=None)
+                    character_data = await character_service.get_character(character_id)
 
-                if character_data:
-                    # Check if we already have a physical description
-                    if character_data.get('physical_description'):
-                        analyzed_appearance = character_data['physical_description']
-                        logger.info(f"Using stored physical description")
+                    if character_data:
+                        # Check if we already have a physical description
+                        if character_data.get('physical_description'):
+                            analyzed_appearance = character_data['physical_description']
+                            logger.info(f"Using stored physical description")
 
-                    # Get reference image
-                    image_path = self.character_service.get_reference_image_path(character_id)
-                    if image_path and Path(image_path).exists():
-                        character_image_path = Path(image_path)
-                        logger.info(f"Using character reference image: {character_image_path}")
+                        # Get reference image
+                        image_path = await character_service.get_reference_image_path(character_id)
+                        if image_path and Path(image_path).exists():
+                            character_image_path = Path(image_path)
+                            logger.info(f"Using character reference image: {character_image_path}")
 
-                        # If no physical description exists, analyze and save it
-                        if not analyzed_appearance:
-                            logger.info(f"🔍 Analyzing character appearance...")
-                            appearance_spec = await self.appearance_analyzer.aanalyze(character_image_path)
-                            analyzed_appearance = appearance_spec.overall_description
-                            logger.info(f"📝 Extracted appearance: {analyzed_appearance}")
+                            # If no physical description exists, analyze and save it
+                            if not analyzed_appearance:
+                                logger.info(f"🔍 Analyzing character appearance...")
+                                appearance_spec = await self.appearance_analyzer.aanalyze(character_image_path)
+                                analyzed_appearance = appearance_spec.overall_description
+                                logger.info(f"📝 Extracted appearance: {analyzed_appearance}")
 
-                            # Save the physical description to the character entity
-                            logger.info(f"💾 Saving physical description to character entity...")
-                            self.character_service.update_character(
-                                character_id,
-                                physical_description=analyzed_appearance
-                            )
-                            logger.info(f"Physical description saved")
+                                # Save the physical description to the character entity
+                                logger.info(f"💾 Saving physical description to character entity...")
+                                await character_service.update_character(
+                                    character_id,
+                                    physical_description=analyzed_appearance
+                                )
+                                logger.info(f"Physical description saved")
             except Exception as e:
                 logger.warning(f"Could not process character: {e}")
                 import traceback

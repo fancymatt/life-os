@@ -11,7 +11,6 @@ import time
 
 from api.models.responses import DocumentInfo, DocumentProcessResponse
 from api.services.document_service import DocumentService
-from api.services.board_game_service import BoardGameService
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 from ai_tools.document_rag_preparer import DocumentRAGPreparer

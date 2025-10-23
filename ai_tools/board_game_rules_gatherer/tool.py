@@ -7,19 +7,27 @@ This tool does not use LLM - it's a pure web scraping and download tool.
 
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.services.bgg_service import BGGService
-from api.services.board_game_service import BoardGameService
+from api.services.board_game_service_db import BoardGameServiceDB
 from api.services.document_service import DocumentService
 
 
 class BoardGameRulesGatherer:
     """Tool for gathering board game rules from BoardGameGeek"""
 
-    def __init__(self):
-        """Initialize the tool"""
+    def __init__(self, db_session: Optional[AsyncSession] = None, user_id: Optional[int] = None):
+        """
+        Initialize the tool
+
+        Args:
+            db_session: Optional database session for entity creation
+            user_id: Optional user ID for entity ownership
+        """
         self.bgg_service = BGGService()
-        self.board_game_service = BoardGameService()
+        self.db_session = db_session
+        self.user_id = user_id
         self.document_service = DocumentService()
 
     def search_games(self, query: str, exact: bool = False) -> List[Dict[str, Any]]:
@@ -35,7 +43,7 @@ class BoardGameRulesGatherer:
         """
         return self.bgg_service.search_games(query, exact)
 
-    def gather_game_and_rules(
+    async def gather_game_and_rules(
         self,
         bgg_id: int,
         create_entities: bool = True
@@ -73,14 +81,23 @@ class BoardGameRulesGatherer:
                 "pdf_url": result.get("pdf_url")
             }
 
-            # Create entities if requested
+            # Create entities if requested and session provided
             if create_entities:
+                if not self.db_session:
+                    return {
+                        "status": "failed",
+                        "error": "Database session required for entity creation"
+                    }
+
+                # Create board game service
+                board_game_service = BoardGameServiceDB(self.db_session, user_id=self.user_id)
+
                 # Create or update board game entity
-                existing_game = self.board_game_service.get_by_bgg_id(bgg_id)
+                existing_game = await board_game_service.get_by_bgg_id(bgg_id)
 
                 if existing_game:
                     # Update existing game
-                    game_entity = self.board_game_service.update_board_game(
+                    game_entity = await board_game_service.update_board_game(
                         existing_game['game_id'],
                         name=result['name'],
                         designer=result['designer'],
@@ -95,7 +112,7 @@ class BoardGameRulesGatherer:
                     )
                 else:
                     # Create new game
-                    game_entity = self.board_game_service.create_board_game(
+                    game_entity = await board_game_service.create_board_game(
                         name=result['name'],
                         bgg_id=bgg_id,
                         designer=result['designer'],
@@ -141,7 +158,7 @@ class BoardGameRulesGatherer:
                 "error": str(e)
             }
 
-    def gather_from_search(
+    async def gather_from_search(
         self,
         query: str,
         exact: bool = False,
@@ -178,7 +195,7 @@ class BoardGameRulesGatherer:
             # Auto-select first result if requested
             if auto_select_first:
                 first_result = search_results[0]
-                gather_result = self.gather_game_and_rules(
+                gather_result = await self.gather_game_and_rules(
                     first_result['bgg_id'],
                     create_entities=create_entities
                 )
