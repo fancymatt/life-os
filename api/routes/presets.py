@@ -231,75 +231,155 @@ async def get_preset_preview(category: str, preset_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{category}/{preset_id}/generate-test")
-async def generate_test_image(category: str, preset_id: str, background_tasks: BackgroundTasks):
+@router.post("/{category}/{preset_id}/generate-preview")
+async def generate_preset_preview(
+    category: str,
+    preset_id: str,
+    background_tasks: BackgroundTasks
+):
     """
-    Generate a test image using jenny.png with this preset applied
+    Generate or regenerate a preview image for a preset
 
-    Uses the jenny.png image from the project root as the subject
-    and applies the specified preset to generate a test image.
+    Returns job_id for tracking generation progress.
     """
-    try:
-        # Import here to avoid circular dependencies
+    from api.services.job_queue import get_job_queue_manager
+    from api.models.jobs import JobType
+
+    # Create job immediately
+    job_id = get_job_queue_manager().create_job(
+        job_type=JobType.GENERATE_IMAGE,
+        title=f"Generating {category} preview",
+        description=f"Preset ID: {preset_id}"
+    )
+
+    # Queue background task
+    async def generate_preview_task():
+        from ai_tools.shared.visualizer import Visualizer
+        import asyncio
+
+        try:
+            job_manager = get_job_queue_manager()
+            job_manager.update_job(job_id, status="running", progress=10)
+
+            # Generate preview using visualizer
+            visualizer = Visualizer()
+            preset_data = preset_service.get_preset(category, preset_id)
+
+            # Remove metadata
+            if '_metadata' in preset_data:
+                del preset_data['_metadata']
+
+            job_manager.update_job(job_id, progress=30)
+
+            # Generate preview image
+            await asyncio.to_thread(
+                visualizer.generate_preset_visualization,
+                category,
+                preset_id,
+                preset_data
+            )
+
+            job_manager.update_job(job_id, status="completed", progress=100)
+            logger.info(f"Preview generated for {category}/{preset_id}")
+
+        except Exception as e:
+            logger.error(f"Preview generation failed: {e}")
+            get_job_queue_manager().update_job(
+                job_id,
+                status="failed",
+                error_message=str(e)
+            )
+
+    background_tasks.add_task(generate_preview_task)
+
+    return {
+        "job_id": job_id,
+        "status": "queued",
+        "message": "Preview generation queued"
+    }
+
+
+@router.post("/{category}/{preset_id}/generate-test-image")
+async def generate_test_image(
+    category: str,
+    preset_id: str,
+    background_tasks: BackgroundTasks
+):
+    """
+    Generate a test image using jenny with this preset applied
+
+    Returns job_id for tracking generation progress.
+    """
+    from api.services.job_queue import get_job_queue_manager
+    from api.models.jobs import JobType
+
+    # Map category to parameter name
+    category_param_map = {
+        "outfits": "outfit",
+        "visual_styles": "visual_style",
+        "art_styles": "art_style",
+        "hair_styles": "hair_style",
+        "hair_colors": "hair_color",
+        "makeup": "makeup",
+        "expressions": "expression",
+        "accessories": "accessories"
+    }
+
+    if category not in category_param_map:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Category '{category}' does not support test generation"
+        )
+
+    # Create job immediately
+    job_id = get_job_queue_manager().create_job(
+        job_type=JobType.GENERATE_IMAGE,
+        title=f"Test image: {category}",
+        description=f"Preset ID: {preset_id}"
+    )
+
+    # Queue background task
+    async def generate_test_task():
         from ai_tools.modular_image_generator.tool import ModularImageGenerator
 
-        # Check if jenny.png exists
-        jenny_path = Path("jenny.png")
-        if not jenny_path.exists():
-            raise HTTPException(status_code=404, detail="jenny.png not found in project root")
+        try:
+            job_manager = get_job_queue_manager()
+            job_manager.update_job(job_id, status="running", progress=10)
 
-        # Load the preset data
-        preset_data = preset_service.get_preset(category, preset_id)
+            # Check if jenny.png exists
+            jenny_path = Path("jenny.png")
+            if not jenny_path.exists():
+                raise FileNotFoundError("jenny.png not found in project root")
 
-        # Remove metadata if present
-        if '_metadata' in preset_data:
-            del preset_data['_metadata']
+            job_manager.update_job(job_id, progress=20)
 
-        # Map category to the appropriate parameter
-        category_param_map = {
-            "outfits": "outfit",
-            "visual_styles": "visual_style",
-            "art_styles": "art_style",
-            "hair_styles": "hair_style",
-            "hair_colors": "hair_color",
-            "makeup": "makeup",
-            "expressions": "expression",
-            "accessories": "accessories"
-        }
+            # Generate test image
+            generator = ModularImageGenerator()
+            kwargs = {
+                "subject_image": str(jenny_path),
+                "output_dir": f"output/test_generations/{category}",
+                category_param_map[category]: preset_id
+            }
 
-        if category not in category_param_map:
-            raise HTTPException(status_code=400, detail=f"Category '{category}' does not support test generation")
+            job_manager.update_job(job_id, progress=40)
 
-        # Queue generation as background task
-        async def generate_image():
-            try:
-                generator = ModularImageGenerator()
+            result = await generator.agenerate(**kwargs)
 
-                # Build kwargs with only this preset
-                kwargs = {
-                    "subject_image": str(jenny_path),
-                    "output_dir": f"output/test_generations/{category}",
-                    category_param_map[category]: preset_id  # Pass preset_id to load from preset manager
-                }
+            job_manager.update_job(job_id, status="completed", progress=100)
+            logger.info(f"Test image generated: {result.file_path}")
 
-                result = await generator.agenerate(**kwargs)
-                logger.info(f"Test image generated: {result.file_path}")
+        except Exception as e:
+            logger.error(f"Test generation failed: {e}")
+            get_job_queue_manager().update_job(
+                job_id,
+                status="failed",
+                error_message=str(e)
+            )
 
-            except Exception as e:
-                logger.warning(f"Test generation failed: {e}")
+    background_tasks.add_task(generate_test_task)
 
-        background_tasks.add_task(generate_image)
-
-        return {
-            "message": "Test image generation started",
-            "status": "generating",
-            "category": category,
-            "preset_id": preset_id
-        }
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "job_id": job_id,
+        "status": "queued",
+        "message": "Test image generation queued"
+    }

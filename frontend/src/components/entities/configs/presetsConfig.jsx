@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import api from '../../../api/client'
 import { formatDate } from './helpers'
 import OutfitEditor from './OutfitEditor'
@@ -285,6 +286,39 @@ export const makeupsConfig = createPresetConfig({
  * Hair Style Preview Component (matches clothing items layout)
  */
 function HairStylePreview({ entity, onUpdate }) {
+  const [generatingJobId, setGeneratingJobId] = useState(null)
+  const [jobProgress, setJobProgress] = useState(null)
+
+  // Poll for job status if we're tracking a job
+  useEffect(() => {
+    if (!generatingJobId) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await api.get(`/jobs/${generatingJobId}`)
+        const job = response.data
+
+        setJobProgress(job.progress)
+
+        if (job.status === 'completed') {
+          console.log('✅ Preview generation completed, refreshing preview...')
+          setGeneratingJobId(null)
+          setJobProgress(null)
+          // Refresh the preview to get the new image
+          if (onUpdate) onUpdate()
+        } else if (job.status === 'failed') {
+          console.error('❌ Preview generation failed')
+          setGeneratingJobId(null)
+          setJobProgress(null)
+        }
+      } catch (error) {
+        console.error('Failed to poll job status:', error)
+      }
+    }, 1000) // Poll every second
+
+    return () => clearInterval(pollInterval)
+  }, [generatingJobId, onUpdate])
+
   const handleGeneratePreview = async (e) => {
     const button = e.currentTarget
     const originalText = button.textContent
@@ -293,17 +327,20 @@ function HairStylePreview({ entity, onUpdate }) {
       button.disabled = true
       button.textContent = '⏳ Queueing...'
 
-      await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
-      console.log('Preview generation started')
+      const response = await api.post(`/presets/hair_styles/${entity.presetId}/generate-preview`)
+      const jobId = response.data.job_id
 
+      console.log(`✅ Preview generation queued (Job: ${jobId})`)
       button.textContent = '✅ Queued!'
+
+      // Start tracking this job
       setTimeout(() => {
+        setGeneratingJobId(jobId)
         button.textContent = originalText
         button.disabled = false
-        if (onUpdate) onUpdate()
-      }, 2000)
-    } catch (err) {
-      console.error('Failed to generate preview:', err)
+      }, 500)
+    } catch (error) {
+      console.error('Failed to queue preview generation:', error)
       button.textContent = '❌ Failed'
       setTimeout(() => {
         button.textContent = originalText
@@ -320,16 +357,16 @@ function HairStylePreview({ entity, onUpdate }) {
       button.disabled = true
       button.textContent = '⏳ Queueing...'
 
-      await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
-      console.log('Test image generation started')
+      const response = await api.post(`/presets/hair_styles/${entity.presetId}/generate-test-image`)
 
+      console.log(`✅ Test image generation queued (Job: ${response.data.job_id})`)
       button.textContent = '✅ Queued!'
       setTimeout(() => {
         button.textContent = originalText
         button.disabled = false
       }, 2000)
-    } catch (err) {
-      console.error('Failed to generate test image:', err)
+    } catch (error) {
+      console.error('Failed to generate test image:', error)
       button.textContent = '❌ Failed'
       setTimeout(() => {
         button.textContent = originalText
@@ -340,8 +377,8 @@ function HairStylePreview({ entity, onUpdate }) {
 
   return (
     <div style={{ padding: '1rem' }}>
-      {/* Preview Image */}
-      <div style={{ marginBottom: '1rem' }}>
+      {/* Preview Image with loading overlay */}
+      <div style={{ position: 'relative', marginBottom: '1rem' }}>
         <LazyImage
           src={`/api/presets/hair_styles/${entity.presetId}/preview?t=${Date.now()}`}
           alt={entity.title}
@@ -355,6 +392,39 @@ function HairStylePreview({ entity, onUpdate }) {
             e.target.style.display = 'none'
           }}
         />
+
+        {/* Loading overlay when generating */}
+        {generatingJobId && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              fontSize: '3rem',
+              animation: 'spin 2s linear infinite'
+            }}>
+              🎨
+            </div>
+            <div style={{ color: 'white', fontSize: '0.95rem' }}>
+              Generating preview...
+            </div>
+            {jobProgress !== null && (
+              <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+                {Math.round(jobProgress)}%
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Generate Preview Button */}
@@ -415,6 +485,13 @@ function HairStylePreview({ entity, onUpdate }) {
       >
         🎨 Create Test Image
       </button>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 }
