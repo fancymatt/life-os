@@ -8,10 +8,12 @@ These configs control how different entity types are rendered as preview images.
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Request
 from typing import Optional, List
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.services.visualization_config_service import VisualizationConfigService
+from api.services.visualization_config_service_db import VisualizationConfigServiceDB
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
+from api.database import get_db
 from api.logging_config import get_logger
 from api.middleware.cache import cached, invalidates_cache
 from api.utils.file_paths import get_app_relative_path
@@ -114,6 +116,7 @@ async def list_visualization_configs(
     entity_type: Optional[str] = Query(None, description="Filter by entity type (e.g., 'clothing_item', 'character')"),
     limit: Optional[int] = Query(None, description="Maximum number of configs to return"),
     offset: int = Query(0, description="Number of configs to skip"),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -124,11 +127,11 @@ async def list_visualization_configs(
 
     **Cached**: 60 seconds (user-specific)
     """
-    service = VisualizationConfigService()
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Get both configs and total count
-    configs = service.list_configs(entity_type=entity_type, limit=limit, offset=offset)
-    total_count = service.count_configs(entity_type=entity_type)
+    configs = await service.list_configs(entity_type=entity_type, limit=limit, offset=offset)
+    total_count = await service.count_configs(entity_type=entity_type)
 
     config_infos = [
         VisualizationConfigInfo(
@@ -163,6 +166,7 @@ async def list_visualization_configs(
 @cached(cache_type="static", include_user=True)
 async def get_entity_types_summary(
     request: Request,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -173,8 +177,8 @@ async def get_entity_types_summary(
 
     **Cached**: 1 hour (user-specific, changes infrequently)
     """
-    service = VisualizationConfigService()
-    summary = service.get_entity_types_summary()
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
+    summary = await service.get_entity_types_summary()
 
     return EntityTypesSummaryResponse(
         entity_types=summary,
@@ -187,6 +191,7 @@ async def get_entity_types_summary(
 async def get_default_config(
     request: Request,
     entity_type: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -197,8 +202,8 @@ async def get_default_config(
 
     **Cached**: 5 minutes (user-specific)
     """
-    service = VisualizationConfigService()
-    config = service.get_default_config(entity_type)
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
+    config = await service.get_default_config(entity_type)
 
     if not config:
         raise HTTPException(status_code=404, detail=f"No visualization config found for entity type: {entity_type}")
@@ -228,6 +233,7 @@ async def get_default_config(
 async def get_visualization_config(
     request: Request,
     config_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -237,8 +243,8 @@ async def get_visualization_config(
 
     **Cached**: 5 minutes (user-specific)
     """
-    service = VisualizationConfigService()
-    config = service.get_config(config_id)
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
+    config = await service.get_config(config_id)
 
     if not config:
         raise HTTPException(status_code=404, detail=f"Visualization config {config_id} not found")
@@ -267,6 +273,7 @@ async def get_visualization_config(
 @invalidates_cache(entity_types=["visualization_configs"])
 async def create_visualization_config(
     request: VisualizationConfigCreate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -277,9 +284,9 @@ async def create_visualization_config(
 
     **Cache Invalidation**: Clears all visualization_configs caches
     """
-    service = VisualizationConfigService()
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
 
-    config = service.create_config(
+    config = await service.create_config(
         entity_type=request.entity_type,
         display_name=request.display_name,
         composition_style=request.composition_style,
@@ -320,6 +327,7 @@ async def create_visualization_config(
 async def update_visualization_config(
     config_id: str,
     request: VisualizationConfigUpdate,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -329,7 +337,7 @@ async def update_visualization_config(
 
     **Cache Invalidation**: Clears all visualization_configs caches
     """
-    service = VisualizationConfigService()
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Get only the fields that were actually set in the request
     # This allows us to distinguish between "field not provided" and "field set to None"
@@ -342,7 +350,7 @@ async def update_visualization_config(
         'art_style_id_value': update_data.get('art_style_id', 'NOT_PRESENT')
     }})
 
-    config = service.update_config(
+    config = await service.update_config(
         config_id=config_id,
         **update_data
     )
@@ -379,6 +387,7 @@ async def update_visualization_config(
 @invalidates_cache(entity_types=["visualization_configs"])
 async def delete_visualization_config(
     config_id: str,
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -390,8 +399,8 @@ async def delete_visualization_config(
 
     **Cache Invalidation**: Clears all visualization_configs caches
     """
-    service = VisualizationConfigService()
-    success = service.delete_config(config_id)
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
+    success = await service.delete_config(config_id)
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Visualization config {config_id} not found")
@@ -404,6 +413,7 @@ async def delete_visualization_config(
 async def upload_reference_image(
     config_id: str,
     file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -417,7 +427,7 @@ async def upload_reference_image(
     from pathlib import Path
     import shutil
 
-    service = VisualizationConfigService()
+    service = VisualizationConfigServiceDB(db, user_id=current_user.id if current_user else None)
 
     # Validate file type
     if not file.content_type or not file.content_type.startswith('image/'):
@@ -440,7 +450,7 @@ async def upload_reference_image(
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
     # Update config with reference image path
-    config = service.update_config(
+    config = await service.update_config(
         config_id=config_id,
         reference_image_path=str(file_path)
     )

@@ -32,7 +32,6 @@ from ai_tools.shared.cache import CacheManager
 from ai_tools.shared.preset import PresetManager
 from ai_tools.outfit_visualizer.tool import OutfitVisualizer
 from api.config import settings
-from api.services.clothing_items_service import ClothingItemsService
 from api.logging_config import get_logger
 
 logger = get_logger(__name__)

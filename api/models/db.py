@@ -447,3 +447,57 @@ class ImageEntityRelationship(Base):
 
     def __repr__(self):
         return f"<ImageEntityRelationship(image_id='{self.image_id}', entity_type='{self.entity_type}', entity_id='{self.entity_id}')>"
+
+
+# ============================================================================
+# Visualization Config Entity
+# ============================================================================
+
+class VisualizationConfig(Base):
+    """Visualization configuration for generating preview images of entities"""
+    __tablename__ = "visualization_configs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    config_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+
+    # Configuration details
+    entity_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Visual settings
+    composition_style: Mapped[str] = mapped_column(String(50), nullable=False)  # product, lifestyle, editorial
+    framing: Mapped[str] = mapped_column(String(50), nullable=False)  # closeup, medium, full, wide
+    angle: Mapped[str] = mapped_column(String(50), nullable=False)  # front, side, back, three-quarter, overhead
+    background: Mapped[str] = mapped_column(String(50), nullable=False)  # white, black, gray, natural
+    lighting: Mapped[str] = mapped_column(String(50), nullable=False)  # soft_even, dramatic, natural, studio
+
+    # Optional art style reference
+    art_style_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    reference_image_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+    # Additional customization
+    additional_instructions: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    # Generation settings
+    image_size: Mapped[str] = mapped_column(String(20), default="1024x1024", nullable=False)
+    model: Mapped[str] = mapped_column(String(100), default="gemini/gemini-2.5-flash-image", nullable=False)
+
+    # Default config flag
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # User relationship (nullable - configs can be system-wide)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+
+    # Indexes for common queries
+    __table_args__ = (
+        Index("ix_vizconfig_entity_type", "entity_type"),
+        Index("ix_vizconfig_entity_default", "entity_type", "is_default"),
+        Index("ix_vizconfig_user_entity", "user_id", "entity_type"),
+    )
+
+    def __repr__(self):
+        return f"<VisualizationConfig(id='{self.config_id}', entity_type='{self.entity_type}', name='{self.display_name}')>"

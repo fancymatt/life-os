@@ -46,12 +46,17 @@ async def run_preview_generation_job(job_id: str, category: str, preset_id: str)
         job_manager.update_progress(job_id, 0.2, "Loading visualization config...")
 
         # Load visualization config for this entity type
-        from api.services.visualization_config_service import VisualizationConfigService
-        viz_service = VisualizationConfigService()
+        from api.services.visualization_config_service_db import VisualizationConfigServiceDB
+        from api.database import get_session
 
         # Convert category to entity_type (strip trailing 's')
         entity_type = category.rstrip('s') if category.endswith('s') else category
-        viz_config = viz_service.get_default_config(entity_type)
+
+        # Get viz config from database
+        async with get_session() as session:
+            viz_service = VisualizationConfigServiceDB(session, user_id=None)
+            viz_config = await viz_service.get_default_config(entity_type)
+
         logger.info(f"Loaded viz config for {entity_type}: {viz_config.get('display_name') if viz_config else 'None'}")
 
         job_manager.update_progress(job_id, 0.4, "Generating preview image...")

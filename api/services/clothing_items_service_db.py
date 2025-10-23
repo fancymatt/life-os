@@ -334,7 +334,8 @@ class ClothingItemServiceDB:
         try:
             # Import here to avoid circular dependency
             from ai_capabilities.specs import ClothingItemEntity, ClothingCategory, VisualizationConfigEntity
-            from api.services.visualization_config_service import VisualizationConfigService
+            from api.services.visualization_config_service_db import VisualizationConfigServiceDB
+            from api.database import get_session
 
             # Create ClothingItemEntity from database model
             item_entity = ClothingItemEntity(
@@ -348,9 +349,10 @@ class ClothingItemServiceDB:
                 created_at=clothing_item.created_at
             )
 
-            # Load default visualization config for clothing items
-            config_service = VisualizationConfigService()
-            config_dict = config_service.get_default_config("clothing_item")
+            # Load default visualization config for clothing items from database
+            async with get_session() as viz_session:
+                config_service = VisualizationConfigServiceDB(viz_session, user_id=None)
+                config_dict = await config_service.get_default_config("clothing_item")
 
             if config_dict:
                 config = VisualizationConfigEntity(**config_dict)

@@ -43,7 +43,8 @@ def run_preset_preview_generation_job(job_id: str, category: str, preset_id: str
 
         # Import here to avoid circular imports
         from ai_tools.shared.visualizer import PresetVisualizer
-        from api.services.visualization_config_service import VisualizationConfigService
+        from api.services.visualization_config_service_db import VisualizationConfigServiceDB
+        from api.database import get_session
 
         # Load preset data
         preset_path = settings.presets_dir / category / f"{preset_id}.json"
@@ -58,13 +59,17 @@ def run_preset_preview_generation_job(job_id: str, category: str, preset_id: str
         get_job_queue_manager().update_progress(job_id, 0.3, "Loading visualization config...")
 
         # Load visualization config for this entity type
-        viz_service = VisualizationConfigService()
-
         # Convert category to entity_type (e.g., "expressions" -> "expression")
         entity_type = category.rstrip('s') if category.endswith('s') else category
 
-        # Get default visualization config for this entity type
-        viz_config = viz_service.get_default_config(entity_type)
+        # Get default visualization config for this entity type from database
+        import asyncio
+        async def get_viz_config():
+            async with get_session() as session:
+                viz_service = VisualizationConfigServiceDB(session, user_id=None)
+                return await viz_service.get_default_config(entity_type)
+
+        viz_config = asyncio.run(get_viz_config())
 
         if not viz_config:
             logger.warning(f"No visualization config found for {entity_type}, using defaults")
