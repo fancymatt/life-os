@@ -25,11 +25,11 @@ function VisualizationConfig() {
   const [formData, setFormData] = useState({
     entity_type: 'clothing_item',
     display_name: '',
-    composition_style: 'product',
-    framing: 'medium',
-    angle: 'front',
-    background: 'white',
-    lighting: 'soft_even',
+    composition_style: '',
+    framing: '',
+    angle: '',
+    background: '',
+    lighting: '',
     art_style_id: '',
     reference_image_path: '',
     additional_instructions: '',
@@ -137,11 +137,11 @@ function VisualizationConfig() {
     setFormData({
       entity_type: 'clothing_item',
       display_name: '',
-      composition_style: 'product',
-      framing: 'medium',
-      angle: 'front',
-      background: 'white',
-      lighting: 'soft_even',
+      composition_style: '',
+      framing: '',
+      angle: '',
+      background: '',
+      lighting: '',
       art_style_id: '',
       reference_image_path: '',
       additional_instructions: '',
@@ -334,11 +334,12 @@ function VisualizationConfig() {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Composition Style</label>
+                <label>Composition Style (Optional)</label>
                 <select
                   value={formData.composition_style}
                   onChange={(e) => setFormData({ ...formData, composition_style: e.target.value })}
                 >
+                  <option value="">None</option>
                   <option value="mannequin">Mannequin</option>
                   <option value="flat_lay">Flat Lay</option>
                   <option value="scene">Scene</option>
@@ -350,11 +351,12 @@ function VisualizationConfig() {
               </div>
 
               <div className="form-group">
-                <label>Framing</label>
+                <label>Framing (Optional)</label>
                 <select
                   value={formData.framing}
                   onChange={(e) => setFormData({ ...formData, framing: e.target.value })}
                 >
+                  <option value="">None</option>
                   <option value="extreme_closeup">Extreme Closeup</option>
                   <option value="closeup">Closeup</option>
                   <option value="medium">Medium</option>
@@ -364,11 +366,12 @@ function VisualizationConfig() {
               </div>
 
               <div className="form-group">
-                <label>Camera Angle</label>
+                <label>Camera Angle (Optional)</label>
                 <select
                   value={formData.angle}
                   onChange={(e) => setFormData({ ...formData, angle: e.target.value })}
                 >
+                  <option value="">None</option>
                   <option value="front">Front</option>
                   <option value="three_quarter">3/4 View</option>
                   <option value="side">Side</option>
@@ -382,11 +385,12 @@ function VisualizationConfig() {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Background</label>
+                <label>Background (Optional)</label>
                 <select
                   value={formData.background}
                   onChange={(e) => setFormData({ ...formData, background: e.target.value })}
                 >
+                  <option value="">None</option>
                   <option value="white">White</option>
                   <option value="black">Black</option>
                   <option value="transparent">Transparent</option>
@@ -397,11 +401,12 @@ function VisualizationConfig() {
               </div>
 
               <div className="form-group">
-                <label>Lighting</label>
+                <label>Lighting (Optional)</label>
                 <select
                   value={formData.lighting}
                   onChange={(e) => setFormData({ ...formData, lighting: e.target.value })}
                 >
+                  <option value="">None</option>
                   <option value="soft_even">Soft Even</option>
                   <option value="dramatic">Dramatic</option>
                   <option value="natural">Natural</option>

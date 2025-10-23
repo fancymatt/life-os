@@ -402,22 +402,22 @@ class VisualizationConfigEntity(BaseModel):
     entity_type: str = Field(..., description="Entity type this config applies to (e.g., 'clothing_item', 'character', 'outfit')")
     display_name: str = Field(..., description="User-friendly name for this config")
 
-    # Composition settings
-    composition_style: CompositionStyle = Field(
-        CompositionStyle.PRODUCT,
-        description="Visual composition style"
+    # Composition settings (all optional - let reference image and instructions guide)
+    composition_style: Optional[CompositionStyle] = Field(
+        None,
+        description="Visual composition style (optional)"
     )
-    framing: Framing = Field(
-        Framing.MEDIUM,
-        description="Camera framing"
+    framing: Optional[Framing] = Field(
+        None,
+        description="Camera framing (optional)"
     )
-    angle: CameraAngle = Field(
-        CameraAngle.FRONT,
-        description="Camera angle"
+    angle: Optional[CameraAngle] = Field(
+        None,
+        description="Camera angle (optional)"
     )
-    background: BackgroundStyle = Field(
-        BackgroundStyle.WHITE,
-        description="Background style"
+    background: Optional[BackgroundStyle] = Field(
+        None,
+        description="Background style (optional)"
     )
 
     # Visual style
@@ -425,9 +425,9 @@ class VisualizationConfigEntity(BaseModel):
         None,
         description="Link to ArtStyleSpec preset ID for consistent artistic style"
     )
-    lighting: LightingStyle = Field(
-        LightingStyle.SOFT_EVEN,
-        description="Lighting style"
+    lighting: Optional[LightingStyle] = Field(
+        None,
+        description="Lighting style (optional)"
     )
 
     # Reference guidance
