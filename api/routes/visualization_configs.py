@@ -59,6 +59,7 @@ class VisualizationConfigCreate(BaseModel):
 class VisualizationConfigUpdate(BaseModel):
     """Request to update a visualization config"""
     display_name: Optional[str] = None
+    entity_type: Optional[str] = None
     composition_style: Optional[str] = None
     framing: Optional[str] = None
     angle: Optional[str] = None
