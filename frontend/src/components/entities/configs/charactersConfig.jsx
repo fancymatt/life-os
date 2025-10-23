@@ -35,6 +35,8 @@ export const charactersConfig = {
       referenceImageUrl: char.reference_image_url,
       tags: char.tags || [],
       createdAt: char.created_at,
+      archived: char.archived || false,
+      archivedAt: char.archived_at,
       metadata: char.metadata || {},
       // Detailed appearance fields
       age: char.age,
@@ -60,8 +62,25 @@ export const charactersConfig = {
   },
 
   renderCard: (character) => (
-    <div className="entity-card">
-      <div className="entity-card-image" style={{ height: '280px' }}>
+    <div className="entity-card" style={{ position: 'relative' }}>
+      {character.archived && (
+        <div style={{
+          position: 'absolute',
+          top: '0.5rem',
+          right: '0.5rem',
+          background: 'rgba(255, 152, 0, 0.9)',
+          color: 'white',
+          padding: '0.25rem 0.5rem',
+          borderRadius: '4px',
+          fontSize: '0.75rem',
+          fontWeight: 'bold',
+          zIndex: 10,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+        }}>
+          📦 ARCHIVED
+        </div>
+      )}
+      <div className="entity-card-image" style={{ height: '280px', opacity: character.archived ? 0.6 : 1 }}>
         {character.referenceImageUrl ? (
           <LazyImage
             src={character.referenceImageUrl}
@@ -401,6 +420,15 @@ export const charactersConfig = {
   },
 
   deleteEntity: async (character) => {
-    await api.delete(`/characters/${character.characterId}`)
+    // Use archive endpoint instead of delete (soft delete)
+    await api.post(`/characters/${character.characterId}/archive`)
+  },
+
+  archiveEntity: async (character) => {
+    await api.post(`/characters/${character.characterId}/archive`)
+  },
+
+  unarchiveEntity: async (character) => {
+    await api.post(`/characters/${character.characterId}/unarchive`)
   }
 }
