@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 1rem 0.5rem 0.75rem;
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.6);
@@ -109,7 +109,7 @@
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 1rem 0.5rem 0.75rem;
   margin: 0 0.5rem;
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
@@ -186,20 +186,24 @@
 
 /* Scrollbar */
 .sidebar::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .sidebar::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
+  margin: 4px 0;
 }
 
 .sidebar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+  background-clip: content-box;
 }
 
 /* Subsections */
@@ -212,7 +216,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.375rem 0.75rem 0.375rem 1.5rem;
+  padding: 0.375rem 1rem 0.375rem 1.5rem;
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.5);
@@ -230,6 +234,13 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+.nav-subsection-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
 .nav-subsection-label {
   flex: 1;
 }
@@ -244,6 +255,11 @@
   transform: rotate(-90deg);
 }
 
+.nav-subsection-content {
+  margin-top: 0.25rem;
+  padding-left: 0;
+}
+
 .nav-link-sub {
   padding-left: 2.25rem;
   font-size: 0.875rem;
@@ -252,6 +268,22 @@
 .nav-link-sub .nav-icon {
   font-size: 1rem;
   width: 18px;
+}
+
+/* Nested Links (within subfolders) */
+.nav-link-nested {
+  padding-left: 2.75rem;
+  font-size: 0.85rem;
+}
+
+.nav-link-nested .nav-icon {
+  font-size: 1rem;
+  width: 18px;
+}
+
+/* Sibling Links (same level as subfolder headers) */
+.nav-link-sibling {
+  padding-left: 1.5rem;
 }
 
 /* Group Labels and Dividers */

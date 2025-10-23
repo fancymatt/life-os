@@ -272,10 +272,16 @@ function VisualizationConfig() {
             onChange={(e) => setEntityTypeFilter(e.target.value)}
           >
             <option value="">All Types</option>
-            <option value="clothing_item">Clothing Items</option>
             <option value="character">Characters</option>
+            <option value="clothing_item">Clothing Items</option>
             <option value="outfit">Outfits</option>
+            <option value="expression">Expressions</option>
+            <option value="makeup">Makeup</option>
+            <option value="accessories">Accessories</option>
+            <option value="art_style">Art Styles</option>
+            <option value="visual_style">Visual Styles</option>
             <option value="hair_style">Hair Styles</option>
+            <option value="hair_color">Hair Colors</option>
           </select>
         </div>
 
@@ -301,10 +307,16 @@ function VisualizationConfig() {
                   required
                   disabled={editingConfig} // Can't change entity type when editing
                 >
-                  <option value="clothing_item">Clothing Item</option>
                   <option value="character">Character</option>
+                  <option value="clothing_item">Clothing Item</option>
                   <option value="outfit">Outfit</option>
+                  <option value="expression">Expression</option>
+                  <option value="makeup">Makeup</option>
+                  <option value="accessories">Accessories</option>
+                  <option value="art_style">Art Style</option>
+                  <option value="visual_style">Visual Style</option>
                   <option value="hair_style">Hair Style</option>
+                  <option value="hair_color">Hair Color</option>
                 </select>
               </div>
 

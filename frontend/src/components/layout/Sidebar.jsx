@@ -19,6 +19,7 @@ function Sidebar({ isOpen, onClose }) {
     return {
       entities: false,
       tools: false,
+      tools_analyzers: false, // Nested subfolder
       applications: false,
       system: false
     }
@@ -68,87 +69,87 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.entities && (
               <div className="nav-section-content">
-                <NavLink to="/entities/accessories" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/accessories" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">👓</span>
                   <span className="nav-label">Accessories</span>
                 </NavLink>
-                <NavLink to="/entities/art-styles" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/art-styles" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎨</span>
                   <span className="nav-label">Art Styles</span>
                 </NavLink>
-                <NavLink to="/entities/board-games" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/board-games" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎲</span>
                   <span className="nav-label">Board Games</span>
                 </NavLink>
-                <NavLink to="/entities/characters" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/characters" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">👤</span>
                   <span className="nav-label">Characters</span>
                 </NavLink>
-                <NavLink to="/entities/clothing-items" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/clothing-items" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">👕</span>
                   <span className="nav-label">Clothing Items</span>
                 </NavLink>
-                <NavLink to="/entities/documents" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/documents" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📄</span>
                   <span className="nav-label">Documents</span>
                 </NavLink>
-                <NavLink to="/entities/expressions" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/expressions" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">😊</span>
                   <span className="nav-label">Expressions</span>
                 </NavLink>
-                <NavLink to="/entities/hair-colors" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/hair-colors" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎨</span>
                   <span className="nav-label">Hair Colors</span>
                 </NavLink>
-                <NavLink to="/entities/hair-styles" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/hair-styles" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">💇</span>
                   <span className="nav-label">Hair Styles</span>
                 </NavLink>
-                <NavLink to="/entities/story-illustrator-configs" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/story-illustrator-configs" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎨</span>
                   <span className="nav-label">Illustrator Configs</span>
                 </NavLink>
-                <NavLink to="/entities/images" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/images" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🖼️</span>
                   <span className="nav-label">Images</span>
                 </NavLink>
-                <NavLink to="/entities/makeup" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/makeup" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">💄</span>
                   <span className="nav-label">Makeup</span>
                 </NavLink>
-                <NavLink to="/entities/outfits" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/outfits" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">👔</span>
                   <span className="nav-label">Outfits</span>
                 </NavLink>
-                <NavLink to="/entities/qas" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/qas" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">💬</span>
                   <span className="nav-label">Q&As</span>
                 </NavLink>
-                <NavLink to="/entities/story-planner-configs" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/story-planner-configs" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📋</span>
                   <span className="nav-label">Planner Configs</span>
                 </NavLink>
-                <NavLink to="/entities/story-prose-styles" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/story-prose-styles" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">✍️</span>
                   <span className="nav-label">Prose Styles</span>
                 </NavLink>
-                <NavLink to="/entities/stories" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/stories" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📚</span>
                   <span className="nav-label">Stories</span>
                 </NavLink>
-                <NavLink to="/entities/story-audiences" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/story-audiences" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">👥</span>
                   <span className="nav-label">Story Audiences</span>
                 </NavLink>
-                <NavLink to="/entities/story-themes" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/story-themes" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📚</span>
                   <span className="nav-label">Story Themes</span>
                 </NavLink>
-                <NavLink to="/entities/visual-styles" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/visual-styles" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📸</span>
                   <span className="nav-label">Visual Styles</span>
                 </NavLink>
-                <NavLink to="/entities/story-writer-configs" className="nav-link" onClick={onClose}>
+                <NavLink to="/entities/story-writer-configs" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📝</span>
                   <span className="nav-label">Writer Configs</span>
                 </NavLink>
@@ -172,75 +173,94 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.tools && (
               <div className="nav-section-content">
-                <NavLink to="/tools/analyzers/accessories" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">👓</span>
-                  <span className="nav-label">Accessories Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/analyzers/art-style" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">🎨</span>
-                  <span className="nav-label">Art Style Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/bgg-rulebook-fetcher" className="nav-link" onClick={onClose}>
+                {/* Analyzers Subfolder */}
+                <button
+                  className="nav-subsection-header"
+                  onClick={() => toggleSection('tools_analyzers')}
+                >
+                  <span className="nav-subsection-title">
+                    <span className="nav-icon">🔍</span>
+                    Analyzers
+                  </span>
+                  <span className={`nav-subsection-toggle ${collapsed.tools_analyzers ? 'collapsed' : ''}`}>
+                    ▼
+                  </span>
+                </button>
+                {!collapsed.tools_analyzers && (
+                  <div className="nav-subsection-content">
+                    <NavLink to="/tools/analyzers/accessories" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">👓</span>
+                      <span className="nav-label">Accessories</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/art-style" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">🎨</span>
+                      <span className="nav-label">Art Style</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/character-appearance" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">👤</span>
+                      <span className="nav-label">Character Appearance</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/comprehensive" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">📊</span>
+                      <span className="nav-label">Comprehensive</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/expression" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">😊</span>
+                      <span className="nav-label">Expression</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/hair-color" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">🎨</span>
+                      <span className="nav-label">Hair Color</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/hair-style" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">💇</span>
+                      <span className="nav-label">Hair Style</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/makeup" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">💄</span>
+                      <span className="nav-label">Makeup</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/outfit" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">👔</span>
+                      <span className="nav-label">Outfit</span>
+                    </NavLink>
+                    <NavLink to="/tools/analyzers/visual-style" className="nav-link nav-link-nested" onClick={onClose}>
+                      <span className="nav-icon">📸</span>
+                      <span className="nav-label">Visual Style</span>
+                    </NavLink>
+                  </div>
+                )}
+
+                {/* Other Tools - same indentation level as Analyzers subfolder */}
+                <NavLink to="/tools/bgg-rulebook-fetcher" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎲</span>
                   <span className="nav-label">BGG Rulebook Fetcher</span>
                 </NavLink>
-                <NavLink to="/tools/analyzers/character-appearance" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">👤</span>
-                  <span className="nav-label">Character Appearance Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/analyzers/comprehensive" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">📊</span>
-                  <span className="nav-label">Comprehensive Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/document-processor" className="nav-link" onClick={onClose}>
+                <NavLink to="/tools/document-processor" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📄</span>
                   <span className="nav-label">Document Processor</span>
                 </NavLink>
-                <NavLink to="/tools/document-question-asker" className="nav-link" onClick={onClose}>
+                <NavLink to="/tools/document-question-asker" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">💬</span>
                   <span className="nav-label">Document Question Asker</span>
                 </NavLink>
-                <NavLink to="/tools/analyzers/expression" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">😊</span>
-                  <span className="nav-label">Expression Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/analyzers/hair-color" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">🎨</span>
-                  <span className="nav-label">Hair Color Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/analyzers/hair-style" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">💇</span>
-                  <span className="nav-label">Hair Style Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/analyzers/makeup" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">💄</span>
-                  <span className="nav-label">Makeup Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/generators/modular" className="nav-link" onClick={onClose}>
+                <NavLink to="/tools/generators/modular" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🖼️</span>
                   <span className="nav-label">Modular Image Generator</span>
                 </NavLink>
-                <NavLink to="/tools/analyzers/outfit" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">👔</span>
-                  <span className="nav-label">Outfit Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/story/illustrator" className="nav-link" onClick={onClose}>
+                <NavLink to="/tools/story/illustrator" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎨</span>
                   <span className="nav-label">Story Illustrator</span>
                 </NavLink>
-                <NavLink to="/tools/story/planner" className="nav-link" onClick={onClose}>
+                <NavLink to="/tools/story/planner" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📝</span>
                   <span className="nav-label">Story Planner</span>
                 </NavLink>
-                <NavLink to="/tools/story/writer" className="nav-link" onClick={onClose}>
+                <NavLink to="/tools/story/writer" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">✍️</span>
                   <span className="nav-label">Story Writer</span>
                 </NavLink>
-                <NavLink to="/tools/analyzers/visual-style" className="nav-link" onClick={onClose}>
-                  <span className="nav-icon">📸</span>
-                  <span className="nav-label">Visual Style Analyzer</span>
-                </NavLink>
-                <NavLink to="/tools/visualization-config" className="nav-link" onClick={onClose}>
+                <NavLink to="/tools/visualization-config" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎨</span>
                   <span className="nav-label">Visualization Config</span>
                 </NavLink>
@@ -264,15 +284,15 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.applications && (
               <div className="nav-section-content">
-                <NavLink to="/apps/composer" className="nav-link" onClick={onClose}>
+                <NavLink to="/apps/composer" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">🎭</span>
                   <span className="nav-label">Image Composer</span>
                 </NavLink>
-                <NavLink to="/apps/outfit-composer" className="nav-link" onClick={onClose}>
+                <NavLink to="/apps/outfit-composer" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">👗</span>
                   <span className="nav-label">Outfit Composer</span>
                 </NavLink>
-                <NavLink to="/workflows/story" className="nav-link" onClick={onClose}>
+                <NavLink to="/workflows/story" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📖</span>
                   <span className="nav-label">Story Generator</span>
                 </NavLink>
@@ -296,7 +316,7 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.system && (
               <div className="nav-section-content">
-                <NavLink to="/jobs" className="nav-link" onClick={onClose}>
+                <NavLink to="/jobs" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📋</span>
                   <span className="nav-label">Job History</span>
                 </NavLink>

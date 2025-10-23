@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any, List
 from pathlib import Path
 import yaml
 import aiofiles
+import threading
 
 from api.logging_config import get_logger
 from api.models.auth import User
@@ -20,6 +21,7 @@ from api.services.job_queue import get_job_queue_manager
 from api.config import settings
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 def get_tool_dir(tool_name: str) -> Path:
@@ -285,34 +287,31 @@ async def run_tool_test_job(
         elif tool_name == "accessories_analyzer":
             from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
             analyzer = AccessoriesAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "art_style_analyzer":
             from ai_tools.art_style_analyzer.tool import ArtStyleAnalyzer
             analyzer = ArtStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "expression_analyzer":
             from ai_tools.expression_analyzer.tool import ExpressionAnalyzer
             analyzer = ExpressionAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "hair_color_analyzer":
             from ai_tools.hair_color_analyzer.tool import HairColorAnalyzer
             analyzer = HairColorAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "hair_style_analyzer":
             from ai_tools.hair_style_analyzer.tool import HairStyleAnalyzer
             analyzer = HairStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(
-                temp_path,
-                save_as_preset=True  # Auto-save as preset like outfit analyzer
-            )
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "makeup_analyzer":
             from ai_tools.makeup_analyzer.tool import MakeupAnalyzer
             analyzer = MakeupAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "visual_style_analyzer":
             from ai_tools.visual_style_analyzer.tool import VisualStyleAnalyzer
             analyzer = VisualStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         else:
             get_job_queue_manager().fail_job(job_id, f"Testing not yet implemented for {tool_name}")
             return
@@ -325,6 +324,33 @@ async def run_tool_test_job(
             "status": "success",
             "result": result_dict
         })
+
+        # Auto-generate preview for preset-based analyzers
+        from api.routes.tools import PRESET_ANALYZERS, run_preset_preview_generation_job
+        if tool_name in PRESET_ANALYZERS and isinstance(result_dict, dict):
+            preset_id = result_dict.get("preset_id")
+            name = result_dict.get("name") or result_dict.get("title", "Preset")
+            category = PRESET_ANALYZERS[tool_name]
+
+            if preset_id:
+                logger.info(f"Auto-generating preview for {category}/{preset_id}", extra={'extra_fields': {
+                    'tool': tool_name,
+                    'category': category,
+                    'preset_id': preset_id
+                }})
+
+                preview_job_id = get_job_queue_manager().create_job(
+                    job_type=JobType.GENERATE_IMAGE,
+                    title=f"Preview: {name}",
+                    description=f"Category: {category}"
+                )
+
+                thread = threading.Thread(
+                    target=run_preset_preview_generation_job,
+                    args=(preview_job_id, category, preset_id, name)
+                )
+                thread.daemon = True
+                thread.start()
 
         # For outfit analyzer, automatically queue preview generation for clothing items
         if tool_name == "outfit_analyzer" and isinstance(result_dict, dict):
@@ -453,39 +479,63 @@ async def test_tool(
         elif tool_name == "accessories_analyzer":
             from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
             analyzer = AccessoriesAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "art_style_analyzer":
             from ai_tools.art_style_analyzer.tool import ArtStyleAnalyzer
             analyzer = ArtStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "expression_analyzer":
             from ai_tools.expression_analyzer.tool import ExpressionAnalyzer
             analyzer = ExpressionAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "hair_color_analyzer":
             from ai_tools.hair_color_analyzer.tool import HairColorAnalyzer
             analyzer = HairColorAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "hair_style_analyzer":
             from ai_tools.hair_style_analyzer.tool import HairStyleAnalyzer
             analyzer = HairStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(
-                temp_path,
-                save_as_preset=True  # Auto-save as preset like outfit analyzer
-            )
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "makeup_analyzer":
             from ai_tools.makeup_analyzer.tool import MakeupAnalyzer
             analyzer = MakeupAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         elif tool_name == "visual_style_analyzer":
             from ai_tools.visual_style_analyzer.tool import VisualStyleAnalyzer
             analyzer = VisualStyleAnalyzer(model=model)
-            result = await analyzer.aanalyze(temp_path)
+            result = await analyzer.aanalyze(temp_path, save_as_preset=True)
         else:
             raise HTTPException(status_code=400, detail=f"Testing not yet implemented for {tool_name}")
 
         # Convert to dict
         result_dict = result.model_dump()
+
+        # Auto-generate preview for preset-based analyzers (sync mode)
+        from api.routes.tools import PRESET_ANALYZERS, run_preset_preview_generation_job
+        if tool_name in PRESET_ANALYZERS and isinstance(result_dict, dict):
+            preset_id = result_dict.get("preset_id")
+            name = result_dict.get("name") or result_dict.get("title", "Preset")
+            category = PRESET_ANALYZERS[tool_name]
+
+            if preset_id:
+                logger.info(f"Auto-generating preview for {category}/{preset_id}", extra={'extra_fields': {
+                    'tool': tool_name,
+                    'category': category,
+                    'preset_id': preset_id
+                }})
+
+                preview_job_id = get_job_queue_manager().create_job(
+                    job_type=JobType.GENERATE_IMAGE,
+                    title=f"Preview: {name}",
+                    description=f"Category: {category}"
+                )
+
+                thread = threading.Thread(
+                    target=run_preset_preview_generation_job,
+                    args=(preview_job_id, category, preset_id, name)
+                )
+                thread.daemon = True
+                thread.start()
 
         return {
             "status": "success",
