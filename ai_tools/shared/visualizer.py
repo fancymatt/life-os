@@ -524,8 +524,21 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
         """
         logger.info(f"🔧 VIZ CONFIG DATA: {viz_config}")
 
+        # Check if we have a reference image and additional instructions
+        has_reference = viz_config.get("reference_image_path") and Path(viz_config.get("reference_image_path")).exists()
+        additional_instructions = viz_config.get("additional_instructions", "")
+
         # Get base subject description from the spec
-        subject_description = self._extract_subject_description(spec_type, spec)
+        # When using custom viz config with reference image and instructions,
+        # simplify the description to avoid conflicting details
+        if has_reference and additional_instructions and spec_type == "expressions":
+            # For expressions with custom viz, use simplified description
+            # that focuses on emotion/mood, not styling details
+            subject_description = self._extract_simplified_expression_description(spec)
+        else:
+            # For other cases, use full description
+            subject_description = self._extract_subject_description(spec_type, spec)
+
         logger.info(f"📋 SUBJECT DESCRIPTION: {subject_description}")
 
         # Get additional instructions (primary driver)
@@ -564,16 +577,16 @@ ART STYLE:
         logger.info(f"🖼️  HAS REFERENCE IMAGE: {has_reference}")
 
         if has_reference:
-            prompt = f"""Look at the reference image I've provided and create a new image that MATCHES its artistic style, technique, and rendering approach.
+            prompt = f"""Look at the reference image I've provided. Your task is to create a NEW image using the SAME artistic style, technique, and visual treatment.
 
-CRITICAL: Use the SAME artistic style, medium, and visual treatment shown in the reference image.
+🎨 CRITICAL REQUIREMENTS (HIGHEST PRIORITY):
+{additional_instructions if additional_instructions else "Match the reference image style exactly"}
 
-SUBJECT TO PORTRAY:
+📋 SUBJECT/EXPRESSION TO PORTRAY:
 {subject_description}
 {art_style_guidance}
-{f"ADDITIONAL GUIDANCE: {additional_instructions}" if additional_instructions else ""}
 
-Apply the visual style from the reference image to the subject described above. Keep the same level of detail, rendering technique, linework style, shading approach, and overall artistic treatment."""
+IMPORTANT: The CRITICAL REQUIREMENTS above override any styling details in the subject description. If there's a conflict (e.g., subject mentions colors but requirements say "NO COLOR"), follow the CRITICAL REQUIREMENTS. Focus on capturing the emotional/structural aspects of the subject using the artistic style shown in the reference image."""
         else:
             prompt = f"""Create a reference image showing this {spec_type.replace('_', ' ')} preset.
 
@@ -583,6 +596,59 @@ SUBJECT DETAILS:
 {f"INSTRUCTIONS: {additional_instructions}" if additional_instructions else ""}"""
 
         return prompt
+
+    def _extract_simplified_expression_description(self, spec: ExpressionSpec) -> str:
+        """
+        Extract a simplified expression description that focuses on emotion and
+        facial muscle movements, stripping out styling details like makeup colors,
+        lipstick shades, etc. that might conflict with custom visualization styles.
+
+        Args:
+            spec: The expression spec object
+
+        Returns:
+            Simplified description string focusing on structural/emotional aspects
+        """
+        import re
+
+        def simplify_description(text: str) -> str:
+            """Remove color, makeup, and styling details from a description"""
+            # Remove specific styling details that might conflict with custom viz
+            patterns_to_remove = [
+                r'painted with.*?lipstick',
+                r'vibrant red lipstick',
+                r'dark eyeliner',
+                r'long lashes',
+                r'full and.*?lips',
+                r'almond-shaped',
+                r'framed by.*?\.',
+                r'well-defined and arched',
+                r'symmetrical and well-groomed'
+            ]
+
+            cleaned = text
+            for pattern in patterns_to_remove:
+                cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
+
+            # Clean up extra whitespace and periods
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            cleaned = re.sub(r'\.\s*\.', '.', cleaned)
+
+            return cleaned
+
+        # Simplify each component
+        mouth_simplified = simplify_description(spec.mouth)
+        eyes_simplified = simplify_description(spec.eyes)
+        eyebrows_simplified = simplify_description(spec.eyebrows)
+
+        return f"""Expression: {spec.primary_emotion}
+Intensity: {spec.intensity}
+Overall Emotion: {spec.overall_mood}
+
+Facial Muscle Movements:
+- Mouth: {mouth_simplified}
+- Eyes: {eyes_simplified}
+- Eyebrows: {eyebrows_simplified}"""
 
     def _extract_subject_description(
         self,

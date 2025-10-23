@@ -1,0 +1,18 @@
+{
+  "config_id": "35a0d1a5-7106-4336-830e-c70f6f395a77",
+  "entity_type": "expression",
+  "display_name": "Facial Expression Drawing Manga",
+  "composition_style": "",
+  "framing": "medium",
+  "angle": "three_quarter",
+  "background": "white",
+  "art_style_id": null,
+  "lighting": "",
+  "reference_image_path": "/app/uploads/manga-expression.webp",
+  "additional_instructions": "Manga style hand-drawn facial expression, like a study in drawing faces. Black ink on white background. NO COLOR. Like an ink drawing in a b&w manga. Face should be facing screen right at 3/4 view. Entire head should be visible like the reference image.",
+  "image_size": "1024x1024",
+  "model": "gemini/gemini-2.5-flash-image",
+  "created_at": "2025-10-23T15:58:47.515294",
+  "updated_at": "2025-10-23T17:43:44.120258",
+  "is_default": true
+}
