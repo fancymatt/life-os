@@ -1321,6 +1321,214 @@ Each domain becomes a plugin following the same pattern as Board Games (Phase 4)
 
 ---
 
+## Consistency & Flexibility Principles (CRITICAL)
+
+**Core Philosophy**: Features should function the same everywhere. Entities should have a familiar look, feel, and function. Tools should resemble other tools. This predictability is essential for complex workflows and system maintainability.
+
+### Consistency Across Entities
+
+**Pattern**: Characters, Clothing Items, Stories, Visual Styles, Board Games, Q&As—all entities follow the same patterns:
+
+- **EntityBrowser Component** (unified UI)
+  - List view with search, filters, sorting
+  - Grid/table toggle
+  - Preview images where applicable
+  - Detail view with tabs (Overview, Gallery, Related)
+  - Edit mode (inline or modal)
+  - Actions menu (Edit, Delete, Favorite, etc.)
+
+- **Entity Config Pattern** (`configs/{entity}Config.jsx`)
+  - `entityType`: Unique identifier
+  - `title`, `icon`, `emptyMessage`
+  - `fetchEntities()`: Load data from API
+  - `renderCard()`: Grid view rendering
+  - `renderPreview()`: Preview/thumbnail
+  - `renderDetail()`: Detail view content
+  - `actions[]`: Entity-specific actions
+  - `tabs[]`: Additional tabs (Gallery, Related, etc.)
+
+- **Backend Service Pattern** (`services/{entity}_service.py`)
+  - `list_{entities}()`: Paginated list
+  - `get_{entity}(id)`: Get single entity
+  - `create_{entity}()`: Create new
+  - `update_{entity}()`: Update existing
+  - `delete_{entity}()`: Soft delete
+  - Consistent error handling
+  - Consistent logging
+
+**Why This Matters**:
+- New developers understand the system immediately
+- Adding new entity types takes hours, not days
+- Users know how to use new features instantly
+- Complex workflows can safely assume entities behave predictably
+- Testing patterns are reusable across all entities
+
+### Consistency Across Tools
+
+**Pattern**: All AI tools (analyzers, generators, visualizers) follow the same patterns:
+
+- **Tool Configuration** (`data/tool_configs/{tool}.yaml`)
+  - Model selection (cloud or local)
+  - Temperature, max_tokens
+  - Custom system prompts
+  - Template overrides
+
+- **Tool Interface** (`ai_tools/{tool}/tool.py`)
+  - Constructor accepts model config
+  - `analyze()` or `generate()` method (sync)
+  - `aanalyze()` or `agenerate()` method (async)
+  - Returns structured result (Pydantic model)
+  - Handles errors gracefully
+
+- **Frontend Tool UI** (when applicable)
+  - Image upload or text input
+  - Tool-specific parameters
+  - Progress tracking
+  - Results display with save options
+  - Consistent styling and layout
+
+**Why This Matters**:
+- Tools are interchangeable in workflows
+- Model selection works the same everywhere
+- Testing tools follows the same pattern
+- Tool configuration UI is unified
+- Users understand new tools immediately
+
+### Flexibility Through Reusability
+
+**Key Example**: **Item Visualizer** (`ai_tools/item_visualizer/tool.py`)
+
+This tool demonstrates perfect flexibility:
+- **Works with ANY entity type** (characters, clothing, presets, etc.)
+- **Configurable templates** per entity type
+- **Reusable prompting logic** - adapts to entity fields
+- **Generic interface** - doesn't hardcode entity structure
+- **Template overrides** - customizable per use case
+
+```python
+# Works for characters
+visualizer.generate_visualization(entity_type="character", entity_data=character)
+
+# Works for clothing items
+visualizer.generate_visualization(entity_type="clothing_item", entity_data=item)
+
+# Works for ANY future entity
+visualizer.generate_visualization(entity_type="board_game", entity_data=game)
+```
+
+**Other Examples of Flexibility**:
+- **EntityBrowser** renders ANY entity type via config
+- **LLMRouter** works with ANY provider (Gemini, OpenAI, local)
+- **Workflow engine** executes ANY tool combination
+- **Generic Q&A entity** supports multiple contexts (document, general, image, comparison)
+
+**Why This Matters**:
+- Build once, use everywhere
+- Adding new entity types doesn't require new UI components
+- Workflows can combine any tools predictably
+- System scales without growing code complexity
+- Maintenance burden stays constant as system grows
+
+### Recent Work as the "Ideal Template"
+
+**These patterns are proven and should be followed for ALL new features**:
+
+✅ **Characters Entity** (2025-10)
+- Full CRUD with EntityBrowser
+- Appearance analyzer integration
+- Gallery tab showing related images
+- Import from subject images
+- Action buttons in detail view
+- **Template for future entities**
+
+✅ **Clothing Items Entity** (2025-10)
+- Database-backed with migrations
+- Preview image generation
+- Category-based organization
+- Layering support in composer
+- **Template for catalog-style entities**
+
+✅ **Visualization Configs Entity** (2025-10)
+- Reference image support
+- Tool configuration integration
+- Reusable across entity types
+- **Template for configuration entities**
+
+✅ **Item Visualizer Tool** (2025-10)
+- Works with any entity type
+- Template-based prompting
+- Configurable via YAML
+- **Template for flexible tools**
+
+✅ **Story Workflow** (2025-10)
+- Multi-tool orchestration
+- Data passing between tools
+- Job queue integration
+- **Template for complex workflows**
+
+### Applying These Principles Going Forward
+
+**Phase 3 (Plugin Architecture)**:
+- Plugins MUST follow entity/tool patterns
+- Plugin manifest enforces consistency
+- Plugin developer docs reference these patterns
+- Example plugin demonstrates all patterns
+
+**Phase 4 (Board Game Assistant)**:
+- Board Game entity follows entity config pattern
+- Q&A entity follows entity config pattern
+- Document processor follows tool pattern
+- Rules gatherer follows tool pattern
+- **First plugin to validate pattern consistency**
+
+**Phase 5 (Agent Framework)**:
+- Agents use existing tools (no custom logic)
+- Agents work with any entity type
+- Agent UI follows familiar patterns
+- **Agents orchestrate, don't duplicate**
+
+**Phase 6 (Domain Expansion)**:
+- Every new domain is a plugin
+- Every plugin follows the same patterns
+- Zero custom UI components (use EntityBrowser)
+- Zero custom service patterns
+- **Consistency enables rapid expansion**
+
+### Anti-Patterns to Avoid
+
+❌ **Custom entity UI components** - Use EntityBrowser with config instead
+❌ **Tool-specific prompting in workflows** - Use tool's existing interface
+❌ **Hardcoded entity types in code** - Use configuration and dynamic dispatch
+❌ **Duplicate service layer code** - Extract to shared base classes
+❌ **One-off API endpoints** - Follow REST conventions
+❌ **Custom state management** - Use existing patterns (React Context, job queue)
+❌ **Entity-specific UI layouts** - Configure EntityBrowser instead
+
+### Success Criteria
+
+**When adding a new entity type, you should be able to**:
+1. Create entity config in <1 hour
+2. Reuse EntityBrowser component (no new JSX)
+3. Follow service layer pattern (no custom logic)
+4. Add to navigation in 5 minutes
+5. Users understand it immediately
+
+**When adding a new tool, you should be able to**:
+1. Create tool class in <2 hours
+2. Add configuration YAML in 15 minutes
+3. Integrate with existing UI (if needed)
+4. Test with existing tool test patterns
+5. Use in workflows without modification
+
+**When building a complex feature, you should be able to**:
+1. Compose existing tools (not write new ones)
+2. Use existing entity types (not create custom data structures)
+3. Follow workflow patterns (not create custom orchestration)
+4. Predict behavior based on existing patterns
+5. Test using existing test infrastructure
+
+---
+
 ## Key Architecture Decisions
 
 **Why Database Migration First (Phase 1.1)?**
