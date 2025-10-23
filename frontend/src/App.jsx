@@ -49,6 +49,9 @@ import StoryIllustratorPage from './pages/StoryIllustratorPage'
 // Tool Pages - Generators
 import ModularGenerator from './ModularGenerator'
 
+// Tool Pages - Visualization
+import VisualizationConfig from './tools/VisualizationConfig'
+
 // Workflow Pages
 import StoryWorkflowPage from './pages/StoryWorkflowPage'
 
@@ -171,6 +174,9 @@ function App() {
           <Route path="bgg-rulebook-fetcher" element={<BGGRulebookFetcher />} />
           <Route path="document-processor" element={<DocumentProcessor />} />
           <Route path="document-question-asker" element={<DocumentQuestionAsker />} />
+
+          {/* Visualization Tools */}
+          <Route path="visualization-config" element={<VisualizationConfig />} />
         </Route>
 
         {/* Workflows */}

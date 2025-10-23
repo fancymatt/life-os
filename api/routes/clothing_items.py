@@ -601,7 +601,7 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
     """Background task to generate test image of character wearing clothing item"""
     from api.services.job_queue import get_job_queue_manager
     from api.database import get_session
-    from api.services.character_service import CharacterService
+    from api.services.character_service_db import CharacterServiceDB
     from ai_tools.modular_image_generator.tool import ModularImageGenerator
     from api.config import settings
     from pathlib import Path
@@ -621,8 +621,8 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
                 return
 
             # Load character by name (case-insensitive)
-            character_service = CharacterService()
-            character = character_service.get_character_by_name(character_id)
+            character_service = CharacterServiceDB(session, user_id=None)
+            character = await character_service.get_character_by_name(character_id)
 
             if not character:
                 job_manager.fail_job(job_id, f"Character '{character_id}' not found")

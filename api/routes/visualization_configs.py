@@ -14,9 +14,28 @@ from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 from api.logging_config import get_logger
 from api.middleware.cache import cached, invalidates_cache
+from api.utils.file_paths import get_app_relative_path
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+# Helper Functions
+def normalize_reference_image_path(path: Optional[str]) -> Optional[str]:
+    """
+    Normalize reference image path for frontend consumption.
+
+    Converts container paths like /app/uploads/image.png to web-accessible
+    paths like /uploads/image.png
+    """
+    if not path:
+        return None
+
+    # Get relative path (strips /app prefix)
+    relative = get_app_relative_path(path)
+
+    # Return with leading slash for web access
+    return f"/{relative}" if relative else None
 
 
 # Request/Response Models
@@ -121,7 +140,7 @@ async def list_visualization_configs(
             background=config['background'],
             lighting=config['lighting'],
             art_style_id=config.get('art_style_id'),
-            reference_image_path=config.get('reference_image_path'),
+            reference_image_path=normalize_reference_image_path(config.get('reference_image_path')),
             additional_instructions=config.get('additional_instructions', ''),
             image_size=config.get('image_size', '1024x1024'),
             model=config.get('model', 'gemini/gemini-2.5-flash-image'),
@@ -193,7 +212,7 @@ async def get_default_config(
         background=config['background'],
         lighting=config['lighting'],
         art_style_id=config.get('art_style_id'),
-        reference_image_path=config.get('reference_image_path'),
+        reference_image_path=normalize_reference_image_path(config.get('reference_image_path')),
         additional_instructions=config.get('additional_instructions', ''),
         image_size=config.get('image_size', '1024x1024'),
         model=config.get('model', 'gemini/gemini-2.5-flash-image'),
@@ -233,7 +252,7 @@ async def get_visualization_config(
         background=config['background'],
         lighting=config['lighting'],
         art_style_id=config.get('art_style_id'),
-        reference_image_path=config.get('reference_image_path'),
+        reference_image_path=normalize_reference_image_path(config.get('reference_image_path')),
         additional_instructions=config.get('additional_instructions', ''),
         image_size=config.get('image_size', '1024x1024'),
         model=config.get('model', 'gemini/gemini-2.5-flash-image'),
@@ -285,7 +304,7 @@ async def create_visualization_config(
         background=config['background'],
         lighting=config['lighting'],
         art_style_id=config.get('art_style_id'),
-        reference_image_path=config.get('reference_image_path'),
+        reference_image_path=normalize_reference_image_path(config.get('reference_image_path')),
         additional_instructions=config.get('additional_instructions', ''),
         image_size=config.get('image_size', '1024x1024'),
         model=config.get('model', 'gemini/gemini-2.5-flash-image'),
@@ -345,7 +364,7 @@ async def update_visualization_config(
         background=config['background'],
         lighting=config['lighting'],
         art_style_id=config.get('art_style_id'),
-        reference_image_path=config.get('reference_image_path'),
+        reference_image_path=normalize_reference_image_path(config.get('reference_image_path')),
         additional_instructions=config.get('additional_instructions', ''),
         image_size=config.get('image_size', '1024x1024'),
         model=config.get('model', 'gemini/gemini-2.5-flash-image'),

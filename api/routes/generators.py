@@ -6,8 +6,9 @@ Endpoints for running image generators.
 
 import time
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from typing import List
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.requests import GenerateRequest, ModularGenerateRequest
 from api.models.responses import GenerateResponse, ToolInfo
@@ -17,6 +18,7 @@ from api.models.jobs import JobType
 from api.config import settings
 from api.routes.analyzers import download_or_decode_image
 from api.logging_config import get_logger
+from api.database import get_db
 
 router = APIRouter()
 generator_service = GeneratorService()
@@ -32,7 +34,11 @@ async def list_generators():
 
 
 @router.post("/modular")
-async def generate_modular(request: ModularGenerateRequest, background_tasks: BackgroundTasks):
+async def generate_modular(
+    request: ModularGenerateRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
     """
     Modular generation endpoint for frontend workflow
 
@@ -41,14 +47,14 @@ async def generate_modular(request: ModularGenerateRequest, background_tasks: Ba
     Generates multiple variations in the background.
     """
     from ai_tools.modular_image_generator.tool import ModularImageGenerator
-    from api.services.character_service import CharacterService
+    from api.services.character_service_db import CharacterServiceDB
 
     # Resolve subject image path
     # Check if it's a character reference
     if request.subject_image.startswith("character:"):
         character_id = request.subject_image.split(":", 1)[1]
-        character_service = CharacterService()
-        character_data = character_service.get_character(character_id)
+        character_service = CharacterServiceDB(db, user_id=None)
+        character_data = await character_service.get_character(character_id)
 
         if not character_data:
             raise HTTPException(status_code=404, detail=f"Character not found: {character_id}")

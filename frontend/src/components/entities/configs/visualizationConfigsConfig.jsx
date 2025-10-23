@@ -272,7 +272,12 @@ export const visualizationConfigsConfig = {
   searchFields: ['display_name', 'entity_type'],
 
   actions: [
-    // New Config action will be implemented with inline create form later
+    {
+      label: 'New Config',
+      icon: '+',
+      primary: true,
+      path: '/tools/visualization-config'
+    }
   ],
 
   fetchEntities: async () => {
