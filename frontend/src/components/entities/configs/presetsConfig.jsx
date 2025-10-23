@@ -281,6 +281,144 @@ export const makeupsConfig = createPresetConfig({
   analyzerPath: 'makeup'
 })
 
+/**
+ * Hair Style Preview Component (matches clothing items layout)
+ */
+function HairStylePreview({ entity, onUpdate }) {
+  const handleGeneratePreview = async (e) => {
+    const button = e.currentTarget
+    const originalText = button.textContent
+
+    try {
+      button.disabled = true
+      button.textContent = '⏳ Queueing...'
+
+      await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
+      console.log('Preview generation started')
+
+      button.textContent = '✅ Queued!'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+        if (onUpdate) onUpdate()
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to generate preview:', err)
+      button.textContent = '❌ Failed'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    }
+  }
+
+  const handleCreateTestImage = async (e) => {
+    const button = e.currentTarget
+    const originalText = button.textContent
+
+    try {
+      button.disabled = true
+      button.textContent = '⏳ Queueing...'
+
+      await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
+      console.log('Test image generation started')
+
+      button.textContent = '✅ Queued!'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to generate test image:', err)
+      button.textContent = '❌ Failed'
+      setTimeout(() => {
+        button.textContent = originalText
+        button.disabled = false
+      }, 2000)
+    }
+  }
+
+  return (
+    <div style={{ padding: '1rem' }}>
+      {/* Preview Image */}
+      <div style={{ marginBottom: '1rem' }}>
+        <LazyImage
+          src={`/api/presets/hair_styles/${entity.presetId}/preview?t=${Date.now()}`}
+          alt={entity.title}
+          style={{
+            width: '100%',
+            height: 'auto',
+            borderRadius: '8px',
+            display: 'block'
+          }}
+          onError={(e) => {
+            e.target.style.display = 'none'
+          }}
+        />
+      </div>
+
+      {/* Generate Preview Button */}
+      <button
+        onClick={handleGeneratePreview}
+        style={{
+          width: '100%',
+          padding: '0.75rem',
+          marginBottom: '0.5rem',
+          background: 'rgba(168, 85, 247, 0.2)',
+          border: '1px solid rgba(168, 85, 247, 0.3)',
+          borderRadius: '8px',
+          color: 'rgba(168, 85, 247, 1)',
+          cursor: 'pointer',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.3)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'
+          }
+        }}
+      >
+        🎨 Generate Preview
+      </button>
+
+      {/* Create Test Image Button */}
+      <button
+        onClick={handleCreateTestImage}
+        style={{
+          width: '100%',
+          padding: '0.75rem',
+          background: 'rgba(99, 102, 241, 0.2)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          borderRadius: '8px',
+          color: 'rgba(99, 102, 241, 1)',
+          cursor: 'pointer',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'
+          }
+        }}
+      >
+        🎨 Create Test Image
+      </button>
+    </div>
+  )
+}
+
 export const hairStylesConfig = {
   ...createPresetConfig({
     entityType: 'hair style',
@@ -290,36 +428,7 @@ export const hairStylesConfig = {
     analyzerPath: 'hair-style'
   }),
   enableGallery: true,
-  actions: [
-    {
-      label: 'Generate Preview',
-      icon: '🎨',
-      handler: async (entity) => {
-        try {
-          const response = await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
-          console.log('Preview generation started:', response.data)
-          return { success: true, message: 'Preview generation started' }
-        } catch (err) {
-          console.error('Failed to generate preview:', err)
-          return { success: false, message: err.response?.data?.detail || 'Failed to generate preview' }
-        }
-      }
-    },
-    {
-      label: 'Generate Test Image',
-      icon: '🧪',
-      handler: async (entity) => {
-        try {
-          const response = await api.post(`/presets/hair_styles/${entity.presetId}/generate-test`)
-          console.log('Test image generation started:', response.data)
-          return { success: true, message: 'Test image generation started' }
-        } catch (err) {
-          console.error('Failed to generate test image:', err)
-          return { success: false, message: err.response?.data?.detail || 'Failed to generate test image' }
-        }
-      }
-    }
-  ]
+  renderPreview: (entity, onUpdate) => <HairStylePreview entity={entity} onUpdate={onUpdate} />
 }
 
 export const hairColorsConfig = createPresetConfig({
