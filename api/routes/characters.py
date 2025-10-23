@@ -4,7 +4,7 @@ Character Routes
 Endpoints for managing character entities.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, BackgroundTasks, Query
 from fastapi.responses import FileResponse
 from typing import Optional, List
 import base64
@@ -30,16 +30,19 @@ logger = get_logger(__name__)
 
 @router.get("/", response_model=CharacterListResponse)
 async def list_characters(
+    limit: Optional[int] = Query(None, description="Maximum number of characters to return"),
+    offset: int = Query(0, description="Number of characters to skip"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
     List all characters
 
-    Returns a list of all character entities with their metadata.
+    Returns a list of character entities with their metadata.
+    Supports pagination via limit/offset parameters.
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
-    characters = await service.list_characters()
+    characters = await service.list_characters(limit=limit, offset=offset)
 
     character_infos = []
     for char in characters:

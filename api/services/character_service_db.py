@@ -140,14 +140,26 @@ class CharacterServiceDB:
 
         return self._character_to_dict(character)
 
-    async def list_characters(self) -> List[Dict[str, Any]]:
+    async def list_characters(
+        self,
+        limit: Optional[int] = None,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """
         List all characters (filtered by user if specified)
+
+        Args:
+            limit: Maximum number of characters to return
+            offset: Number of characters to skip
 
         Returns:
             List of character data dicts
         """
-        characters = await self.repository.get_all(user_id=self.user_id)
+        characters = await self.repository.get_all(
+            user_id=self.user_id,
+            limit=limit,
+            offset=offset
+        )
         return [self._character_to_dict(char) for char in characters]
 
     async def update_character(

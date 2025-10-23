@@ -34,12 +34,22 @@ class BoardGameRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_all(self, user_id: Optional[int] = None) -> List[BoardGame]:
-        """Get all board games, optionally filtered by user"""
+    async def get_all(
+        self,
+        user_id: Optional[int] = None,
+        limit: Optional[int] = None,
+        offset: int = 0
+    ) -> List[BoardGame]:
+        """Get all board games, optionally filtered by user with pagination support"""
         query = select(BoardGame).order_by(BoardGame.name)
 
         if user_id is not None:
             query = query.where(BoardGame.user_id == user_id)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        query = query.offset(offset)
 
         result = await self.session.execute(query)
         return list(result.scalars().all())

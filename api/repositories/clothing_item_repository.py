@@ -30,9 +30,11 @@ class ClothingItemRepository:
     async def get_all(
         self,
         user_id: Optional[int] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: int = 0
     ) -> List[ClothingItem]:
-        """Get all clothing items, optionally filtered"""
+        """Get all clothing items, optionally filtered with pagination support"""
         query = select(ClothingItem).order_by(ClothingItem.created_at.desc())
 
         if user_id is not None:
@@ -40,6 +42,11 @@ class ClothingItemRepository:
 
         if category:
             query = query.where(ClothingItem.category == category)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        query = query.offset(offset)
 
         result = await self.session.execute(query)
         return list(result.scalars().all())

@@ -73,19 +73,16 @@ class ClothingItemServiceDB:
         Returns:
             List of clothing item dicts
         """
-        # Get all items (repository handles category filtering)
-        items = await self.repository.get_all(user_id=self.user_id, category=category)
+        # Get items with pagination (repository handles filtering and pagination at database level)
+        items = await self.repository.get_all(
+            user_id=self.user_id,
+            category=category,
+            limit=limit,
+            offset=offset
+        )
 
         # Convert to dicts
-        item_dicts = [self._clothing_item_to_dict(item) for item in items]
-
-        # Apply pagination
-        if offset:
-            item_dicts = item_dicts[offset:]
-        if limit:
-            item_dicts = item_dicts[:limit]
-
-        return item_dicts
+        return [self._clothing_item_to_dict(item) for item in items]
 
     async def get_clothing_item(self, item_id: str) -> Optional[Dict[str, Any]]:
         """
