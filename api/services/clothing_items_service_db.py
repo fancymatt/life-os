@@ -353,17 +353,30 @@ class ClothingItemServiceDB:
 
             # Generate preview using ItemVisualizer
             # Save to output directory so nginx can serve it
+            # Add timestamp to filename to prevent browser caching issues when regenerating
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             preview_path = self.visualizer.visualize(
                 entity=item_entity,
                 entity_type="clothing_item",
                 config=config,
                 output_dir=settings.output_dir / "clothing_items",
-                filename=f"{item_id}_preview"
+                filename=f"{item_id}_preview_{timestamp}"
             )
 
             # Convert to web-accessible URL path
             # /app/output/clothing_items/xyz.png -> /output/clothing_items/xyz.png
             web_path = f"/output/clothing_items/{preview_path.name}"
+
+            # Delete old preview if it exists (to save disk space)
+            if clothing_item.preview_image_path:
+                old_preview_name = Path(clothing_item.preview_image_path).name
+                old_preview_path = settings.output_dir / "clothing_items" / old_preview_name
+                if old_preview_path.exists():
+                    try:
+                        old_preview_path.unlink()
+                        logger.debug(f"Deleted old preview: {old_preview_name}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete old preview {old_preview_name}: {e}")
 
             # Update item with preview path
             clothing_item.preview_image_path = web_path
