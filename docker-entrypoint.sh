@@ -14,4 +14,4 @@ fi
 
 # Start the API server
 echo "✅ Starting FastAPI server..."
-exec python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+exec python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
