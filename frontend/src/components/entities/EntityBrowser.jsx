@@ -387,7 +387,7 @@ function EntityBrowser({ config }) {
   const handleDelete = async () => {
     if (!selectedEntity || !config.enableEdit) return
 
-    if (!window.confirm(`Are you sure you want to delete "${selectedEntity.title}"?`)) {
+    if (!window.confirm(`Are you sure you want to archive "${selectedEntity.title}"?`)) {
       return
     }
 
@@ -723,7 +723,7 @@ function EntityBrowser({ config }) {
                             disabled={saving}
                             className="delete-button"
                           >
-                            Delete
+                            Archive
                           </button>
                         </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
@@ -783,7 +783,7 @@ function EntityBrowser({ config }) {
                               disabled={saving}
                               className="delete-button"
                             >
-                              Delete
+                              Archive
                             </button>
                           </div>
                           <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
