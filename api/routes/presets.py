@@ -15,6 +15,7 @@ from api.models.responses import PresetListResponse, PresetInfo
 from api.services import PresetService
 
 router = APIRouter()
+logger = get_logger(__name__)
 preset_service = PresetService()
 
 
