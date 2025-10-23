@@ -80,7 +80,6 @@ function VisualizationConfigEditor({ entity, editedData, editedTitle, handlers }
           value={editedData.entity_type || ''}
           onChange={(e) => handlers.updateField('entity_type', e.target.value)}
           style={inputStyle}
-          disabled
         >
           <option value="character">Character</option>
           <option value="clothing_item">Clothing Item</option>
@@ -93,9 +92,6 @@ function VisualizationConfigEditor({ entity, editedData, editedTitle, handlers }
           <option value="hair_style">Hair Style</option>
           <option value="hair_color">Hair Color</option>
         </select>
-        <small style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.85rem', display: 'block', marginTop: '0.5rem' }}>
-          Cannot be changed after creation
-        </small>
       </div>
 
       {/* Composition Style */}

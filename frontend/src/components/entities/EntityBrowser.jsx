@@ -456,8 +456,9 @@ function EntityBrowser({ config }) {
         if (result && result.success === false) {
           setError(result.message || 'Action failed')
         }
-        // If action returns navigateTo, navigate to that path
+        // If action returns navigateTo, refresh data first then navigate
         if (result && result.navigateTo) {
+          await fetchData()
           navigate(result.navigateTo)
           return
         }
