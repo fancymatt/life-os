@@ -336,6 +336,141 @@ export const {category}Config = {
 
 ---
 
+## Database Session Handling (CRITICAL)
+
+**Context**: Entities that create database records (like clothing items from outfit analyzer) need proper database session management.
+
+### The Problem
+
+When analyzer tools (like `OutfitAnalyzer`) are created without a database session, they may fall back to old file-based storage instead of using PostgreSQL.
+
+**Bug Example** (October 2025 - Outfit Analyzer):
+```python
+# ❌ WRONG - AnalyzerService creates OutfitAnalyzer without session
+class AnalyzerService:
+    def _get_analyzer(self, analyzer_name: str):
+        if analyzer_name == "outfit":
+            return OutfitAnalyzer(auto_visualize=auto_visualize)
+            # No db_session parameter passed!
+```
+
+**Result**:
+- Outfit analyzer fell back to `ClothingItemsService()` (file-based)
+- New items saved to JSON files (which were deleted during migration)
+- Items never appeared in PostgreSQL database
+- User reported: "I ran outfit analysis but don't see any clothing items"
+
+### The Solution
+
+Analyzer tools should create their own database session when one isn't provided:
+
+```python
+# ✅ CORRECT - Analyzer creates session when needed
+class OutfitAnalyzer:
+    def __init__(
+        self,
+        db_session = None,
+        user_id: Optional[int] = None,
+        auto_visualize: bool = True
+    ):
+        self.db_session = db_session
+        self.user_id = user_id
+        self.owns_session = (db_session is None)
+
+        if db_session is not None:
+            # Use provided session
+            from api.services.clothing_items_service_db import ClothingItemServiceDB
+            self.clothing_service = ClothingItemServiceDB(db_session, user_id=user_id)
+            self.use_db = True
+        else:
+            # Create session on-the-fly during analysis
+            logger.info("Initialized without db_session - will create sessions as needed")
+            self.clothing_service = None  # Created per-analysis
+            self.use_db = True  # Use database by default, NOT files
+```
+
+**During analysis** (create session when needed):
+
+```python
+async def aanalyze(self, image_path: Path):
+    # Perform analysis...
+    analysis = await self.router.acall_structured(...)
+
+    # Save items to database
+    created_items = []
+
+    if self.clothing_service is None:
+        # Create our own session
+        from api.database import get_session
+        from api.services.clothing_items_service_db import ClothingItemServiceDB
+
+        async with get_session() as session:
+            service = ClothingItemServiceDB(session, user_id=self.user_id)
+
+            for item_data in analysis.clothing_items:
+                item_dict = await service.create_clothing_item(
+                    category=item_data["category"],
+                    item=item_data["item"],
+                    # ... other fields
+                )
+                created_items.append(item_dict)
+    else:
+        # Use existing service (session provided to __init__)
+        for item_data in analysis.clothing_items:
+            item_dict = await self.clothing_service.create_clothing_item(...)
+            created_items.append(item_dict)
+
+    return {"clothing_items": created_items}
+```
+
+### When to Use This Pattern
+
+Use this pattern when your analyzer/tool:
+- ✅ Creates database records (clothing items, characters, etc.)
+- ✅ May be called from AnalyzerService (without session)
+- ✅ May be called from API routes (with session)
+- ✅ Needs to work in both contexts
+
+### Testing Checklist
+
+When migrating an entity to PostgreSQL:
+
+- [ ] **Test without session**: Verify analyzer creates its own session
+- [ ] **Test with session**: Verify analyzer uses provided session
+- [ ] **Test from AnalyzerService**: Verify items saved to PostgreSQL (not files)
+- [ ] **Test from API route**: Verify items saved correctly
+- [ ] **Check database**: `SELECT COUNT(*) FROM {table}` should increase after analysis
+- [ ] **Check file system**: Old JSON files should NOT be created
+- [ ] **Check logs**: Should see "will create sessions as needed" or session creation
+
+### Migration Checklist for Other Entities
+
+When migrating characters, visual styles, etc. to PostgreSQL:
+
+1. **Update analyzer tool**:
+   - Accept optional `db_session` parameter
+   - Create session if not provided
+   - Use `get_session()` context manager
+   - Fall back to database, NOT files
+
+2. **Update service layer**:
+   - Create `{entity}_service_db.py` with SQLAlchemy ORM
+   - Keep old `{entity}_service.py` temporarily for migration scripts
+   - Use async database operations
+
+3. **Test thoroughly**:
+   - Run analysis without session (from AnalyzerService)
+   - Run analysis with session (from API route)
+   - Verify database records created
+   - Verify NO file-based records created
+
+4. **Update documentation**:
+   - Add note to PRESET_ENTITY_PATTERN.md
+   - Update API_ARCHITECTURE.md
+   - Document in CLAUDE.md
+
+---
+
 ## Common Mistakes & Fixes
 
 ### Mistake 1: Nested Background Task Functions
@@ -416,6 +551,33 @@ visualizer.generate_preset_visualization()  # Method doesn't exist
 from ai_tools.shared.visualizer import PresetVisualizer
 visualizer.visualize(category, spec, output_dir, preset_id, quality)
 ```
+
+### Mistake 6: Analyzer Creates Entities Without Database Session
+```python
+# ❌ WRONG - Analyzer falls back to file-based storage
+class OutfitAnalyzer:
+    def __init__(self):
+        self.clothing_service = ClothingItemsService()  # File-based!
+```
+
+**Fix**: Create database session when needed (see **Database Session Handling** section above)
+```python
+# ✅ CORRECT - Use database by default
+class OutfitAnalyzer:
+    def __init__(self, db_session=None, user_id=None):
+        if db_session is not None:
+            self.clothing_service = ClothingItemServiceDB(db_session, user_id)
+        else:
+            self.clothing_service = None  # Create session during analysis
+
+    async def aanalyze(self, image_path):
+        if self.clothing_service is None:
+            async with get_session() as session:
+                service = ClothingItemServiceDB(session, self.user_id)
+                # Use service to save items
+```
+
+**Impact**: Without this fix, items are saved to JSON files (deleted) instead of PostgreSQL database. See full solution in "Database Session Handling" section.
 
 ---
 
