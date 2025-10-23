@@ -105,7 +105,50 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 
 ---
 
-### 2.3 UI Theme System (3 days)
+### 2.3 Complete Database Persistence (2-3 days) ⚠️ **DISCOVERED ISSUE**
+**Status**: NOT STARTED - Missing persistence for generated content
+**Priority**: HIGH - User data is being lost
+**Complexity**: Medium
+
+**Problem**: Database tables exist but some generated content is not being saved to the database.
+
+**Missing Persistence**:
+1. **Stories** (269 images generated but 0 rows in database)
+   - Table exists: `stories` + `story_scenes`
+   - Story workflow (`/api/workflows/story-generation`) generates illustrated stories
+   - Stories only saved to temporary job results (lost when jobs are cleared)
+   - Frontend fetches from `/api/jobs?limit=100` instead of dedicated stories API
+   - **Data Loss**: User reported generating many stories last week, all gone now
+
+2. **Q&As** (Using JSON files instead of database)
+   - Currently using `QAService` with JSON file storage in `data/qas/`
+   - Should be using database for consistency with other entities
+   - No database table exists (should be created)
+
+**Implementation Plan**:
+- [ ] Create `StoryServiceDB` (similar to `CharacterServiceDB`)
+- [ ] Create `/api/stories/` routes (GET list, GET detail, archive/unarchive)
+- [ ] Update story workflow to save to database after completion (api/routes/workflows.py:186)
+- [ ] Update `storiesConfig.jsx` to fetch from `/api/stories/` instead of `/api/jobs`
+- [ ] Create `qas` database table with migration
+- [ ] Create `QAServiceDB` to replace JSON file storage
+- [ ] Migrate existing Q&A JSON files to database (if any exist)
+
+**Success Criteria**:
+- Stories persist in database after workflow completes
+- Stories visible in `/entities/stories` even after page refresh
+- Stories survive job queue clears
+- Q&As stored in database instead of JSON files
+- No user data loss
+
+**Why This Matters**:
+- **Data Loss Prevention**: Generated content represents hours of work and API costs
+- **User Trust**: Losing generated stories breaks user confidence in the platform
+- **Consistency**: All entities should use database, not mix of database + JSON + job results
+
+---
+
+### 2.4 UI Theme System (3 days)
 **Priority**: HIGH - Foundation for all future UI work
 **Complexity**: Medium
 
@@ -271,7 +314,66 @@ CREATE TABLE alterations (
 
 ---
 
-### 2.9 Extremify Tool (2-3 days)
+### 2.9 Story Import & Text-to-Story (2-3 days)
+**Priority**: MEDIUM - Content flexibility
+**Complexity**: Low-Medium
+
+**Features**:
+- [ ] Import full story text (paste or file upload)
+- [ ] Parse story into title + body
+- [ ] Create story entity in database
+- [ ] Optional: Parse into scenes (AI-assisted)
+- [ ] Link to character if mentioned
+- [ ] Generate thumbnail from first paragraph
+
+**UI**:
+- [ ] "Import Story" button in Stories entity browser
+- [ ] Text area for paste or file upload
+- [ ] Preview before saving
+- [ ] Optional scene splitting
+
+**Success Criteria**:
+- Can import stories from external sources
+- Stories properly formatted and saved
+- Searchable and browsable like generated stories
+
+---
+
+### 2.10 NSFW Content Routing (1-2 days)
+**Priority**: MEDIUM - Content flexibility
+**Complexity**: Low
+
+**Problem**: Some LLM providers reject NSFW content, blocking generation
+
+**Solution**: Fallback routing to uncensored models
+
+**Implementation**:
+- [ ] Add NSFW detection in `ai_tools/shared/router.py`
+- [ ] Configure fallback model list in `configs/models.yaml`:
+  ```yaml
+  nsfw_fallback_models:
+    - "ollama/llama3.1:70b-instruct-q4"  # Local uncensored model
+    - "openrouter/meta-llama/llama-3.1-70b-instruct"  # Cloud fallback
+  ```
+- [ ] Catch content policy errors from Gemini/OpenAI
+- [ ] Auto-retry with fallback model
+- [ ] Log routing decisions for cost tracking
+
+**Workflow**:
+1. User generates image/story with mature content
+2. Gemini/OpenAI rejects request with policy error
+3. Router detects rejection, selects fallback model
+4. Retry generation with uncensored model
+5. Log warning: "Used NSFW fallback model"
+
+**Success Criteria**:
+- NSFW content generates without manual intervention
+- Fallback routing transparent to user
+- Cost tracking includes fallback usage
+
+---
+
+### 2.11 Extremify Tool (2-3 days)
 **Priority**: LOW - Fun creative feature
 **Complexity**: Medium
 
@@ -499,6 +601,54 @@ Amplify all unique features by {intensity}:
 - Can save from any device
 - Auto-categorization >80% accurate
 - One-click entity creation
+
+---
+
+### 3.8 Retroactive Story Illustration (1 week)
+**Priority**: MEDIUM - Enhance existing stories
+**Complexity**: Medium
+**Depends on**: Stories saved to database (Section 2.3)
+
+**Problem**: User has past stories (imported or old) without illustrations
+
+**Features**:
+- [ ] "Generate Illustrations" button on any story detail page
+- [ ] AI reads story and plans most impactful scenes to illustrate
+- [ ] User selects how many images (1-10)
+- [ ] AI generates illustration prompts for selected scenes
+- [ ] Generate images and link to story scenes
+- [ ] Update story with embedded images
+
+**Illustration Planning Agent**:
+- [ ] Reads full story text
+- [ ] Identifies key narrative moments:
+  - Character introductions
+  - Climactic scenes
+  - Emotional turning points
+  - Visually striking descriptions
+- [ ] Ranks scenes by illustration impact
+- [ ] Generates detailed art direction for each:
+  - Composition guidance
+  - Lighting/mood suggestions
+  - Character positioning
+  - Environmental details
+- [ ] Maintains visual consistency across illustrations
+
+**UI Flow**:
+1. User views story in `/entities/stories`
+2. Clicks "Generate Illustrations" button
+3. AI shows suggested scenes (ranked by impact)
+4. User selects scenes to illustrate (or accepts top N)
+5. AI generates art direction previews
+6. User approves or tweaks directions
+7. Generates illustrations
+8. Inserts images into story at scene markers
+
+**Success Criteria**:
+- Can illustrate any existing story
+- Illustration planning identifies impactful scenes
+- Art direction generates visually consistent images
+- Illustrations enhance story experience
 
 ---
 
@@ -1743,12 +1893,41 @@ policies:
 - [ ] Stress testing (failure scenarios)
 - [ ] Benchmark tracking over time
 
-**Voice Synthesis Service** (Experimental):
-- [ ] Local voice cloning (Coqui TTS, XTTS)
-- [ ] Character voice assignment
-- [ ] Story narration generation
-- [ ] Character dialogue TTS
+**Story Narration Generation** (Audiobook-style):
+- [ ] Local voice cloning (Coqui TTS, XTTS, Piper TTS)
+- [ ] Custom AI voice per character
+- [ ] Voice assignment UI (assign voice to character)
+- [ ] Full story narration generation
+- [ ] Separate narrator voice vs character dialogue
+- [ ] Chapter/scene markers in audio
+- [ ] Export as audiobook (MP3/M4B)
 - [ ] Separate Docker container for voice services
+
+**Workflow**:
+1. User selects story for narration
+2. System detects characters in story
+3. User assigns voice to each character (voice library or clone)
+4. User selects narrator voice
+5. AI generates audio:
+   - Narrator reads scene descriptions and actions
+   - Character voices speak dialogue
+   - Natural transitions between narrator and characters
+   - Emotional tone matches scene mood
+6. Stitches audio segments with chapter markers
+7. Exports as audiobook file
+
+**Advanced Features**:
+- [ ] Voice cloning from user samples (3-10 min audio)
+- [ ] Emotion control (happy, sad, angry, neutral)
+- [ ] Pacing control (slow, normal, fast)
+- [ ] Background music/ambiance (optional)
+- [ ] Pronunciation dictionary (character names, fantasy words)
+
+**Success Criteria**:
+- Generates natural-sounding audiobook narration
+- Character voices distinct and recognizable
+- Smooth transitions between narrator and dialogue
+- Export compatible with audiobook players
 
 **Tool Configuration UI**:
 - [ ] Visual tool configuration editor
@@ -1764,12 +1943,44 @@ policies:
 - [ ] Migrate components incrementally
 - [ ] Target: 80% type coverage
 
-**Video Generation** (Domain Expansion):
+**Story Video Dramatization** (Domain Expansion):
 - [ ] Sora API integration (OpenAI)
-- [ ] Video prompt enhancement
-- [ ] Video editing workflows
+- [ ] Video generation from story scenes
+- [ ] Dramatize key story moments as short videos
+- [ ] Video prompt enhancement (scene-to-video)
+- [ ] Character consistency across video frames
+- [ ] Video editing workflows (stitch scenes)
 - [ ] Video asset management
-- [ ] Video preview generation
+- [ ] Export as video montage or individual clips
+
+**Workflow**:
+1. User selects story scene to dramatize
+2. AI analyzes scene for:
+   - Character actions and movements
+   - Environment and setting
+   - Emotional tone and pacing
+   - Camera angles and transitions
+3. Generates video prompt with:
+   - Character descriptions (visual consistency)
+   - Action sequence breakdown
+   - Cinematic direction
+4. Sends to Sora API for video generation
+5. User reviews and can regenerate with tweaks
+6. Option to stitch multiple scenes into montage
+
+**Advanced Features**:
+- [ ] Character reference images for consistency
+- [ ] Scene-to-scene transitions
+- [ ] Background music sync
+- [ ] Voiceover narration (from narration feature)
+- [ ] Multiple camera angles for same scene
+- [ ] Export as trailer or full video story
+
+**Success Criteria**:
+- Videos match story scene descriptions
+- Character appearance consistent across scenes
+- Cinematic quality and composition
+- Smooth transitions between scenes
 
 **Code Management** (Domain Expansion):
 - [ ] Repository analysis tools

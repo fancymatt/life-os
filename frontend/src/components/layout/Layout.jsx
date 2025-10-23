@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Sidebar from './Sidebar'
 import TaskManager from '../../TaskManager'
+import ThemeToggle from '../ThemeToggle'
 import './Layout.css'
 
 function Layout() {
@@ -30,6 +31,7 @@ function Layout() {
           </button>
 
           <div className="header-actions">
+            <ThemeToggle />
             <span className="user-info">👤 {user?.username}</span>
             <button className="logout-button" onClick={handleLogout}>
               Logout
