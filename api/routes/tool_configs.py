@@ -245,7 +245,8 @@ async def update_tool_config(
 async def run_tool_test_job(
     job_id: str,
     tool_name: str,
-    temp_path: Path
+    temp_path: Path,
+    user_id: Optional[int] = None
 ):
     """Background task to run tool test and update job"""
     try:
@@ -270,7 +271,7 @@ async def run_tool_test_job(
 
             # Create database session for outfit analyzer to save clothing items
             async with get_session() as session:
-                analyzer = OutfitAnalyzer(model=model, db_session=session, user_id=None)
+                analyzer = OutfitAnalyzer(model=model, db_session=session, user_id=user_id)
                 result = await analyzer.aanalyze(temp_path)
                 await session.commit()  # Commit clothing item creations
 
@@ -409,7 +410,8 @@ async def test_tool(
             run_tool_test_job,
             job_id,
             tool_name,
-            temp_path
+            temp_path,
+            current_user.id if current_user else None
         )
 
         # Return job info
