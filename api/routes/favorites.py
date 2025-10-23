@@ -30,6 +30,10 @@ class FavoriteResponse(BaseModel):
     favorites: List[str]
 
 
+# CRITICAL: Support both with and without trailing slash to avoid FastAPI redirect issues
+# GET /favorites and GET /favorites/ both work
+# POST requests fail after redirect, so we need both paths
+@router.get("", response_model=List[str])
 @router.get("/", response_model=List[str])
 async def get_favorites(
     db: AsyncSession = Depends(get_db),
