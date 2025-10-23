@@ -42,7 +42,9 @@ from ai_capabilities.specs import (
     ExpressionSpec,
     AccessoriesSpec,
     ImageGenerationResult,
-    ImageGenerationRequest
+    ImageGenerationRequest,
+    ClothingItemEntity,
+    ClothingCategory
 )
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.preset import PresetManager
@@ -120,6 +122,63 @@ class ModularImageGenerator:
             style_genre=style_genre,
             formality=formality,
             aesthetic=aesthetic
+        )
+
+    async def _load_clothing_items_from_db(self, **clothing_categories) -> Optional[OutfitSpec]:
+        """
+        Load clothing items from database and create an OutfitSpec
+
+        Args:
+            **clothing_categories: Keyword arguments for each clothing category
+                                  (headwear, tops, bottoms, etc.)
+
+        Returns:
+            OutfitSpec containing all clothing items, or None if no items provided
+        """
+        from api.database import get_session
+        from api.services.clothing_items_service_db import ClothingItemServiceDB
+
+        all_clothing_items = []
+
+        # Iterate through all clothing categories
+        for category_key, item_ids in clothing_categories.items():
+            if not item_ids:
+                continue
+
+            # Ensure item_ids is a list
+            if isinstance(item_ids, str):
+                item_ids = [item_ids]
+
+            # Load each item from database
+            async with get_session() as session:
+                service = ClothingItemServiceDB(session)
+
+                for item_id in item_ids:
+                    item_dict = await service.get_clothing_item(item_id)
+                    if item_dict:
+                        # Convert database dict to ClothingItemEntity
+                        clothing_item = ClothingItemEntity(
+                            item_id=item_dict['item_id'],
+                            category=ClothingCategory(item_dict['category']),
+                            item=item_dict['item'],
+                            fabric=item_dict['fabric'],
+                            color=item_dict['color'],
+                            details=item_dict['details']
+                        )
+                        all_clothing_items.append(clothing_item)
+                        print(f"  ✓ Loaded {item_dict['category']}: {item_dict['item']}")
+
+        if not all_clothing_items:
+            return None
+
+        print(f"🧥 Loaded {len(all_clothing_items)} clothing items from database")
+
+        return OutfitSpec(
+            suggested_name="Custom Outfit from Clothing Items",
+            clothing_items=all_clothing_items,
+            style_genre="Custom",
+            formality="Custom",
+            aesthetic=None
         )
 
     def generate(
@@ -377,6 +436,23 @@ class ModularImageGenerator:
         self,
         subject_image: Union[Path, str],
         outfit: Optional[Union[str, list, OutfitSpec]] = None,
+        # Clothing item categories (database IDs)
+        headwear: Optional[Union[str, list]] = None,
+        eyewear: Optional[Union[str, list]] = None,
+        earrings: Optional[Union[str, list]] = None,
+        neckwear: Optional[Union[str, list]] = None,
+        tops: Optional[Union[str, list]] = None,
+        overtops: Optional[Union[str, list]] = None,
+        outerwear: Optional[Union[str, list]] = None,
+        one_piece: Optional[Union[str, list]] = None,
+        bottoms: Optional[Union[str, list]] = None,
+        belts: Optional[Union[str, list]] = None,
+        hosiery: Optional[Union[str, list]] = None,
+        footwear: Optional[Union[str, list]] = None,
+        bags: Optional[Union[str, list]] = None,
+        wristwear: Optional[Union[str, list]] = None,
+        handwear: Optional[Union[str, list]] = None,
+        # Style presets
         visual_style: Optional[Union[str, VisualStyleSpec]] = None,
         art_style: Optional[Union[str, ArtStyleSpec]] = None,
         hair_style: Optional[Union[str, HairStyleSpec]] = None,
@@ -421,8 +497,27 @@ class ModularImageGenerator:
         # Debug: Check what we received
         print(f"🔍 DEBUG: outfit parameter type: {type(outfit)}, value: {outfit}")
 
-        # Load specs from presets if needed
-        # Special handling for outfit - can be a list of IDs
+        # Load clothing items from database if any category is provided
+        clothing_items_spec = await self._load_clothing_items_from_db(
+            headwear=headwear,
+            eyewear=eyewear,
+            earrings=earrings,
+            neckwear=neckwear,
+            tops=tops,
+            overtops=overtops,
+            outerwear=outerwear,
+            one_piece=one_piece,
+            bottoms=bottoms,
+            belts=belts,
+            hosiery=hosiery,
+            footwear=footwear,
+            bags=bags,
+            wristwear=wristwear,
+            handwear=handwear
+        )
+
+        # Load outfit presets if provided
+        outfit_preset_spec = None
         if isinstance(outfit, list):
             print(f"📦 Loading {len(outfit)} outfits for amalgamation...")
             outfit_specs = []
@@ -430,9 +525,18 @@ class ModularImageGenerator:
                 spec = self._load_spec(outfit_id, "outfits", OutfitSpec, "Outfit")
                 if spec:
                     outfit_specs.append(spec)
-            outfit_spec = self._merge_outfits(outfit_specs) if outfit_specs else None
+            outfit_preset_spec = self._merge_outfits(outfit_specs) if outfit_specs else None
         else:
-            outfit_spec = self._load_spec(outfit, "outfits", OutfitSpec, "Outfit")
+            outfit_preset_spec = self._load_spec(outfit, "outfits", OutfitSpec, "Outfit")
+
+        # Merge clothing items with outfit presets
+        if clothing_items_spec and outfit_preset_spec:
+            print("🔀 Merging clothing items with outfit presets...")
+            outfit_spec = self._merge_outfits([clothing_items_spec, outfit_preset_spec])
+        elif clothing_items_spec:
+            outfit_spec = clothing_items_spec
+        else:
+            outfit_spec = outfit_preset_spec
 
         visual_style_spec = self._load_spec(visual_style, "visual_styles", VisualStyleSpec, "Visual Style")
         art_style_spec = self._load_spec(art_style, "art_styles", ArtStyleSpec, "Art Style")
