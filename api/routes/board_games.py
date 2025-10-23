@@ -4,7 +4,7 @@ Board Game Routes
 Endpoints for managing board game entities and integrating with BoardGameGeek.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query, Request
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,12 +24,15 @@ from api.services.qa_service import QAService
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 from ai_tools.board_game_rules_gatherer.tool import BoardGameRulesGatherer
+from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
 
 
 @router.get("/", response_model=BoardGameListResponse)
+@cached(cache_type="list", include_user=True)
 async def list_board_games(
+    request: Request,
     limit: Optional[int] = Query(None, description="Maximum number of board games to return"),
     offset: int = Query(0, description="Number of board games to skip"),
     db: AsyncSession = Depends(get_db),
@@ -40,6 +43,8 @@ async def list_board_games(
 
     Returns a list of all board game entities with their metadata.
     Supports pagination via limit/offset parameters.
+
+    **Cached**: 60 seconds (user-specific)
     """
     service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -75,6 +80,7 @@ async def list_board_games(
 
 
 @router.post("/", response_model=BoardGameInfo)
+@invalidates_cache(entity_types=["board_games"])
 async def create_board_game(
     request: BoardGameCreate,
     db: AsyncSession = Depends(get_db),
@@ -85,6 +91,8 @@ async def create_board_game(
 
     Creates a board game entity with name, designer, publisher, etc.
     For automatic import from BoardGameGeek, use /search or /gather endpoints.
+
+    **Cache Invalidation**: Clears all board_games caches
     """
     service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -122,7 +130,9 @@ async def create_board_game(
 
 
 @router.get("/{game_id}", response_model=BoardGameInfo)
+@cached(cache_type="detail", include_user=True)
 async def get_board_game(
+    request: Request,
     game_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
@@ -131,6 +141,8 @@ async def get_board_game(
     Get a board game by ID
 
     Returns full game data including name, designer, complexity, etc.
+
+    **Cached**: 5 minutes (user-specific)
     """
     service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
     game_data = await service.get_board_game(game_id)
@@ -158,6 +170,7 @@ async def get_board_game(
 
 
 @router.put("/{game_id}", response_model=BoardGameInfo)
+@invalidates_cache(entity_types=["board_games"])
 async def update_board_game(
     game_id: str,
     request: BoardGameUpdate,
@@ -168,6 +181,8 @@ async def update_board_game(
     Update a board game
 
     Updates game fields. Only provided fields will be updated.
+
+    **Cache Invalidation**: Clears all board_games caches
     """
     service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -208,6 +223,7 @@ async def update_board_game(
 
 
 @router.delete("/{game_id}")
+@invalidates_cache(entity_types=["board_games"])
 async def delete_board_game(
     game_id: str,
     db: AsyncSession = Depends(get_db),
@@ -218,6 +234,8 @@ async def delete_board_game(
 
     Removes the board game entity.
     Note: Does not delete associated documents.
+
+    **Cache Invalidation**: Clears all board_games caches
     """
     service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
     success = await service.delete_board_game(game_id)
@@ -229,7 +247,9 @@ async def delete_board_game(
 
 
 @router.get("/{game_id}/documents", response_model=DocumentListResponse)
+@cached(cache_type="list", include_user=True)
 async def list_game_documents(
+    request: Request,
     game_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
@@ -238,6 +258,8 @@ async def list_game_documents(
     List documents for a board game
 
     Returns all documents (rulebooks, references, etc.) associated with this game.
+
+    **Cached**: 60 seconds (user-specific)
     """
     # Verify game exists
     game_service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
@@ -276,7 +298,9 @@ async def list_game_documents(
 
 
 @router.get("/{game_id}/qa")
+@cached(cache_type="list", include_user=True)
 async def list_game_qas(
+    request: Request,
     game_id: str,
     context_type: Optional[str] = None,
     is_favorite: Optional[bool] = None,
@@ -292,6 +316,8 @@ async def list_game_qas(
     Filters:
     - context_type: Filter by context (document, general, image, comparison)
     - is_favorite: Show only favorites
+
+    **Cached**: 60 seconds (user-specific)
     """
     # Verify game exists
     game_service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
@@ -358,6 +384,7 @@ async def search_bgg_games(
 
 
 @router.post("/gather")
+@invalidates_cache(entity_types=["board_games"])
 async def gather_game_and_rules(
     bgg_id: int,
     create_entities: bool = True,
@@ -375,6 +402,8 @@ async def gather_game_and_rules(
         - Game details (name, designer, publisher, complexity, etc.)
         - Path to downloaded PDF rulebook (if available)
         - Entity IDs (if create_entities=True)
+
+    **Cache Invalidation**: Clears all board_games caches (if entities created)
     """
     tool = BoardGameRulesGatherer()
 
@@ -393,6 +422,7 @@ async def gather_game_and_rules(
 
 
 @router.post("/gather-from-search")
+@invalidates_cache(entity_types=["board_games"])
 async def gather_from_search(
     query: str,
     exact: bool = False,
@@ -408,6 +438,8 @@ async def gather_from_search(
     then automatically downloads rules for the first result.
 
     Useful for quick "I want the rules for Wingspan" style requests.
+
+    **Cache Invalidation**: Clears all board_games caches (if entities created)
     """
     tool = BoardGameRulesGatherer()
 

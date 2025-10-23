@@ -5,7 +5,7 @@ Endpoints for managing clothing item entities.
 Clothing items are extracted from outfit images and can be composed into outfits.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, Request
 from typing import Optional, List
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +14,7 @@ from api.services.clothing_items_service_db import ClothingItemServiceDB
 from api.database import get_db
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
+from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
 
@@ -67,7 +68,9 @@ class CategoriesSummaryResponse(BaseModel):
 
 # Routes
 @router.get("/", response_model=ClothingItemListResponse)
+@cached(cache_type="list", include_user=True)
 async def list_clothing_items(
+    request: Request,
     category: Optional[str] = Query(None, description="Filter by category (e.g., 'tops', 'bottoms')"),
     limit: Optional[int] = Query(None, description="Maximum number of items to return"),
     offset: int = Query(0, description="Number of items to skip"),
@@ -79,6 +82,8 @@ async def list_clothing_items(
 
     Optionally filter by category and paginate results.
     Returns items sorted by created_at (newest first).
+
+    **Cached**: 60 seconds (user-specific)
     """
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -109,7 +114,9 @@ async def list_clothing_items(
 
 
 @router.get("/categories", response_model=CategoriesSummaryResponse)
+@cached(cache_type="static", include_user=True)
 async def get_categories_summary(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
@@ -118,6 +125,8 @@ async def get_categories_summary(
 
     Returns a dict mapping each category to the number of items in that category.
     Useful for showing category counts in the UI.
+
+    **Cached**: 1 hour (user-specific, changes infrequently)
     """
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
     summary = await service.get_categories_summary()
@@ -129,7 +138,9 @@ async def get_categories_summary(
 
 
 @router.get("/{item_id}", response_model=ClothingItemInfo)
+@cached(cache_type="detail", include_user=True)
 async def get_clothing_item(
+    request: Request,
     item_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
@@ -138,6 +149,8 @@ async def get_clothing_item(
     Get a clothing item by ID
 
     Returns full clothing item data including all details.
+
+    **Cached**: 5 minutes (user-specific)
     """
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
     item = await service.get_clothing_item(item_id)
@@ -159,6 +172,7 @@ async def get_clothing_item(
 
 
 @router.post("/", response_model=ClothingItemInfo)
+@invalidates_cache(entity_types=["clothing_items"])
 async def create_clothing_item(
     request: ClothingItemCreate,
     background_tasks: BackgroundTasks,
@@ -174,6 +188,8 @@ async def create_clothing_item(
 
     By default, a preview image is generated automatically in the background.
     Set generate_preview=false to skip preview generation (faster for bulk operations).
+
+    **Cache Invalidation**: Clears all clothing_items caches
     """
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -202,6 +218,7 @@ async def create_clothing_item(
 
 
 @router.put("/{item_id}", response_model=ClothingItemInfo)
+@invalidates_cache(entity_types=["clothing_items"])
 async def update_clothing_item(
     item_id: str,
     request: ClothingItemUpdate,
@@ -212,6 +229,8 @@ async def update_clothing_item(
     Update a clothing item
 
     Updates clothing item fields. Only provided fields will be updated.
+
+    **Cache Invalidation**: Clears all clothing_items caches
     """
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -242,6 +261,7 @@ async def update_clothing_item(
 
 
 @router.delete("/{item_id}")
+@invalidates_cache(entity_types=["clothing_items"])
 async def delete_clothing_item(
     item_id: str,
     db: AsyncSession = Depends(get_db),
@@ -252,6 +272,8 @@ async def delete_clothing_item(
 
     Removes the clothing item permanently.
     Note: This will NOT remove the item from any outfits that reference it.
+
+    **Cache Invalidation**: Clears all clothing_items caches
     """
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
     success = await service.delete_clothing_item(item_id)

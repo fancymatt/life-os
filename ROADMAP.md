@@ -148,15 +148,19 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
   - `POST /api/cache/invalidate` - Manual invalidation by entity/endpoint/pattern
   - `POST /api/cache/clear` - Clear all entries
   - `POST /api/cache/reset-stats` - Reset statistics
-- ✅ **Applied to character endpoints**:
-  - `GET /characters/` - Cached 60s (list)
-  - `GET /characters/{id}` - Cached 5min (detail)
-  - Write operations invalidate caches automatically
+- ✅ **Applied to all major entity endpoints** (2025-10-23):
+  - **Characters**: List (60s), detail (5min), write operations invalidate
+  - **Clothing Items**: List (60s), categories (1hr), detail (5min), write operations invalidate
+  - **Board Games**: List (60s), detail (5min), documents (60s), Q&As (60s), write operations invalidate
+  - **Outfits**: List (60s), detail (5min), write operations (including add/remove items) invalidate
+  - **Visualization Configs**: List (60s), entity types summary (1hr), default config (5min), detail (5min), write operations invalidate
+  - **Images**: List (60s), by-entity (60s), detail (5min), delete operations invalidate
 - ✅ Tested and verified:
-  - Cache HIT/MISS working correctly
+  - Cache HIT/MISS working correctly (66.67% hit rate observed in testing)
   - Invalidation triggers on create/update/delete
   - User-specific caching (when auth enabled)
   - Pydantic v2 model serialization
+  - Cache stats API working (`GET /api/cache/stats`)
 
 **Virtual Scrolling** (Frontend) ❌ **NOT STARTED**:
 - [ ] Use react-window for entity lists (200+ items)

@@ -5,7 +5,7 @@ Endpoints for managing visualization configuration entities.
 These configs control how different entity types are rendered as preview images.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Request
 from typing import Optional, List
 from pydantic import BaseModel
 
@@ -13,6 +13,7 @@ from api.services.visualization_config_service import VisualizationConfigService
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
 from api.logging_config import get_logger
+from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -87,7 +88,9 @@ class EntityTypesSummaryResponse(BaseModel):
 
 # Routes
 @router.get("/", response_model=VisualizationConfigListResponse)
+@cached(cache_type="list", include_user=True)
 async def list_visualization_configs(
+    request: Request,
     entity_type: Optional[str] = Query(None, description="Filter by entity type (e.g., 'clothing_item', 'character')"),
     limit: Optional[int] = Query(None, description="Maximum number of configs to return"),
     offset: int = Query(0, description="Number of configs to skip"),
@@ -98,6 +101,8 @@ async def list_visualization_configs(
 
     Optionally filter by entity type and paginate results.
     Returns configs sorted by updated_at (newest first).
+
+    **Cached**: 60 seconds (user-specific)
     """
     service = VisualizationConfigService()
 
@@ -135,7 +140,9 @@ async def list_visualization_configs(
 
 
 @router.get("/entity-types", response_model=EntityTypesSummaryResponse)
+@cached(cache_type="static", include_user=True)
 async def get_entity_types_summary(
+    request: Request,
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -143,6 +150,8 @@ async def get_entity_types_summary(
 
     Returns a dict mapping each entity type to the number of configs for that type.
     Useful for showing entity type counts in the UI.
+
+    **Cached**: 1 hour (user-specific, changes infrequently)
     """
     service = VisualizationConfigService()
     summary = service.get_entity_types_summary()
@@ -154,7 +163,9 @@ async def get_entity_types_summary(
 
 
 @router.get("/default/{entity_type}", response_model=VisualizationConfigInfo)
+@cached(cache_type="detail", include_user=True)
 async def get_default_config(
+    request: Request,
     entity_type: str,
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
@@ -163,6 +174,8 @@ async def get_default_config(
 
     Returns the config marked as default, or the first available config if none is marked.
     Useful for automatically applying visualization settings when creating new entities.
+
+    **Cached**: 5 minutes (user-specific)
     """
     service = VisualizationConfigService()
     config = service.get_default_config(entity_type)
@@ -191,7 +204,9 @@ async def get_default_config(
 
 
 @router.get("/{config_id}", response_model=VisualizationConfigInfo)
+@cached(cache_type="detail", include_user=True)
 async def get_visualization_config(
+    request: Request,
     config_id: str,
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
@@ -199,6 +214,8 @@ async def get_visualization_config(
     Get a visualization config by ID
 
     Returns full config data including all settings.
+
+    **Cached**: 5 minutes (user-specific)
     """
     service = VisualizationConfigService()
     config = service.get_config(config_id)
@@ -227,6 +244,7 @@ async def get_visualization_config(
 
 
 @router.post("/", response_model=VisualizationConfigInfo)
+@invalidates_cache(entity_types=["visualization_configs"])
 async def create_visualization_config(
     request: VisualizationConfigCreate,
     current_user: Optional[User] = Depends(get_current_active_user)
@@ -236,6 +254,8 @@ async def create_visualization_config(
 
     Defines how entities of a specific type should be visualized as preview images.
     Can specify composition, lighting, art style, and reference images.
+
+    **Cache Invalidation**: Clears all visualization_configs caches
     """
     service = VisualizationConfigService()
 
@@ -276,6 +296,7 @@ async def create_visualization_config(
 
 
 @router.put("/{config_id}", response_model=VisualizationConfigInfo)
+@invalidates_cache(entity_types=["visualization_configs"])
 async def update_visualization_config(
     config_id: str,
     request: VisualizationConfigUpdate,
@@ -285,6 +306,8 @@ async def update_visualization_config(
     Update a visualization config
 
     Updates config fields. Only provided fields will be updated.
+
+    **Cache Invalidation**: Clears all visualization_configs caches
     """
     # Debug logging
     logger.debug(f"Update request for config {config_id}", extra={'extra_fields': {
@@ -335,6 +358,7 @@ async def update_visualization_config(
 
 
 @router.delete("/{config_id}")
+@invalidates_cache(entity_types=["visualization_configs"])
 async def delete_visualization_config(
     config_id: str,
     current_user: Optional[User] = Depends(get_current_active_user)
@@ -345,6 +369,8 @@ async def delete_visualization_config(
     Removes the config permanently.
     Warning: If this is the default config for an entity type, entities of that type
     will have no default visualization settings.
+
+    **Cache Invalidation**: Clears all visualization_configs caches
     """
     service = VisualizationConfigService()
     success = service.delete_config(config_id)

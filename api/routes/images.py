@@ -4,20 +4,23 @@ Image Routes
 Endpoints for querying generated images and their entity relationships.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Any
 
 from api.database import get_db
 from api.services.image_service import ImageService
 from api.logging_config import get_logger
+from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
 logger = get_logger(__name__)
 
 
 @router.get("/")
+@cached(cache_type="list", include_user=False)
 async def list_images(
+    request: Request,
     limit: int = 100,
     offset: int = 0,
     db: AsyncSession = Depends(get_db)
@@ -31,6 +34,8 @@ async def list_images(
 
     Returns:
         Dict with images list and metadata
+
+    **Cached**: 60 seconds
     """
     try:
         image_service = ImageService(db)
@@ -59,7 +64,9 @@ async def list_images(
 
 
 @router.get("/by-entity/{entity_type}/{entity_id}")
+@cached(cache_type="list", include_user=False)
 async def get_images_by_entity(
+    request: Request,
     entity_type: str,
     entity_id: str,
     limit: int = 50,
@@ -83,6 +90,8 @@ async def get_images_by_entity(
     Example:
         GET /api/images/by-entity/clothing_item/jacket-123?limit=20&offset=0
         Returns all images that used the jacket with ID "jacket-123"
+
+    **Cached**: 60 seconds
     """
     try:
         image_service = ImageService(db)
@@ -123,7 +132,9 @@ async def get_images_by_entity(
 
 
 @router.get("/{image_id}")
+@cached(cache_type="detail", include_user=False)
 async def get_image(
+    request: Request,
     image_id: str,
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -135,6 +146,8 @@ async def get_image(
 
     Returns:
         Dict with image data and relationships
+
+    **Cached**: 5 minutes
     """
     try:
         image_service = ImageService(db)
@@ -156,6 +169,7 @@ async def get_image(
 
 
 @router.delete("/{image_id}")
+@invalidates_cache(entity_types=["images"])
 async def delete_image(
     image_id: str,
     db: AsyncSession = Depends(get_db)
@@ -168,6 +182,8 @@ async def delete_image(
 
     Returns:
         Success message
+
+    **Cache Invalidation**: Clears all images caches
     """
     try:
         image_service = ImageService(db)

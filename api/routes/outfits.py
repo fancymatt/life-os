@@ -5,7 +5,7 @@ Endpoints for managing outfit composition entities.
 Outfits are compositions of clothing item IDs that can be mixed and matched.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import Optional, List
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +14,7 @@ from api.services.outfit_service_db import OutfitServiceDB
 from api.database import get_db
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
+from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
 
@@ -61,7 +62,9 @@ class RemoveItemRequest(BaseModel):
 
 # Routes
 @router.get("/", response_model=OutfitListResponse)
+@cached(cache_type="list", include_user=True)
 async def list_outfits(
+    request: Request,
     limit: Optional[int] = Query(None, description="Maximum number of outfits to return"),
     offset: int = Query(0, description="Number of outfits to skip"),
     db: AsyncSession = Depends(get_db),
@@ -71,6 +74,8 @@ async def list_outfits(
     List all outfit compositions
 
     Returns outfits sorted by updated_at (most recently updated first).
+
+    **Cached**: 60 seconds (user-specific)
     """
     service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
     outfits = await service.list_outfits(limit=limit, offset=offset)
@@ -94,7 +99,9 @@ async def list_outfits(
 
 
 @router.get("/{outfit_id}", response_model=OutfitInfo)
+@cached(cache_type="detail", include_user=True)
 async def get_outfit(
+    request: Request,
     outfit_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
@@ -103,6 +110,8 @@ async def get_outfit(
     Get an outfit by ID
 
     Returns full outfit data including all clothing item IDs.
+
+    **Cached**: 5 minutes (user-specific)
     """
     service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
     outfit = await service.get_outfit(outfit_id)
@@ -121,6 +130,7 @@ async def get_outfit(
 
 
 @router.post("/", response_model=OutfitInfo)
+@invalidates_cache(entity_types=["outfits"])
 async def create_outfit(
     request: OutfitCreate,
     db: AsyncSession = Depends(get_db),
@@ -130,6 +140,8 @@ async def create_outfit(
     Create a new outfit composition
 
     Create an outfit by specifying a name and a list of clothing item IDs.
+
+    **Cache Invalidation**: Clears all outfits caches
     """
     service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -150,6 +162,7 @@ async def create_outfit(
 
 
 @router.put("/{outfit_id}", response_model=OutfitInfo)
+@invalidates_cache(entity_types=["outfits"])
 async def update_outfit(
     outfit_id: str,
     request: OutfitUpdate,
@@ -160,6 +173,8 @@ async def update_outfit(
     Update an outfit composition
 
     Updates outfit fields. Only provided fields will be updated.
+
+    **Cache Invalidation**: Clears all outfits caches
     """
     service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -184,6 +199,7 @@ async def update_outfit(
 
 
 @router.delete("/{outfit_id}")
+@invalidates_cache(entity_types=["outfits"])
 async def delete_outfit(
     outfit_id: str,
     db: AsyncSession = Depends(get_db),
@@ -193,6 +209,8 @@ async def delete_outfit(
     Delete an outfit composition
 
     Removes the outfit composition. Does NOT delete the clothing items themselves.
+
+    **Cache Invalidation**: Clears all outfits caches
     """
     service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
     success = await service.delete_outfit(outfit_id)
@@ -204,6 +222,7 @@ async def delete_outfit(
 
 
 @router.post("/{outfit_id}/items", response_model=OutfitInfo)
+@invalidates_cache(entity_types=["outfits"])
 async def add_item_to_outfit(
     outfit_id: str,
     request: AddItemRequest,
@@ -215,6 +234,8 @@ async def add_item_to_outfit(
 
     Adds a clothing item ID to the outfit's item list.
     If the item is already in the outfit, this is a no-op.
+
+    **Cache Invalidation**: Clears all outfits caches
     """
     service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -234,6 +255,7 @@ async def add_item_to_outfit(
 
 
 @router.delete("/{outfit_id}/items/{item_id}", response_model=OutfitInfo)
+@invalidates_cache(entity_types=["outfits"])
 async def remove_item_from_outfit(
     outfit_id: str,
     item_id: str,
@@ -245,6 +267,8 @@ async def remove_item_from_outfit(
 
     Removes a clothing item ID from the outfit's item list.
     If the item is not in the outfit, this is a no-op.
+
+    **Cache Invalidation**: Clears all outfits caches
     """
     service = OutfitServiceDB(db, user_id=current_user.id if current_user else None)
 
