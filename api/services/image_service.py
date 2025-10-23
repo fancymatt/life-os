@@ -362,7 +362,9 @@ class ImageService:
                             async with aiofiles.open(preset_path, 'r') as f:
                                 content = await f.read()
                                 preset_data = json.loads(content)
-                                entity_name = preset_data.get('name', rel.entity_id)
+                                # Try _metadata.display_name first, then fall back to name
+                                metadata = preset_data.get('_metadata', {})
+                                entity_name = metadata.get('display_name') or preset_data.get('name', rel.entity_id)
                         except Exception as e:
                             logger.warning(f"Failed to read preset {rel.entity_id}: {e}")
 
