@@ -356,13 +356,22 @@ function EntityBrowser({ config }) {
         title: editedTitle
       })
 
-      // Update entity in list
+      // CRITICAL: Use response from server (not local editedData) as source of truth
+      // This ensures UI reflects what was actually saved, including any server-side transformations
+      const savedData = response
+      const savedTitle = response.display_name || response.title || editedTitle
+
+      // Update entity in list with saved data
       setEntities(prev => prev.map(e =>
-        e.id === selectedEntity.id ? { ...e, title: editedTitle, data: editedData } : e
+        e.id === selectedEntity.id ? { ...e, title: savedTitle, data: savedData } : e
       ))
 
-      // Update selected entity
-      setSelectedEntity(prev => ({ ...prev, title: editedTitle, data: editedData }))
+      // Update selected entity with saved data
+      setSelectedEntity(prev => ({ ...prev, title: savedTitle, data: savedData }))
+
+      // Update edited data to match what was saved (source of truth)
+      setEditedData(JSON.parse(JSON.stringify(savedData)))
+      setEditedTitle(savedTitle)
 
       setSaving(false)
 

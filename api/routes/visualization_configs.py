@@ -315,15 +315,22 @@ async def update_visualization_config(
     # This allows us to distinguish between "field not provided" and "field set to None"
     update_data = request.model_dump(exclude_unset=True)
 
-    logger.debug(f"Update request for config {config_id}", extra={'extra_fields': {
+    logger.info(f"Update request for config {config_id}", extra={'extra_fields': {
         'config_id': config_id,
-        'update_data': update_data
+        'update_data': update_data,
+        'art_style_id_in_data': 'art_style_id' in update_data,
+        'art_style_id_value': update_data.get('art_style_id', 'NOT_PRESENT')
     }})
 
     config = service.update_config(
         config_id=config_id,
         **update_data
     )
+
+    logger.info(f"Updated config result", extra={'extra_fields': {
+        'config_id': config_id,
+        'returned_art_style_id': config.get('art_style_id', 'NOT_PRESENT')
+    }})
 
     if not config:
         raise HTTPException(status_code=404, detail=f"Visualization config {config_id} not found")

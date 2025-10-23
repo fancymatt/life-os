@@ -247,17 +247,19 @@ class CacheService:
         Invalidate all caches for an entity type
 
         Examples:
-            - invalidate_entity_type("characters") -> invalidates /api/characters/*
-            - invalidate_entity_type("clothing_items") -> invalidates /api/clothing-items/*
+            - invalidate_entity_type("characters") -> invalidates /characters/*
+            - invalidate_entity_type("clothing_items") -> invalidates /clothing-items/*
+            - invalidate_entity_type("visualization_configs") -> invalidates /visualization-configs/*
 
         Args:
             entity_type: Entity type (characters, stories, etc.)
         """
         # Convert entity_type to endpoint path
-        # characters -> /api/characters
-        # clothing_items -> /api/clothing-items
+        # characters -> /characters
+        # clothing_items -> /clothing-items
+        # visualization_configs -> /visualization-configs
         endpoint_path = entity_type.replace("_", "-")
-        pattern = f"{self.prefix}/api/{endpoint_path}*"
+        pattern = f"{self.prefix}/{endpoint_path}*"
         await self.delete_pattern(pattern)
 
     async def clear_all(self):
