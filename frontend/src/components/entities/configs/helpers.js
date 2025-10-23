@@ -11,7 +11,15 @@
  */
 export const formatDate = (dateString) => {
   if (!dateString) return null
-  const date = new Date(dateString)
+
+  // If the ISO string doesn't have timezone info, append 'Z' to indicate UTC
+  // Backend stores dates in UTC, so we need to ensure they're interpreted as such
+  let dateStr = dateString
+  if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+    dateStr = dateStr + 'Z'
+  }
+
+  const date = new Date(dateStr)
   // Check if date is invalid or is Unix epoch (Jan 1, 1970 or earlier)
   if (isNaN(date.getTime()) || date.getFullYear() < 1971) {
     return null

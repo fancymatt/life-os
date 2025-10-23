@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import './EntityBrowser.css'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
+import EntityGallery from './EntityGallery'
 
 /**
  * Generic Entity Browser Component
@@ -43,6 +44,9 @@ function EntityBrowser({ config }) {
 
   // Keyboard shortcuts help modal
   const [showShortcutsModal, setShowShortcutsModal] = useState(false)
+
+  // Detail view tabs ('data' or 'gallery')
+  const [detailTab, setDetailTab] = useState('data')
 
   useEffect(() => {
     fetchData()
@@ -255,6 +259,7 @@ function EntityBrowser({ config }) {
   const handleEntityClick = async (entity) => {
     setSelectedEntity(entity)
     setView('detail')
+    setDetailTab('data') // Reset to data tab when opening entity
     setError(null)
     setSaving(true)
 
@@ -631,6 +636,24 @@ function EntityBrowser({ config }) {
               </button>
             </div>
 
+            {/* Tabs - only show if gallery is enabled */}
+            {config.enableGallery && (
+              <div className="entity-detail-tabs">
+                <button
+                  className={`entity-tab ${detailTab === 'data' ? 'active' : ''}`}
+                  onClick={() => setDetailTab('data')}
+                >
+                  📊 Data
+                </button>
+                <button
+                  className={`entity-tab ${detailTab === 'gallery' ? 'active' : ''}`}
+                  onClick={() => setDetailTab('gallery')}
+                >
+                  🖼️ Gallery
+                </button>
+              </div>
+            )}
+
             {error && (
               <div style={{
                 margin: '1rem 0',
@@ -644,69 +667,12 @@ function EntityBrowser({ config }) {
               </div>
             )}
 
-            {config.fullWidthDetail ? (
-              /* Full Width Layout - for entities like stories */
-              <div className="entity-detail-full-width">
-                {config.enableEdit && config.renderEdit ? (
-                  // Always in edit mode for editable entities
-                  <>
-                    {config.renderEdit(selectedEntity, editedData, editedTitle, {
-                      updateField,
-                      setEditedTitle
-                    })}
-
-                    <div className="entity-detail-actions">
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {config.actions?.map((action, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleAction(action, selectedEntity)}
-                            disabled={saving}
-                            className="secondary-action-button"
-                          >
-                            {action.icon} {action.label}
-                          </button>
-                        ))}
-                        <button
-                          onClick={handleDelete}
-                          disabled={saving}
-                          className="delete-button"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
-                        <button
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="save-button"
-                        >
-                          {saving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  // For entities without edit capability, just show renderDetail
-                  config.renderDetail(selectedEntity, handleBackToList, handleEntityUpdate)
-                )}
-              </div>
-            ) : (
-              /* Two Column Layout - for entities with preview */
-              <div className="entity-detail-columns">
-                {/* Left Column - Preview */}
-                <div className="entity-detail-preview">
-                  {config.renderPreview ? (
-                    config.renderPreview(selectedEntity, handleEntityUpdate)
-                  ) : (
-                    <div style={{ background: 'rgba(0, 0, 0, 0.3)', borderRadius: '8px', padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-                      Preview not available
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Column - Details/Edit */}
-                <div className="entity-detail-content">
+            {/* Tab Content */}
+            {detailTab === 'data' ? (
+              /* Data Tab - Show normal entity detail views */
+              config.fullWidthDetail ? (
+                /* Full Width Layout - for entities like stories */
+                <div className="entity-detail-full-width">
                   {config.enableEdit && config.renderEdit ? (
                     // Always in edit mode for editable entities
                     <>
@@ -751,7 +717,74 @@ function EntityBrowser({ config }) {
                     config.renderDetail(selectedEntity, handleBackToList, handleEntityUpdate)
                   )}
                 </div>
-              </div>
+              ) : (
+                /* Two Column Layout - for entities with preview */
+                <div className="entity-detail-columns">
+                  {/* Left Column - Preview */}
+                  <div className="entity-detail-preview">
+                    {config.renderPreview ? (
+                      config.renderPreview(selectedEntity, handleEntityUpdate)
+                    ) : (
+                      <div style={{ background: 'rgba(0, 0, 0, 0.3)', borderRadius: '8px', padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                        Preview not available
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column - Details/Edit */}
+                  <div className="entity-detail-content">
+                    {config.enableEdit && config.renderEdit ? (
+                      // Always in edit mode for editable entities
+                      <>
+                        {config.renderEdit(selectedEntity, editedData, editedTitle, {
+                          updateField,
+                          setEditedTitle
+                        })}
+
+                        <div className="entity-detail-actions">
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {config.actions?.map((action, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleAction(action, selectedEntity)}
+                                disabled={saving}
+                                className="secondary-action-button"
+                              >
+                                {action.icon} {action.label}
+                              </button>
+                            ))}
+                            <button
+                              onClick={handleDelete}
+                              disabled={saving}
+                              className="delete-button"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                          <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
+                            <button
+                              onClick={handleSave}
+                              disabled={saving}
+                              className="save-button"
+                            >
+                              {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      // For entities without edit capability, just show renderDetail
+                      config.renderDetail(selectedEntity, handleBackToList, handleEntityUpdate)
+                    )}
+                  </div>
+                </div>
+              )
+            ) : (
+              /* Gallery Tab - Show image gallery */
+              <EntityGallery
+                entityType={config.entityType}
+                entityId={selectedEntity.id || selectedEntity.presetId || selectedEntity.characterId}
+              />
             )}
           </div>
         </>

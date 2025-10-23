@@ -90,3 +90,7 @@ class ImageRepository:
 
         result = await self.session.execute(query)
         return result.scalar_one()
+
+    async def count_all(self) -> int:
+        """Count all images (convenience method)"""
+        return await self.count()

@@ -36,9 +36,14 @@ class ImageService:
 
     def _image_to_dict(self, image: Image) -> Dict[str, Any]:
         """Convert Image model to dict"""
+        # Ensure file path starts with / for web access
+        file_path = image.file_path
+        if not file_path.startswith('/'):
+            file_path = '/' + file_path
+
         return {
             "image_id": image.image_id,
-            "file_path": image.file_path,
+            "file_path": file_path,
             "filename": image.filename,
             "width": image.width,
             "height": image.height,
@@ -299,3 +304,85 @@ class ImageService:
             entity_type=entity_type,
             entity_id=entity_id
         )
+
+    async def list_all_images(
+        self,
+        limit: Optional[int] = None,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        List all images with their entity relationships
+
+        Args:
+            limit: Maximum number of images to return
+            offset: Number of images to skip
+
+        Returns:
+            List of image dicts with relationships
+        """
+        import json
+        import aiofiles
+        from sqlalchemy import select
+        from api.models.db import Character, ClothingItem
+
+        images = await self.image_repository.get_all(limit=limit, offset=offset)
+
+        results = []
+        for image in images:
+            # Get relationships for this image
+            relationships = await self.relationship_repository.get_by_image(image.image_id)
+
+            # Group relationships by entity type and fetch entity details
+            entities_by_type = {}
+            for rel in relationships:
+                if rel.entity_type not in entities_by_type:
+                    entities_by_type[rel.entity_type] = []
+
+                # Fetch entity name based on type
+                entity_name = rel.entity_id
+                if rel.entity_type == 'character':
+                    result = await self.session.execute(
+                        select(Character.name).where(Character.character_id == rel.entity_id)
+                    )
+                    char_name = result.scalar_one_or_none()
+                    if char_name:
+                        entity_name = char_name
+                elif rel.entity_type == 'clothing_item':
+                    result = await self.session.execute(
+                        select(ClothingItem.item).where(ClothingItem.item_id == rel.entity_id)
+                    )
+                    item_name = result.scalar_one_or_none()
+                    if item_name:
+                        entity_name = item_name
+                elif rel.entity_type == 'visual_style' or rel.entity_type == 'preset':
+                    # Read preset file to get name
+                    preset_path = Path(f"/app/presets/visual_style/{rel.entity_id}.json")
+                    if preset_path.exists():
+                        try:
+                            async with aiofiles.open(preset_path, 'r') as f:
+                                content = await f.read()
+                                preset_data = json.loads(content)
+                                entity_name = preset_data.get('name', rel.entity_id)
+                        except Exception as e:
+                            logger.warning(f"Failed to read preset {rel.entity_id}: {e}")
+
+                entities_by_type[rel.entity_type].append({
+                    "entity_id": rel.entity_id,
+                    "entity_name": entity_name,
+                    "role": rel.role
+                })
+
+            image_dict = self._image_to_dict(image)
+            image_dict["entities"] = entities_by_type
+            results.append(image_dict)
+
+        return results
+
+    async def count_all_images(self) -> int:
+        """
+        Count total number of images
+
+        Returns:
+            Total count of images
+        """
+        return await self.image_repository.count_all()

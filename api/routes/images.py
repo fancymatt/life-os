@@ -16,6 +16,48 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
+@router.get("/")
+async def list_images(
+    limit: int = 100,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    List all images with their entity relationships
+
+    Args:
+        limit: Maximum number of images to return (default: 100)
+        offset: Number of images to skip for pagination (default: 0)
+
+    Returns:
+        Dict with images list and metadata
+    """
+    try:
+        image_service = ImageService(db)
+        images = await image_service.list_all_images(limit=limit, offset=offset)
+        total = await image_service.count_all_images()
+
+        logger.info(f"Retrieved {len(images)} images", extra={'extra_fields': {
+            'count': len(images),
+            'total': total,
+            'limit': limit,
+            'offset': offset
+        }})
+
+        return {
+            "images": images,
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to list images: {e}", extra={'extra_fields': {
+            'error': str(e)
+        }})
+        raise HTTPException(status_code=500, detail=f"Failed to list images: {str(e)}")
+
+
 @router.get("/by-entity/{entity_type}/{entity_id}")
 async def get_images_by_entity(
     entity_type: str,

@@ -14,6 +14,7 @@ export const charactersConfig = {
   enableSearch: true,
   enableSort: true,
   enableEdit: true,
+  enableGallery: true,
   showRefreshButton: false,  // Characters auto-refresh on creation
   defaultSort: 'newest',
   searchFields: ['name', 'visual_description', 'physical_description', 'personality', 'age', 'skin_tone', 'face_description', 'hair_description', 'body_description'],

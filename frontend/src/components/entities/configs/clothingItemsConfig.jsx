@@ -469,6 +469,7 @@ export const clothingItemsConfig = {
   enableSearch: true,
   enableSort: true,
   enableEdit: true,
+  enableGallery: true,
   showRefreshButton: true,
   defaultSort: 'newest',
   searchFields: ['item', 'category', 'fabric', 'color', 'details'],
