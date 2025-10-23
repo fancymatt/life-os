@@ -618,28 +618,41 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
             # Generate image with modular generator
             generator = ModularImageGenerator()
 
-            # Build special prompt for morphsuit + item
-            additional_instructions = f"""
-CRITICAL RENDERING INSTRUCTIONS:
-- Render the character wearing a BLACK MORPHSUIT covering the entire body up to the neck
-- The morphsuit should be completely black and featureless
-- ONLY the following clothing item should be rendered in its actual appearance:
-  * Item: {item['item']}
-  * Category: {item['category']}
-  * Color: {item['color']}
-  * Fabric: {item['fabric']}
-  * Details: {item['details']}
-- ALL OTHER body parts should be covered by the plain black morphsuit
-- Show the clothing item clearly and prominently
-- Use clean, professional studio lighting
-"""
+            # Create a temporary outfit spec with morphsuit + clothing item
+            from ai_capabilities.specs import OutfitSpec, ClothingItemEntity
 
-            # Generate using character reference + visual style + special instructions
+            # Build outfit description with morphsuit + specific item
+            morphsuit_outfit = OutfitSpec(
+                suggested_name=f"Test: {item['item']}",
+                style_genre="Contemporary",
+                formality="Casual",
+                aesthetic=f"Black morphsuit showcasing {item['item']}",
+                clothing_items=[
+                    ClothingItemEntity(
+                        category="full_body",
+                        item="black morphsuit",
+                        fabric="stretch jersey",
+                        color="solid black",
+                        details="Full body coverage from neck to ankles, completely black and featureless, serves as neutral base"
+                    ),
+                    ClothingItemEntity(
+                        category=item['category'],
+                        item=item['item'],
+                        fabric=item['fabric'],
+                        color=item['color'],
+                        details=item['details']
+                    )
+                ],
+                color_palette=["black", item['color']],
+                suggested_description=f"Black morphsuit base with {item['item']} ({item['color']} {item['fabric']}) as the focal point"
+            )
+
+            # Generate using character reference + outfit + visual style
             result = await generator.agenerate(
                 subject_image=str(subject_path),
+                outfit=morphsuit_outfit,
                 visual_style=visual_style,
-                output_dir="output/generated",
-                additional_instructions=additional_instructions
+                output_dir="output/generated"
             )
 
             job_manager.update_progress(job_id, 0.9, "Finalizing...")
