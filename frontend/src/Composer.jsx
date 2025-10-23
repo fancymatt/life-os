@@ -160,10 +160,10 @@ function Composer() {
   }, [])
 
   const handleDragStart = useCallback((e, preset, category) => {
-    e.dataTransfer.setData('preset', JSON.stringify({
-      ...preset,
-      category
-    }))
+    // For clothing items, preserve the original category (e.g., "outerwear")
+    // For style presets, use the passed category (e.g., "visual_styles")
+    const presetData = preset.category && preset.data ? preset : { ...preset, category }
+    e.dataTransfer.setData('preset', JSON.stringify(presetData))
   }, [])
 
   const getCacheKey = useCallback((presetsToApply) => {
@@ -259,18 +259,29 @@ function Composer() {
 
       // Add presets and clothing items to payload
       presetsToApply.forEach(preset => {
+        console.log('🔍 Processing preset:', {
+          preset_id: preset.preset_id,
+          category: preset.category,
+          display_name: preset.display_name
+        })
+
         // Find the category configuration
         const catConfig = categoryConfig.find(c => {
           // For clothing items, match by category field
           if (c.apiCategory === 'clothing_items') {
-            return preset.category === c.clothingCategory
+            const matches = preset.category === c.clothingCategory
+            console.log(`  Checking clothing category: ${c.clothingCategory} === ${preset.category}? ${matches}`)
+            return matches
           }
           // For style presets, match by apiCategory
-          return c.apiCategory === preset.category
+          const matches = c.apiCategory === preset.category
+          console.log(`  Checking style category: ${c.apiCategory} === ${preset.category}? ${matches}`)
+          return matches
         })
 
         if (catConfig) {
           const categoryKey = catConfig.key
+          console.log(`  ✓ Found category config: ${categoryKey}`)
 
           // Clothing items can be layered (multiple items per category)
           if (catConfig.apiCategory === 'clothing_items') {
@@ -278,10 +289,14 @@ function Composer() {
               payload[categoryKey] = []
             }
             payload[categoryKey].push(preset.preset_id)
+            console.log(`  ✓ Added clothing item to ${categoryKey}:`, preset.preset_id)
           } else {
             // Style presets replace (one per category)
             payload[categoryKey] = preset.preset_id
+            console.log(`  ✓ Added style preset to ${categoryKey}:`, preset.preset_id)
           }
+        } else {
+          console.log(`  ✗ No category config found for:`, preset.category)
         }
       })
 
@@ -366,7 +381,9 @@ function Composer() {
   }, [addPreset])
 
   const handlePresetClick = useCallback((preset, category) => {
-    const presetWithCategory = { ...preset, category }
+    // For clothing items, preserve the original category (e.g., "outerwear")
+    // For style presets, use the passed category (e.g., "visual_styles")
+    const presetWithCategory = preset.category && preset.data ? preset : { ...preset, category }
 
     // If clicking the same preset, apply it
     if (selectedPreset?.preset_id === preset.preset_id) {
