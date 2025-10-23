@@ -245,31 +245,40 @@ async def generate_preset_preview(
     from api.services.job_queue import get_job_queue_manager
     from api.models.jobs import JobType
 
+    logger.info(f"🎨 Generate preview endpoint called: {category}/{preset_id}")
+
     # Create job immediately
     job_id = get_job_queue_manager().create_job(
         job_type=JobType.GENERATE_IMAGE,
         title=f"Generating {category} preview",
         description=f"Preset ID: {preset_id}"
     )
+    logger.info(f"Created job {job_id} for preview generation")
 
     # Queue background task
     async def generate_preview_task():
         from ai_tools.shared.visualizer import Visualizer
         import asyncio
+        import traceback
+
+        logger.info(f"Starting preview generation for {category}/{preset_id} (Job: {job_id})")
 
         try:
             job_manager = get_job_queue_manager()
             job_manager.update_job(job_id, status="running", progress=10)
+            logger.info(f"Job {job_id} updated to running")
 
             # Generate preview using visualizer
             visualizer = Visualizer()
             preset_data = preset_service.get_preset(category, preset_id)
+            logger.info(f"Loaded preset data for {category}/{preset_id}")
 
             # Remove metadata
             if '_metadata' in preset_data:
                 del preset_data['_metadata']
 
             job_manager.update_job(job_id, progress=30)
+            logger.info(f"Starting visualization for {category}/{preset_id}")
 
             # Generate preview image
             await asyncio.to_thread(
@@ -280,10 +289,11 @@ async def generate_preset_preview(
             )
 
             job_manager.update_job(job_id, status="completed", progress=100)
-            logger.info(f"Preview generated for {category}/{preset_id}")
+            logger.info(f"✅ Preview generated successfully for {category}/{preset_id}")
 
         except Exception as e:
-            logger.error(f"Preview generation failed: {e}")
+            logger.error(f"❌ Preview generation failed for {category}/{preset_id}: {e}")
+            logger.error(traceback.format_exc())
             get_job_queue_manager().update_job(
                 job_id,
                 status="failed",
@@ -291,6 +301,7 @@ async def generate_preset_preview(
             )
 
     background_tasks.add_task(generate_preview_task)
+    logger.info(f"Queued preview generation task for {category}/{preset_id} (Job: {job_id})")
 
     return {
         "job_id": job_id,

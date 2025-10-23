@@ -379,19 +379,33 @@ function HairStylePreview({ entity, onUpdate }) {
     <div style={{ padding: '1rem' }}>
       {/* Preview Image with loading overlay */}
       <div style={{ position: 'relative', marginBottom: '1rem' }}>
-        <LazyImage
-          src={`/api/presets/hair_styles/${entity.presetId}/preview?t=${Date.now()}`}
-          alt={entity.title}
-          style={{
-            width: '100%',
-            height: 'auto',
-            borderRadius: '8px',
-            display: 'block'
-          }}
-          onError={(e) => {
-            e.target.style.display = 'none'
-          }}
-        />
+        <div style={{
+          borderRadius: '8px',
+          overflow: 'hidden',
+          background: 'rgba(0, 0, 0, 0.3)',
+          minHeight: '300px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <LazyImage
+            src={`/api/presets/hair_styles/${entity.presetId}/preview?t=${Date.now()}`}
+            alt={entity.title}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block'
+            }}
+            onError={(e) => {
+              // Show placeholder icon when no preview exists
+              e.target.style.display = 'none'
+              const placeholder = document.createElement('div')
+              placeholder.style.cssText = 'font-size: 4rem; color: rgba(255, 255, 255, 0.3);'
+              placeholder.textContent = '💇'
+              e.target.parentElement.appendChild(placeholder)
+            }}
+          />
+        </div>
 
         {/* Loading overlay when generating */}
         {generatingJobId && (
@@ -407,7 +421,8 @@ function HairStylePreview({ entity, onUpdate }) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '1rem'
+            gap: '1rem',
+            minHeight: '300px'
           }}>
             <div style={{
               fontSize: '3rem',
