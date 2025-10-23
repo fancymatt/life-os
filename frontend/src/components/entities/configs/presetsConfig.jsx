@@ -288,6 +288,17 @@ export const makeupsConfig = createPresetConfig({
 function HairStylePreview({ entity, onUpdate }) {
   const [generatingJobId, setGeneratingJobId] = useState(null)
   const [jobProgress, setJobProgress] = useState(null)
+  const [trackingPresetId, setTrackingPresetId] = useState(null)
+
+  // Reset state if entity changes (to prevent showing overlay on wrong entity after refresh)
+  useEffect(() => {
+    if (trackingPresetId && trackingPresetId !== entity.presetId) {
+      console.log(`Entity changed from ${trackingPresetId} to ${entity.presetId}, resetting state`)
+      setGeneratingJobId(null)
+      setJobProgress(null)
+      setTrackingPresetId(null)
+    }
+  }, [entity.presetId, trackingPresetId])
 
   // Poll for job status if we're tracking a job
   useEffect(() => {
@@ -304,12 +315,14 @@ function HairStylePreview({ entity, onUpdate }) {
           console.log('✅ Preview generation completed, refreshing preview...')
           setGeneratingJobId(null)
           setJobProgress(null)
+          setTrackingPresetId(null)
           // Refresh the preview to get the new image
           if (onUpdate) onUpdate()
         } else if (job.status === 'failed') {
           console.error('❌ Preview generation failed')
           setGeneratingJobId(null)
           setJobProgress(null)
+          setTrackingPresetId(null)
         }
       } catch (error) {
         console.error('Failed to poll job status:', error)
@@ -330,12 +343,13 @@ function HairStylePreview({ entity, onUpdate }) {
       const response = await api.post(`/presets/hair_styles/${entity.presetId}/generate-preview`)
       const jobId = response.data.job_id
 
-      console.log(`✅ Preview generation queued (Job: ${jobId})`)
+      console.log(`✅ Preview generation queued (Job: ${jobId}) for preset ${entity.presetId}`)
       button.textContent = '✅ Queued!'
 
-      // Start tracking this job
+      // Start tracking this job for THIS specific entity
       setTimeout(() => {
         setGeneratingJobId(jobId)
+        setTrackingPresetId(entity.presetId)
         button.textContent = originalText
         button.disabled = false
       }, 500)
@@ -407,8 +421,8 @@ function HairStylePreview({ entity, onUpdate }) {
           />
         </div>
 
-        {/* Loading overlay when generating */}
-        {generatingJobId && (
+        {/* Loading overlay when generating (only show for this specific entity) */}
+        {generatingJobId && trackingPresetId === entity.presetId && (
           <div style={{
             position: 'absolute',
             top: 0,
