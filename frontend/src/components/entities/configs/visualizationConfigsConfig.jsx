@@ -281,7 +281,7 @@ export const visualizationConfigsConfig = {
         const response = await api.post('/visualization-configs/', {
           entity_type: 'character',  // Default entity type
           display_name: 'New Visualization Config',
-          composition_style: '',
+          composition_style: 'product',  // Default composition style
           framing: 'medium',
           angle: 'front',
           background: 'white',
