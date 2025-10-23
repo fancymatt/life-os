@@ -26,6 +26,10 @@ COPY api/ ./api/
 COPY configs/ ./configs/
 COPY scripts/ ./scripts/
 
+# Copy Alembic files for database migrations
+COPY alembic/ ./alembic/
+COPY alembic.ini ./alembic.ini
+
 # Copy entrypoint script
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh

@@ -26,6 +26,694 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 
 ---
 
+## User-Requested Features (October 2025)
+
+These features were requested directly by the user and should be prioritized alongside infrastructure work. Organized by category and implementation complexity.
+
+### Category: Data Management & Integrity
+
+#### Archive Instead of Delete
+**Priority**: CRITICAL - Prevents broken links
+**Complexity**: Medium (2-3 days)
+**Status**: Planned
+
+**Description**: Replace entity deletion with archiving to maintain referential integrity.
+
+**Requirements**:
+- Add `archived` boolean + `archived_at` timestamp to all entity tables
+- Archived entities:
+  - Accessible in read-only mode
+  - Show "Archived" badge in UI
+  - Unarchive capability (set archived=false)
+  - Excluded from list views by default
+  - Show in "Archived" filter tab
+- Update delete endpoints to archive instead
+- Cascade behavior: Archiving character archives related images/stories
+
+**Benefits**:
+- Images with related entities (characters, outfits) won't have broken links
+- Can still view archived entity name and details
+- Reversible operation (vs permanent delete)
+
+---
+
+#### Entity Merge Tool
+**Priority**: HIGH - Reduces duplicates, improves data quality
+**Complexity**: High (1 week)
+**Status**: Planned
+
+**Description**: AI-assisted merging of similar entities with reference migration.
+
+**Workflow**:
+1. User selects Entity A (keep) and Entity B (merge into A)
+2. System finds all references to Entity B (images, compositions, workflows, etc.)
+3. AI analyzes both entities:
+   ```
+   Prompt: "Compare these two {entity_type} entities. Create a merged description
+   that includes all unique aspects from both. Entity A: {data_a}, Entity B: {data_b}"
+   ```
+4. Show preview of merged entity (user can edit before confirming)
+5. Update all references from B → A
+6. Archive (not delete) Entity B with metadata: `merged_into: entity_a_id`
+7. Save merged data to Entity A
+
+**UI**:
+- "Merge into..." button in entity actions menu
+- Entity selector modal (search/filter)
+- Side-by-side comparison view
+- AI-generated merge preview (editable)
+- Confirmation dialog showing affected references
+
+**Example**: Merge two similar jacket clothing items
+- Entity A: "Black leather bomber jacket"
+- Entity B: "Leather bomber jacket, dark color, silver zipper"
+- Merged: "Black leather bomber jacket with silver zipper"
+
+---
+
+### Category: AI Tools & Generators
+
+#### Extremify Tool
+**Priority**: MEDIUM - Creative feature, not critical
+**Complexity**: Medium (2-3 days)
+**Status**: Planned
+
+**Description**: Generate avant-garde versions of clothing items by amplifying unique features.
+
+**Input**:
+- Clothing item entity
+- Intensity multiplier (1 = same, 2 = 2x extreme, 3 = 3x extreme, etc.)
+
+**AI Prompt Template**:
+```
+Create an avant-garde version of this {item_type} that is {intensity}x more extreme.
+Amplify all unique features by a factor of {intensity}:
+- If it has thickness, make it {intensity}x thicker
+- If it has length, make it {intensity}x longer
+- If it has volume, make it {intensity}x more voluminous
+- If it has decorative elements, make them {intensity}x more pronounced
+
+Original item:
+{item_description}
+
+Generate a new clothing item description with these extreme modifications.
+```
+
+**Output**: New clothing item entity (not modifying original)
+
+**UI**:
+- "Extremify" button in clothing item detail view
+- Slider for intensity (1-5)
+- Preview generation
+- Save as new item
+
+**Use Cases**:
+- Avant-garde fashion exploration
+- Costume design inspiration
+- Exploring design boundaries
+
+---
+
+#### Clothing Item Modification Tools
+
+**Priority**: HIGH - Useful for iterative design
+**Complexity**: Low-Medium (2-3 days total)
+**Status**: Planned
+
+**Two tools with similar implementation**:
+
+**1. Modify Existing (Update in Place)**
+- User clicks "Modify" on clothing item
+- Text input: "Make these shoulder-length" or "Change to red"
+- AI prompt: `Update this description: {original}. Apply this change: {user_feedback}`
+- Replace existing entity fields
+- Mark as `manually_modified: true` in metadata
+- Track modification history (optional)
+
+**2. Create Variant (Copy with Changes)**
+- User clicks "Create Variant" on clothing item
+- Text input: "Make it black" or "Add gold trim"
+- AI prompt same as above, but creates new entity
+- Keep `source_entity_id` reference
+- Name suggestion: "{original_name} (Variant)"
+
+**Backend**:
+- Single endpoint handles both: `POST /api/clothing-items/{id}/modify`
+- Parameter: `action: "update" | "variant"`
+- Uses outfit_analyzer or character_appearance_analyzer for consistency
+
+**UI**:
+- Modal with text input and action selector (Update/Create Variant)
+- Preview of changes before applying
+- Loading state during AI processing
+
+---
+
+### Category: Alterations Entity (New Entity Type)
+
+**Priority**: HIGH - Expands creative possibilities
+**Complexity**: High (1 week)
+**Status**: Planned
+
+**Description**: First-class entity for body modifications (currently only in story workflow).
+
+**What are Alterations?**
+- Physical transformations: horns, wings, tail, pointed ears
+- Skin modifications: color changes, scales, fur
+- Proportional changes: extreme musculature, height, body type
+- Facial features: fangs, glowing eyes, unusual features
+
+**Creation Method** (same as outfits):
+1. Upload image demonstrating alteration
+2. AI analyzes: "What physical alterations does this image show?"
+3. Extract discrete alterations as separate entities:
+   - Red skin (skin modification)
+   - Large curved horns (appendage)
+   - Glowing yellow eyes (facial feature)
+   - Muscular build (proportional)
+4. Save each as Alteration entity with category tag
+
+**Database Schema**:
+```sql
+CREATE TABLE alterations (
+  alteration_id UUID PRIMARY KEY,
+  name VARCHAR(255),
+  description TEXT,
+  category VARCHAR(50),  -- skin, appendages, proportions, facial_features
+  intensity VARCHAR(50), -- subtle, moderate, extreme
+  source_image VARCHAR(500),
+  preview_image_path VARCHAR(500),
+  tags TEXT[],  -- demon, fantasy, sci-fi, etc.
+  user_id INTEGER,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP,
+  metadata JSONB
+);
+```
+
+**Usage**:
+- Image Composer: Apply alterations like clothing (stackable)
+- Story Generator: Use in transformation stories
+- Character creation: Define character's permanent alterations
+
+**Implementation Steps**:
+1. Create database table + migration
+2. Create `AlterationServiceDB`
+3. Create API routes (`/api/alterations/`)
+4. Create analyzer tool (`alteration_analyzer`)
+5. Create frontend entity config
+6. Integrate with Image Composer (add alterations selector)
+7. Integrate with Story Generator (already partially done)
+
+---
+
+### Category: Outfit Composer Improvements
+
+**Priority**: MEDIUM-HIGH - Usability improvements
+**Complexity**: Medium (3-4 days total)
+**Status**: Planned
+
+**Three improvements (do ALL three)**:
+
+**1. Show Preview Images in Outfit Composer**
+- Reuse `PresetCard` component from Image Composer
+- Show clothing item thumbnails in outfit builder
+- Extract reusable `ItemPreview` component if needed
+
+**2. "Save as Outfit" Button in Image Composer**
+- When user has applied clothing item presets in Image Composer
+- Button: "Save as Outfit"
+- Action:
+  - Collect all applied clothing item presets
+  - Ignore non-clothing presets (visual styles, expressions, hair colors)
+  - Create new Outfit entity with those items
+  - Prompt for outfit name
+  - Save and redirect to outfit detail page
+
+**3. Auto-Create Outfit from Image Upload**
+- When uploading image for outfit analysis
+- After creating individual clothing items
+- Automatically create Outfit entity containing all items
+- Name suggestion from AI: `suggested_outfit_name` field
+- User can rename/edit after creation
+
+---
+
+### Category: UI/UX Consistency & Theming
+
+**Priority**: HIGH - Foundation for all future UI work
+**Complexity**: Medium (1 week)
+**Status**: Planned
+
+**Description**: Centralized design system for consistent, maintainable UI.
+
+**Create `frontend/src/theme.js`**:
+```javascript
+export const theme = {
+  colors: {
+    primary: '#3b82f6',
+    secondary: '#8b5cf6',
+    background: '#ffffff',
+    backgroundDark: '#1f2937',
+    text: '#111827',
+    textLight: '#6b7280',
+    border: '#e5e7eb',
+    error: '#ef4444',
+    success: '#10b981',
+    warning: '#f59e0b'
+  },
+  spacing: {
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+    xxl: '48px'
+  },
+  borderRadius: {
+    sm: '4px',
+    md: '8px',
+    lg: '12px',
+    full: '9999px'
+  },
+  fontSize: {
+    xs: '12px',
+    sm: '14px',
+    base: '16px',
+    lg: '18px',
+    xl: '20px',
+    '2xl': '24px',
+    '3xl': '30px'
+  },
+  fontWeight: {
+    normal: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700
+  },
+  shadows: {
+    sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+  }
+};
+```
+
+**Component Library** (create these):
+- `Button.jsx` - Primary, secondary, danger variants
+- `Card.jsx` - Consistent entity card layout
+- `Modal.jsx` - Reusable modal wrapper
+- `Input.jsx` - Form inputs with consistent styling
+- `Badge.jsx` - Status badges (archived, favorite, etc.)
+- `Tabs.jsx` - Tab navigation component
+- `EmptyState.jsx` - Empty list placeholders
+
+**Refactoring Plan**:
+1. Create theme.js and component library
+2. Update EntityBrowser to use new components
+3. Update 2-3 entity pages as examples
+4. Gradually migrate remaining pages
+5. Remove inline styles and duplicated CSS
+
+**Goal**: Consistent look and feel everywhere, maintainable styles, OS-like predictability
+
+---
+
+### Category: Jobs Manager Improvements
+
+**Priority**: MEDIUM - Better UX for background tasks
+**Complexity**: Medium (2-3 days)
+**Status**: Planned
+
+**Terminology Change**: Standardize on "Jobs" (not "Tasks") everywhere
+
+**Improvements**:
+
+**1. Clear Completed Jobs Button**
+- Button in jobs panel: "Clear Completed"
+- Shows count: "Clear 12 Completed Jobs"
+- Confirmation dialog if >10 jobs
+- Endpoint: `DELETE /api/jobs/completed`
+
+**2. Hierarchical Job Display**
+- Format: `{Task Name} → {Subtask}`
+- Example:
+  - "Outfit Analysis → Analyzing Image"
+  - "Outfit Analysis → Creating Clothing Items (3/5)"
+  - "Outfit Analysis → Generating Previews (2/5)"
+- Track parent job_id and current step
+- Show progress as "Step 2 of 5" instead of percentage
+
+**3. Remove Fake Progress Indicators**
+- Remove percentage displays (always 0% for LLM calls)
+- Use indeterminate spinner for running jobs
+- States: `queued`, `running`, `completed`, `failed`
+- Show actual progress only when meaningful (file uploads, batch operations)
+
+**Backend Changes**:
+- Add `parent_job_id` and `step` fields to jobs
+- Add `total_steps` for multi-step jobs
+- Endpoint to create job hierarchy
+- Endpoint to delete completed jobs
+
+---
+
+### Category: Visualization Config Linking
+
+**Priority**: MEDIUM - Better discoverability
+**Complexity**: Low (1 day)
+**Status**: Planned
+
+**Description**: Show which visualization config is used for entity previews.
+
+**UI Changes** (on entity detail page):
+
+**When Config is Set**:
+```
+┌─────────────────────────────────────────┐
+│  Generate Preview                       │
+│  Using: Product Photography (Default)   │  <- Clickable link
+│                                         │
+│  [Generate Preview Button]              │
+└─────────────────────────────────────────┘
+```
+
+**When No Config**:
+```
+┌─────────────────────────────────────────┐
+│  No visualization config set            │
+│  [Set Visualization Config] button      │
+└─────────────────────────────────────────┘
+```
+- "Generate Preview" button disabled with tooltip
+
+**Implementation**:
+- Add `visualization_config_id` field to entities (optional)
+- API returns config name with entity data
+- Link format: `/entities/visualization-configs/{config_id}`
+- Fallback to default config if not set
+
+---
+
+### Category: Tagging System
+
+**Priority**: HIGH - Improves organization across all entities
+**Complexity**: Medium (3-4 days)
+**Status**: Planned
+
+**Description**: Universal tagging system for all entity types.
+
+**Database Schema**:
+```sql
+CREATE TABLE tags (
+  tag_id UUID PRIMARY KEY,
+  name VARCHAR(100) UNIQUE,
+  category VARCHAR(50),  -- material, style, season, genre, etc.
+  color VARCHAR(20),     -- For UI (optional)
+  created_at TIMESTAMP
+);
+
+CREATE TABLE entity_tags (
+  entity_type VARCHAR(50),  -- clothing_items, characters, etc.
+  entity_id UUID,
+  tag_id UUID,
+  PRIMARY KEY (entity_type, entity_id, tag_id)
+);
+```
+
+**Tag Categories**:
+- **Material**: leather, silk, cotton, metal, plastic
+- **Style**: sci-fi, fantasy, cyberpunk, steampunk, vintage, modern
+- **Season**: spring, summer, fall, winter
+- **Occasion**: casual, formal, athletic, cosplay
+- **Color Scheme**: monochrome, vibrant, pastel, dark
+- **Custom**: User-defined tags
+
+**UI Features**:
+- Tag autocomplete (suggest existing tags)
+- Create new tags inline
+- Filter entity lists by tag(s)
+- Tag cloud visualization (popular tags)
+- Multi-tag filtering (AND/OR logic)
+
+**Affected Entities** (implement for all):
+- Clothing Items (primary use case)
+- Characters
+- Visual Styles
+- Stories
+- Outfits
+- Alterations
+
+**API**:
+- `GET /api/tags/` - List all tags
+- `POST /api/tags/` - Create tag
+- `POST /api/{entity_type}/{id}/tags` - Add tag to entity
+- `DELETE /api/{entity_type}/{id}/tags/{tag_id}` - Remove tag
+- `GET /api/{entity_type}?tags=sci-fi,fantasy` - Filter by tags
+
+---
+
+### Category: Document Upload
+
+**Priority**: LOW - Nice to have, BGG download works
+**Complexity**: Low (1 day)
+**Status**: Planned
+
+**Description**: Manual PDF upload for documents (fallback for BGG failures).
+
+**Implementation**:
+- Add upload endpoint: `POST /api/documents/upload`
+- Store PDFs in `data/downloads/pdfs/{game_id}/`
+- Create Document entity from uploaded file
+- Extract metadata: page count, file size, title
+- Support both upload and BGG download workflows
+
+**UI**:
+- Upload button in board game detail view
+- Drag-and-drop PDF upload
+- Progress bar for large files
+- File validation (PDF only, max 50MB)
+
+---
+
+### Category: Favorites System (Fix)
+
+**Priority**: CRITICAL - Currently broken
+**Complexity**: Low (1 day)
+**Status**: Broken - Needs Fix
+
+**Description**: Unified favorites system across all entities.
+
+**Implementation Options**:
+
+**Option 1**: Boolean field on each entity table
+```sql
+ALTER TABLE characters ADD COLUMN is_favorite BOOLEAN DEFAULT FALSE;
+ALTER TABLE clothing_items ADD COLUMN is_favorite BOOLEAN DEFAULT FALSE;
+-- etc for all entities
+```
+
+**Option 2**: Separate favorites table (better for multi-user)
+```sql
+CREATE TABLE favorites (
+  user_id INTEGER,
+  entity_type VARCHAR(50),
+  entity_id UUID,
+  favorited_at TIMESTAMP,
+  PRIMARY KEY (user_id, entity_type, entity_id)
+);
+```
+
+**Recommendation**: Option 1 (simpler, faster queries)
+
+**Unified API Pattern**:
+- `POST /api/{entity_type}/{id}/favorite` - Toggle favorite
+- `GET /api/{entity_type}?favorite=true` - Filter favorites
+- Single reusable `FavoriteButton` component
+
+**UI**:
+- Star icon (filled = favorited, outline = not favorited)
+- Click to toggle
+- Works identically on all entity types
+- "Favorites" filter tab in all entity lists
+
+---
+
+### Category: Mobile Responsiveness
+
+**Priority**: HIGH - Current experience is poor
+**Complexity**: Medium (1 week)
+**Status**: Needs Major Improvement
+
+**Critical Issues**:
+
+**1. Viewport Meta Tag** (CRITICAL)
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+```
+- Add to `frontend/index.html`
+- Prevents pinch-zoom issues
+
+**2. Collapsible Sidebar**
+- Hide sidebar on mobile (<768px)
+- Hamburger menu button to toggle
+- Overlay sidebar (not push content)
+- Touch-friendly close button
+
+**3. Floating Jobs Badge**
+- Reposition on mobile (top-right instead of bottom-right)
+- OR: Show as expandable bottom sheet
+- Don't block content
+
+**4. Touch Targets**
+- Minimum 44x44px for all buttons
+- Increase spacing between clickable elements
+- Larger tap areas for icons
+
+**5. Spacing from Edges**
+- Add padding on mobile: `16px` minimum
+- Prevent elements touching screen edge
+- Comfortable reading width
+
+**Responsive Breakpoints**:
+```css
+/* Mobile */
+@media (max-width: 640px) { ... }
+
+/* Tablet */
+@media (min-width: 641px) and (max-width: 1024px) { ... }
+
+/* Desktop */
+@media (min-width: 1025px) { ... }
+```
+
+**Testing**:
+- Test on actual mobile devices (iPhone, Android)
+- Use Chrome DevTools mobile emulation
+- Test landscape and portrait modes
+
+---
+
+### Category: LLM Observability (LangSmith)
+
+**Priority**: MEDIUM - Helps debugging and optimization
+**Complexity**: Low-Medium (2-3 days)
+**Status**: Planned
+
+**Current Architecture**: LiteLLM (NOT LangChain)
+
+**Recommendation**: Add LangSmith for observability WITHOUT replacing LiteLLM
+
+**Implementation**:
+```python
+# Install
+pip install langsmith
+
+# Add to router.py
+from langsmith import trace
+
+@trace(name="llm_call")
+async def acall_structured(
+    self,
+    prompt: str,
+    response_model: Type[BaseModel],
+    ...
+):
+    # Existing LiteLLM code
+    # LangSmith automatically logs:
+    # - Prompt
+    # - Response
+    # - Model used
+    # - Tokens
+    # - Latency
+    # - Cost (estimated)
+```
+
+**Dashboard Features**:
+- View all LLM calls in chronological order
+- Filter by tool/agent
+- Search prompts
+- View traces for multi-step workflows
+- Export/share specific traces
+- Cost tracking
+
+**Frontend Integration** (optional):
+- Add `/llm-traces` page
+- Embed LangSmith dashboard (iframe or API)
+- Show recent calls for current tool
+- Link to detailed trace view
+
+**Why LangSmith (not LangChain)**:
+- **LiteLLM** handles provider routing (keep this)
+- **LangSmith** handles observability (add this)
+- Minimal code changes (just `@trace` decorators)
+- Works with any LLM library (not just LangChain)
+
+**Alternative**: Build custom logging dashboard
+- Store LLM calls in database
+- Create `/llm-logs` page
+- More work, but full control
+
+---
+
+### Category: Future / Exploratory
+
+#### Voice Synthesis Service
+**Priority**: LOW - Experimental
+**Complexity**: High (2+ weeks)
+**Status**: Future
+
+**Description**: Local voice cloning and TTS for character dialogue.
+
+**Not implementing now, but documenting vision**:
+- Separate Docker container
+- Local-first (Coqui TTS, XTTS)
+- Characters have assigned voices
+- Story narration
+- Character dialogue generation
+
+---
+
+#### MCP Server Integration
+**Priority**: LOW - Experimental
+**Complexity**: High (3+ weeks)
+**Status**: Future
+
+**Description**: Connect to external data sources (email, Slack, calendar).
+
+**Not implementing now, but documenting vision**:
+- Email inbox triage
+- Slack message context
+- Calendar integration
+- Automated insights
+
+---
+
+## Implementation Priorities (User Features)
+
+**Next 2 Weeks** (Critical fixes):
+1. Fix Favorites system (1 day)
+2. Archive instead of delete (2-3 days)
+3. Mobile responsiveness basics (viewport, sidebar) (2 days)
+4. UI theme system (3 days)
+5. Visualization config linking (1 day)
+
+**Next 4 Weeks** (High-value features):
+6. Tagging system (3-4 days)
+7. Entity merge tool (1 week)
+8. Alterations entity (1 week)
+9. Outfit composer improvements (3-4 days)
+10. Jobs manager improvements (2-3 days)
+
+**Next 8 Weeks** (Polish & tools):
+11. Clothing modification tools (2-3 days)
+12. Extremify tool (2-3 days)
+13. Document upload (1 day)
+14. LangSmith observability (2-3 days)
+15. Complete mobile polish (remaining issues)
+
+---
+
 ## Phase 1: Foundation & Critical Fixes ✅ **COMPLETE**
 
 **Goal**: Stable, scalable foundation with proper data layer, testing, and deployment

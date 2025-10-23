@@ -6,6 +6,7 @@ Provides clean separation between business logic and data access.
 """
 
 from typing import Optional, List
+from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,13 +33,25 @@ class CharacterRepository:
         self,
         user_id: Optional[int] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
+        include_archived: bool = False
     ) -> List[Character]:
-        """Get all characters, optionally filtered by user with pagination support"""
+        """Get all characters, optionally filtered by user with pagination support
+
+        Args:
+            user_id: Filter by user ID
+            limit: Maximum number of results
+            offset: Number of results to skip
+            include_archived: If True, include archived characters. Default False.
+        """
         query = select(Character).order_by(Character.created_at.desc())
 
         if user_id is not None:
             query = query.where(Character.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(Character.archived == False)
 
         if limit is not None:
             query = query.limit(limit)
@@ -65,23 +78,43 @@ class CharacterRepository:
         return character
 
     async def delete(self, character_id: str) -> bool:
-        """Delete character by ID"""
+        """Archive character by ID (soft delete)"""
+        return await self.archive(character_id)
+
+    async def archive(self, character_id: str) -> bool:
+        """Archive character by ID (soft delete)"""
         character = await self.get_by_id(character_id)
 
         if not character:
             return False
 
-        await self.session.delete(character)
+        character.archived = True
+        character.archived_at = datetime.utcnow()
         await self.session.flush()
 
-        logger.info(f"Deleted character from database: {character_id}")
+        logger.info(f"Archived character in database: {character_id}")
+        return True
+
+    async def unarchive(self, character_id: str) -> bool:
+        """Unarchive character by ID"""
+        character = await self.get_by_id(character_id)
+
+        if not character:
+            return False
+
+        character.archived = False
+        character.archived_at = None
+        await self.session.flush()
+
+        logger.info(f"Unarchived character in database: {character_id}")
         return True
 
     async def search(
         self,
         query: Optional[str] = None,
         user_id: Optional[int] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        include_archived: bool = False
     ) -> List[Character]:
         """
         Search characters with optional filters
@@ -90,11 +123,16 @@ class CharacterRepository:
             query: Text search in name, personality, or description
             user_id: Filter by user ID
             tags: Filter by tags (must have all tags)
+            include_archived: If True, include archived characters. Default False.
         """
         stmt = select(Character)
 
         if user_id is not None:
             stmt = stmt.where(Character.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            stmt = stmt.where(Character.archived == False)
 
         if query:
             # Case-insensitive search in name, personality, or visual description
@@ -127,14 +165,23 @@ class CharacterRepository:
         character = await self.get_by_id(character_id)
         return character is not None
 
-    async def count(self, user_id: Optional[int] = None) -> int:
-        """Count characters, optionally filtered by user"""
+    async def count(self, user_id: Optional[int] = None, include_archived: bool = False) -> int:
+        """Count characters, optionally filtered by user
+
+        Args:
+            user_id: Filter by user ID
+            include_archived: If True, include archived characters. Default False.
+        """
         from sqlalchemy import func
 
         query = select(func.count()).select_from(Character)
 
         if user_id is not None:
             query = query.where(Character.user_id == user_id)
+
+        # Exclude archived by default
+        if not include_archived:
+            query = query.where(Character.archived == False)
 
         result = await self.session.execute(query)
         return result.scalar_one()

@@ -77,6 +77,10 @@ class Character(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # User relationship
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     owner = relationship("User", back_populates="characters")
@@ -115,6 +119,10 @@ class ClothingItem(Base):
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
+
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # User relationship
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
@@ -165,6 +173,10 @@ class BoardGame(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # User relationship
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     owner = relationship("User", back_populates="board_games")
@@ -213,6 +225,10 @@ class Outfit(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # User relationship
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
@@ -249,6 +265,10 @@ class Story(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # User relationship
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
@@ -283,6 +303,10 @@ class StoryScene(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     story = relationship("Story", back_populates="scenes")
@@ -346,6 +370,10 @@ class Composition(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # User relationship
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
@@ -384,6 +412,10 @@ class Image(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # User relationship
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
@@ -488,6 +520,10 @@ class VisualizationConfig(Base):
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Archiving (soft delete)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # User relationship (nullable - configs can be system-wide)
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
