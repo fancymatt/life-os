@@ -97,6 +97,7 @@ def sample_image_file(temp_dir):
 def sample_outfit_data():
     """Sample outfit data for testing"""
     return {
+        "suggested_name": "Business Professional Suit",
         "clothing_items": [
             {
                 "item": "suit jacket",
@@ -138,13 +139,11 @@ def sample_outfit_data_with_metadata(sample_outfit_data):
 def sample_visual_style_data():
     """Sample visual style data for testing"""
     return {
-        "lighting_setup": "three-point lighting",
-        "lighting_quality": "soft, diffused",
-        "color_grading": "warm tones, slightly desaturated",
-        "color_temperature": "warm",
-        "composition": "rule of thirds, centered subject",
+        "suggested_name": "Corporate Headshot Style",
+        "subject_action": "Standing upright with confident posture, facing the camera directly. Head held high with chin slightly tilted down, creating an approachable yet authoritative stance. Eyes making direct contact with the lens, conveying engagement and professionalism. Shoulders squared and relaxed, not hunched. Arms positioned naturally at sides, not crossing or in pockets. Body language open and welcoming, projecting competence and trustworthiness. Slight forward lean suggesting attentiveness and engagement with the viewer.",
+        "setting": "Professional studio environment with clean, uncluttered aesthetic. Crisp white backdrop extending seamlessly from floor to ceiling, providing neutral canvas that eliminates distractions. Background completely even without shadows, gradients, or texture variations. Studio walls and floor blend imperceptibly, creating infinity curve effect. Lighting equipment positioned strategically but invisible in frame. Climate-controlled space maintaining consistent temperature and humidity. Acoustically treated to minimize echo and ambient noise during direction. Professional-grade backdrop paper or seamless material ensuring perfect uniformity.",
+        "framing": "medium shot",
         "camera_angle": "eye level",
-        "background": "plain white backdrop",
-        "mood": "professional and approachable",
-        "photography_style": "corporate headshot"
+        "lighting": "Classic three-point lighting setup with key light positioned at 45-degree angle from subject, providing main illumination and defining facial structure with gentle shadows. Fill light opposite key light at lower intensity, softening shadows without eliminating them entirely, maintaining dimension. Back light (rim light) positioned behind and above subject, separating them from background and adding subtle halo effect around edges. All lights softbox-modified for even, diffused quality. Color temperature balanced at 5500K daylight standard. Light ratio approximately 3:1 between key and fill, creating professional depth while remaining flattering.",
+        "mood": "Professional, confident, and approachable atmosphere that balances authority with warmth. Image conveys competence and trustworthiness without appearing cold or distant. Lighting and composition work together to create sense of clarity and focus. Overall feeling suggests reliability and expertise while maintaining human connection. Environment feels controlled and polished yet authentic, avoiding overly sterile or artificial appearance. Emotional tone projects readiness, capability, and engagement without intimidation."
     }
