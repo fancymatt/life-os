@@ -275,6 +275,7 @@ function VisualizationConfig() {
             <option value="clothing_item">Clothing Items</option>
             <option value="character">Characters</option>
             <option value="outfit">Outfits</option>
+            <option value="hair_style">Hair Styles</option>
           </select>
         </div>
 
@@ -303,6 +304,7 @@ function VisualizationConfig() {
                   <option value="clothing_item">Clothing Item</option>
                   <option value="character">Character</option>
                   <option value="outfit">Outfit</option>
+                  <option value="hair_style">Hair Style</option>
                 </select>
               </div>
 
