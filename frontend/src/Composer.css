@@ -444,6 +444,12 @@
   min-width: 200px;
 }
 
+.subject-selector select option {
+  background: #1a1a2e;
+  color: white;
+  padding: 0.5rem;
+}
+
 .subject-selector select:hover {
   border-color: #667eea;
   background: rgba(255, 255, 255, 0.1);
