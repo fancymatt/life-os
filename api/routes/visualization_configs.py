@@ -379,3 +379,58 @@ async def delete_visualization_config(
         raise HTTPException(status_code=404, detail=f"Visualization config {config_id} not found")
 
     return {"message": f"Visualization config {config_id} deleted successfully"}
+
+
+@router.post("/{config_id}/upload-reference")
+@invalidates_cache(entity_types=["visualization_configs"])
+async def upload_reference_image(
+    config_id: str,
+    file: UploadFile = File(...),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Upload a reference image for a visualization config
+
+    The reference image is used by Gemini to match the artistic style when generating previews.
+
+    **Cache Invalidation**: Clears all visualization_configs caches
+    """
+    import aiofiles
+    from pathlib import Path
+    import shutil
+
+    service = VisualizationConfigService()
+
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    # Create uploads directory if it doesn't exist
+    uploads_dir = Path("/app/uploads")
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save file with config_id as filename
+    file_ext = Path(file.filename).suffix or '.png'
+    file_path = uploads_dir / f"viz_config_{config_id}{file_ext}"
+
+    # Save uploaded file
+    try:
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    # Update config with reference image path
+    config = service.update_config(
+        config_id=config_id,
+        reference_image_path=str(file_path)
+    )
+
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Visualization config {config_id} not found")
+
+    return {
+        "message": "Reference image uploaded successfully",
+        "reference_image_path": str(file_path)
+    }

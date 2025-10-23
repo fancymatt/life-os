@@ -149,6 +149,10 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">📸</span>
                   <span className="nav-label">Visual Styles</span>
                 </NavLink>
+                <NavLink to="/entities/visualization-configs" className="nav-link nav-link-sibling" onClick={onClose}>
+                  <span className="nav-icon">🎨</span>
+                  <span className="nav-label">Visualization Configs</span>
+                </NavLink>
                 <NavLink to="/entities/story-writer-configs" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📝</span>
                   <span className="nav-label">Writer Configs</span>
@@ -259,10 +263,6 @@ function Sidebar({ isOpen, onClose }) {
                 <NavLink to="/tools/story/writer" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">✍️</span>
                   <span className="nav-label">Story Writer</span>
-                </NavLink>
-                <NavLink to="/tools/visualization-config" className="nav-link nav-link-sibling" onClick={onClose}>
-                  <span className="nav-icon">🎨</span>
-                  <span className="nav-label">Visualization Config</span>
                 </NavLink>
               </div>
             )}

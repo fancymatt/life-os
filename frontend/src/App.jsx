@@ -28,6 +28,7 @@ import StoryIllustratorConfigsEntity from './pages/entities/StoryIllustratorConf
 import BoardGamesEntity from './pages/entities/BoardGamesEntity'
 import DocumentsEntity from './pages/entities/DocumentsEntity'
 import QAsEntity from './pages/entities/QAsEntity'
+import VisualizationConfigsEntity from './pages/entities/VisualizationConfigsEntity'
 import ToolConfigPage from './pages/ToolConfigPage'
 
 // Tool Pages - Analyzers
@@ -47,7 +48,6 @@ import StoryIllustratorPage from './pages/StoryIllustratorPage'
 
 // Tool Pages - Generators
 import ModularGenerator from './ModularGenerator'
-import VisualizationConfig from './tools/VisualizationConfig'
 
 // Workflow Pages
 import StoryWorkflowPage from './pages/StoryWorkflowPage'
@@ -130,6 +130,8 @@ function App() {
           <Route path="documents/:id" element={<DocumentsEntity />} />
           <Route path="qas" element={<QAsEntity />} />
           <Route path="qas/:id" element={<QAsEntity />} />
+          <Route path="visualization-configs" element={<VisualizationConfigsEntity />} />
+          <Route path="visualization-configs/:id" element={<VisualizationConfigsEntity />} />
         </Route>
 
         {/* Tools */}
@@ -169,9 +171,6 @@ function App() {
           <Route path="bgg-rulebook-fetcher" element={<BGGRulebookFetcher />} />
           <Route path="document-processor" element={<DocumentProcessor />} />
           <Route path="document-question-asker" element={<DocumentQuestionAsker />} />
-
-          {/* Visualization Config */}
-          <Route path="visualization-config" element={<VisualizationConfig />} />
         </Route>
 
         {/* Workflows */}
