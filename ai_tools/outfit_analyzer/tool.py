@@ -81,16 +81,21 @@ class OutfitAnalyzer:
         self.auto_visualize = auto_visualize
         self.visualizer = OutfitVisualizer() if auto_visualize else None
 
-        # Use database service if session provided, otherwise fall back to file-based
+        # Use database service if session provided, otherwise create one
         self.db_session = db_session
         self.user_id = user_id
+        self.owns_session = (db_session is None)  # Track if we created the session
+
         if db_session is not None:
             from api.services.clothing_items_service_db import ClothingItemServiceDB
             self.clothing_service = ClothingItemServiceDB(db_session, user_id=user_id)
             self.use_db = True
         else:
-            self.clothing_service = ClothingItemsService()
-            self.use_db = False
+            # When called from analyzer service without a session, use database by default
+            # We'll create sessions on-the-fly during analysis
+            logger.info("OutfitAnalyzer initialized without db_session - will create sessions as needed")
+            self.clothing_service = None  # Will be created per-analysis
+            self.use_db = True  # Use database, not files
 
     def _load_template(self) -> str:
         """
@@ -165,10 +170,31 @@ class OutfitAnalyzer:
                     logger.info(f"CACHE HIT - Processing cached analysis for {image_path.name}")
                     # Process cached result into clothing items using service
                     created_items = []
-                    for item_data in cached.clothing_items:
-                        # Use service to create item WITHOUT preview generation
-                        # (previews can be batch-generated later via /clothing-items/batch-generate-previews)
-                        if self.use_db:
+
+                    # If we don't have a service yet, create one
+                    if self.clothing_service is None:
+                        from api.database import get_session
+                        from api.services.clothing_items_service_db import ClothingItemServiceDB
+
+                        async with get_session() as session:
+                            service = ClothingItemServiceDB(session, user_id=self.user_id)
+
+                            for item_data in cached.clothing_items:
+                                item_dict = await service.create_clothing_item(
+                                    category=item_data["category"],
+                                    item=item_data["item"],
+                                    fabric=item_data["fabric"],
+                                    color=item_data["color"],
+                                    details=item_data["details"],
+                                    source_image=str(image_path),
+                                    generate_preview=False,  # Don't slow down outfit analysis
+                                    background_tasks=None
+                                )
+                                created_items.append(item_dict)
+                                logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
+                    else:
+                        # Use existing service
+                        for item_data in cached.clothing_items:
                             item_dict = await self.clothing_service.create_clothing_item(
                                 category=item_data["category"],
                                 item=item_data["item"],
@@ -179,19 +205,8 @@ class OutfitAnalyzer:
                                 generate_preview=False,  # Don't slow down outfit analysis
                                 background_tasks=None
                             )
-                        else:
-                            item_dict = self.clothing_service.create_clothing_item(
-                                category=item_data["category"],
-                                item=item_data["item"],
-                                fabric=item_data["fabric"],
-                                color=item_data["color"],
-                                details=item_data["details"],
-                                source_image=str(image_path),
-                                generate_preview=False,  # Don't slow down outfit analysis
-                                background_tasks=None
-                            )
-                        created_items.append(item_dict)
-                        logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
+                            created_items.append(item_dict)
+                            logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
 
                     logger.info(f"\n✨ Created {len(created_items)} clothing items from cache")
                     return {
@@ -223,10 +238,31 @@ class OutfitAnalyzer:
 
             # Create and save individual clothing items using service
             created_items = []
-            for item_data in analysis.clothing_items:
-                # Use service to create item WITHOUT preview generation
-                # (previews can be batch-generated later via /clothing-items/batch-generate-previews)
-                if self.use_db:
+
+            # If we don't have a service yet (analyzer service didn't provide session), create one
+            if self.clothing_service is None:
+                from api.database import get_session
+                from api.services.clothing_items_service_db import ClothingItemServiceDB
+
+                async with get_session() as session:
+                    service = ClothingItemServiceDB(session, user_id=self.user_id)
+
+                    for item_data in analysis.clothing_items:
+                        item_dict = await service.create_clothing_item(
+                            category=item_data["category"],
+                            item=item_data["item"],
+                            fabric=item_data["fabric"],
+                            color=item_data["color"],
+                            details=item_data["details"],
+                            source_image=str(image_path),
+                            generate_preview=False,  # Don't slow down outfit analysis
+                            background_tasks=None
+                        )
+                        created_items.append(item_dict)
+                        logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
+            else:
+                # Use existing service (session provided to __init__)
+                for item_data in analysis.clothing_items:
                     item_dict = await self.clothing_service.create_clothing_item(
                         category=item_data["category"],
                         item=item_data["item"],
@@ -237,19 +273,8 @@ class OutfitAnalyzer:
                         generate_preview=False,  # Don't slow down outfit analysis
                         background_tasks=None
                     )
-                else:
-                    item_dict = self.clothing_service.create_clothing_item(
-                        category=item_data["category"],
-                        item=item_data["item"],
-                        fabric=item_data["fabric"],
-                        color=item_data["color"],
-                        details=item_data["details"],
-                        source_image=str(image_path),
-                        generate_preview=False,  # Don't slow down outfit analysis
-                        background_tasks=None
-                    )
-                created_items.append(item_dict)
-                logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
+                    created_items.append(item_dict)
+                    logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
 
             # Cache the result using combined key (image + template + model)
             if self.use_cache:
