@@ -239,13 +239,13 @@ function Composer() {
         return
       }
 
-      // Use the character's reference image path for generation
-      // The backend stores character images as: data/characters/{character_id}_ref.png
-      const characterImagePath = `data/characters/${selectedCharacter.character_id}_ref.png`
+      // Use character ID in format "character:{id}" - backend will resolve to file path
+      // and save character relationship for the image
+      const characterRef = `character:${selectedCharacter.character_id}`
 
       // Build request payload
       const payload = {
-        subject_image: characterImagePath,
+        subject_image: characterRef,
         variations: 1
       }
 
