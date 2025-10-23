@@ -309,29 +309,20 @@ async def update_visualization_config(
 
     **Cache Invalidation**: Clears all visualization_configs caches
     """
-    # Debug logging
+    service = VisualizationConfigService()
+
+    # Get only the fields that were actually set in the request
+    # This allows us to distinguish between "field not provided" and "field set to None"
+    update_data = request.model_dump(exclude_unset=True)
+
     logger.debug(f"Update request for config {config_id}", extra={'extra_fields': {
         'config_id': config_id,
-        'reference_image_path': request.reference_image_path,
-        'display_name': request.display_name
+        'update_data': update_data
     }})
-
-    service = VisualizationConfigService()
 
     config = service.update_config(
         config_id=config_id,
-        display_name=request.display_name,
-        composition_style=request.composition_style,
-        framing=request.framing,
-        angle=request.angle,
-        background=request.background,
-        lighting=request.lighting,
-        art_style_id=request.art_style_id,
-        reference_image_path=request.reference_image_path,
-        additional_instructions=request.additional_instructions,
-        image_size=request.image_size,
-        model=request.model,
-        is_default=request.is_default
+        **update_data
     )
 
     if not config:

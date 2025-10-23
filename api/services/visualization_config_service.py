@@ -204,25 +204,16 @@ class VisualizationConfigService:
     def update_config(
         self,
         config_id: str,
-        display_name: Optional[str] = None,
-        composition_style: Optional[str] = None,
-        framing: Optional[str] = None,
-        angle: Optional[str] = None,
-        background: Optional[str] = None,
-        lighting: Optional[str] = None,
-        art_style_id: Optional[str] = None,
-        reference_image_path: Optional[str] = None,
-        additional_instructions: Optional[str] = None,
-        image_size: Optional[str] = None,
-        model: Optional[str] = None,
-        is_default: Optional[bool] = None
+        **updates
     ) -> Optional[Dict[str, Any]]:
         """
         Update a visualization config
 
         Args:
             config_id: UUID of the config
-            (various optional update fields)
+            **updates: Dict of field names to update values
+                      Fields not present in updates will not be modified
+                      Fields present with value None will be cleared (set to None)
 
         Returns:
             Updated config dict or None if not found
@@ -233,34 +224,22 @@ class VisualizationConfigService:
             return None
 
         # If making this the default, unmark other defaults for this entity type
-        if is_default is True:
+        if updates.get('is_default') is True:
             self._unmark_defaults(existing_config['entity_type'], exclude_id=config_id)
 
-        # Update fields
-        if display_name is not None:
-            existing_config['display_name'] = display_name
-        if composition_style is not None:
-            existing_config['composition_style'] = composition_style
-        if framing is not None:
-            existing_config['framing'] = framing
-        if angle is not None:
-            existing_config['angle'] = angle
-        if background is not None:
-            existing_config['background'] = background
-        if lighting is not None:
-            existing_config['lighting'] = lighting
-        if art_style_id is not None:
-            existing_config['art_style_id'] = art_style_id
-        if reference_image_path is not None:
-            existing_config['reference_image_path'] = reference_image_path
-        if additional_instructions is not None:
-            existing_config['additional_instructions'] = additional_instructions
-        if image_size is not None:
-            existing_config['image_size'] = image_size
-        if model is not None:
-            existing_config['model'] = model
-        if is_default is not None:
-            existing_config['is_default'] = is_default
+        # Define which fields are allowed to be updated
+        allowed_fields = {
+            'display_name', 'composition_style', 'framing', 'angle',
+            'background', 'lighting', 'art_style_id', 'reference_image_path',
+            'additional_instructions', 'image_size', 'model', 'is_default'
+        }
+
+        # Update only the fields that were provided in updates
+        for field, value in updates.items():
+            if field in allowed_fields:
+                existing_config[field] = value
+            else:
+                logger.warning(f"Ignoring unknown field in update: {field}")
 
         # Update timestamp
         existing_config['updated_at'] = datetime.now().isoformat()
