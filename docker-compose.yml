@@ -120,15 +120,15 @@ services:
       retries: 3
       start_period: 10s
 
-    # Resource limits (adjust as needed)
+    # Resource limits (adjusted for batch operations - 256GB system)
     deploy:
       resources:
         limits:
+          cpus: '8.0'
+          memory: 16G
+        reservations:
           cpus: '2.0'
           memory: 4G
-        reservations:
-          cpus: '1.0'
-          memory: 2G
 
   frontend:
     build: ./frontend
