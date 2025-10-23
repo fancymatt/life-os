@@ -315,6 +315,35 @@ class VisualizationConfigService:
                 with open(config_path, 'w') as f:
                     json.dump(config, f, indent=2, default=str)
 
+    def count_configs(self, entity_type: Optional[str] = None) -> int:
+        """
+        Count total visualization configs (before pagination)
+
+        Args:
+            entity_type: Optional filter by entity type
+
+        Returns:
+            Total number of configs matching the filter
+        """
+        count = 0
+
+        # Count all matching config files
+        for config_path in self.configs_dir.glob("*.json"):
+            try:
+                with open(config_path, 'r') as f:
+                    config_data = json.load(f)
+
+                    # Apply entity_type filter if provided
+                    if entity_type and config_data.get('entity_type') != entity_type:
+                        continue
+
+                    count += 1
+            except Exception:
+                # Skip invalid files
+                continue
+
+        return count
+
     def get_entity_types_summary(self) -> Dict[str, int]:
         """
         Get count of configs per entity type

@@ -4,7 +4,7 @@ Composition Routes
 Endpoints for saving and loading preset combinations (compositions).
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,14 +57,27 @@ async def save_composition(
 
 @router.get("/list")
 async def list_compositions(
+    limit: Optional[int] = Query(None, description="Maximum number of compositions to return"),
+    offset: int = Query(0, description="Number of compositions to skip"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
     List all saved compositions for the current user
+
+    Supports pagination via limit/offset parameters.
+    Returns compositions sorted by updated_at (newest first).
     """
     service = CompositionServiceDB(db, user_id=current_user.id if current_user else None)
-    return await service.list_compositions()
+
+    # Get both compositions and total count
+    compositions = await service.list_compositions(limit=limit, offset=offset)
+    total_count = await service.count_compositions()
+
+    return {
+        "count": total_count,  # Total count, not page count
+        "compositions": compositions
+    }
 
 
 @router.get("/{composition_id}")

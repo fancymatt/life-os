@@ -100,7 +100,10 @@ async def list_visualization_configs(
     Returns configs sorted by updated_at (newest first).
     """
     service = VisualizationConfigService()
+
+    # Get both configs and total count
     configs = service.list_configs(entity_type=entity_type, limit=limit, offset=offset)
+    total_count = service.count_configs(entity_type=entity_type)
 
     config_infos = [
         VisualizationConfigInfo(
@@ -125,7 +128,7 @@ async def list_visualization_configs(
     ]
 
     return VisualizationConfigListResponse(
-        count=len(config_infos),
+        count=total_count,  # Total count, not page count
         configs=config_infos,
         entity_type_filter=entity_type
     )

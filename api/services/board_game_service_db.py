@@ -164,14 +164,26 @@ class BoardGameServiceDB:
 
         return self._board_game_to_dict(board_game)
 
-    async def list_board_games(self) -> List[Dict[str, Any]]:
+    async def list_board_games(
+        self,
+        limit: Optional[int] = None,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """
         List all board games (filtered by user if specified)
+
+        Args:
+            limit: Maximum number of board games to return
+            offset: Number of board games to skip
 
         Returns:
             List of board game data dicts
         """
-        board_games = await self.repository.get_all(user_id=self.user_id)
+        board_games = await self.repository.get_all(
+            user_id=self.user_id,
+            limit=limit,
+            offset=offset
+        )
         return [self._board_game_to_dict(game) for game in board_games]
 
     async def update_board_game(
@@ -281,3 +293,12 @@ class BoardGameServiceDB:
             }})
 
         return success
+
+    async def count_board_games(self) -> int:
+        """
+        Count total board games (filtered by user if specified)
+
+        Returns:
+            Total number of board games
+        """
+        return await self.repository.count(user_id=self.user_id)

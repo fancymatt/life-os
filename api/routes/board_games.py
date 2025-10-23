@@ -4,7 +4,7 @@ Board Game Routes
 Endpoints for managing board game entities and integrating with BoardGameGeek.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +30,8 @@ router = APIRouter()
 
 @router.get("/", response_model=BoardGameListResponse)
 async def list_board_games(
+    limit: Optional[int] = Query(None, description="Maximum number of board games to return"),
+    offset: int = Query(0, description="Number of board games to skip"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
@@ -37,9 +39,13 @@ async def list_board_games(
     List all board games
 
     Returns a list of all board game entities with their metadata.
+    Supports pagination via limit/offset parameters.
     """
     service = BoardGameServiceDB(db, user_id=current_user.id if current_user else None)
-    games = await service.list_board_games()
+
+    # Get both games and total count
+    games = await service.list_board_games(limit=limit, offset=offset)
+    total_count = await service.count_board_games()
 
     game_infos = [
         BoardGameInfo(
@@ -63,7 +69,7 @@ async def list_board_games(
     ]
 
     return BoardGameListResponse(
-        count=len(game_infos),
+        count=total_count,  # Total count, not page count
         games=game_infos
     )
 

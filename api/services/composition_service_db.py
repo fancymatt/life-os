@@ -31,9 +31,26 @@ class CompositionServiceDB:
             "updated_at": composition.updated_at.isoformat() if composition.updated_at else None,
         }
 
-    async def list_compositions(self) -> List[Dict[str, Any]]:
-        """List all compositions for the current user"""
-        compositions = await self.repository.list_all(user_id=self.user_id)
+    async def list_compositions(
+        self,
+        limit: Optional[int] = None,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        List all compositions for the current user
+
+        Args:
+            limit: Maximum number of compositions to return
+            offset: Number of compositions to skip
+
+        Returns:
+            List of composition data dicts
+        """
+        compositions = await self.repository.list_all(
+            user_id=self.user_id,
+            limit=limit,
+            offset=offset
+        )
         return [self._composition_to_dict(comp) for comp in compositions]
 
     async def get_composition(self, composition_id: str) -> Optional[Dict[str, Any]]:
@@ -97,3 +114,12 @@ class CompositionServiceDB:
         await self.repository.delete(composition)
         await self.session.commit()
         return True
+
+    async def count_compositions(self) -> int:
+        """
+        Count total compositions (filtered by user if specified)
+
+        Returns:
+            Total number of compositions
+        """
+        return await self.repository.count(user_id=self.user_id)
