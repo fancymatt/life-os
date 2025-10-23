@@ -22,6 +22,9 @@ from ai_tools.shared.preset import PresetManager
 from ai_tools.shared.cache import CacheManager
 from api.config import settings
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -102,7 +105,7 @@ class MakeupAnalyzer:
                 MakeupSpec
             )
             if cached:
-                print(f"✅ Using cached analysis for {image_path.name}")
+                logger.info(f"Using cached analysis for {image_path.name}")
 
                 # Save as preset if requested
                 if save_as_preset:
@@ -114,8 +117,8 @@ class MakeupAnalyzer:
                         display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {preset_name}")
-                    print(f"   Location: {preset_path}")
+                    logger.info(f"Saved as preset: {preset_name}")
+                    logger.info(f"   Location: {preset_path}")
 
                 return cached
 
@@ -123,7 +126,7 @@ class MakeupAnalyzer:
         prompt_template = self._load_template()
 
         # Perform analysis
-        print(f"🔍 Analyzing makeup in {image_path.name}...")
+        logger.info(f"🔍 Analyzing makeup in {image_path.name}...")
 
         try:
             result = await self.router.acall_structured(
@@ -149,7 +152,7 @@ class MakeupAnalyzer:
                     image_path,
                     result
                 )
-                print(f"💾 Cached analysis")
+                logger.info(f"💾 Cached analysis")
 
             # Save as preset if requested
             if save_as_preset:
@@ -170,9 +173,9 @@ class MakeupAnalyzer:
                     result._metadata.preset_id = preset_id
 
                     result._metadata.display_name = preset_name
-                print(f"⭐ Saved as preset: {preset_name}")
-                print(f"   ID: {preset_id}")
-                print(f"   Location: {preset_path}")
+                logger.info(f"Saved as preset: {preset_name}")
+                logger.info(f"   ID: {preset_id}")
+                logger.info(f"   Location: {preset_path}")
 
             return result
 
@@ -290,9 +293,9 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Makeup Analyzer Presets ({len(presets)}):")
+        logger.info(f"\n📋 Makeup Analyzer Presets ({len(presets)}):")
         for preset in presets:
-            print(f"  - {preset}")
+            logger.info(f"  - {preset}")
         return
 
     # Analyze image
@@ -308,20 +311,20 @@ Examples:
         )
 
         # Print results
-        print("\n" + "="*70)
-        print("Makeup Analysis")
-        print("="*70)
-        print(f"\nComplexion: {result.complexion}")
-        print(f"Eyes: {result.eyes}")
-        print(f"Lips: {result.lips}")
-        print(f"Overall Style: {result.overall_style}")
-        print(f"Intensity: {result.intensity}")
-        print(f"\nColor Palette ({len(result.color_palette)}):")
-        print(f"  {', '.join(result.color_palette)}")
-        print("\n" + "="*70)
+        logger.info("\n" + "="*70)
+        logger.info("Makeup Analysis")
+        logger.info("="*70)
+        logger.info(f"\nComplexion: {result.complexion}")
+        logger.info(f"Eyes: {result.eyes}")
+        logger.info(f"Lips: {result.lips}")
+        logger.info(f"Overall Style: {result.overall_style}")
+        logger.info(f"Intensity: {result.intensity}")
+        logger.info(f"\nColor Palette ({len(result.color_palette)}):")
+        logger.info(f"  {', '.join(result.color_palette)}")
+        logger.info("\n" + "="*70)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

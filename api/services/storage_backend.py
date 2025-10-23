@@ -9,6 +9,9 @@ import json
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from datetime import datetime
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class StorageBackend(ABC):
@@ -88,7 +91,7 @@ class RedisBackend(StorageBackend):
             self.prefix = prefix
             # Test connection
             self.redis.ping()
-            print(f"✅ Connected to Redis: {redis_url}")
+            logger.info(f"Connected to Redis: {redis_url}")
         except ImportError:
             raise ImportError(
                 "Redis backend requires 'redis' package. "

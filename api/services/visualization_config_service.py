@@ -12,6 +12,7 @@ import uuid
 import sys
 
 from api.config import settings
+from api.logging_config import get_logger
 from ai_capabilities.specs import (
     VisualizationConfigEntity,
     CompositionStyle,
@@ -20,6 +21,8 @@ from ai_capabilities.specs import (
     BackgroundStyle,
     LightingStyle
 )
+
+logger = get_logger(__name__)
 
 
 class VisualizationConfigService:
@@ -60,7 +63,7 @@ class VisualizationConfigService:
 
                     configs.append(config_data)
             except Exception as e:
-                print(f"⚠️  Failed to load config {config_path.name}: {e}")
+                logger.warning(f"Failed to load config {config_path.name}: {e}")
                 continue
 
         # Sort by updated_at (newest first)
@@ -93,7 +96,7 @@ class VisualizationConfigService:
             with open(config_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"⚠️  Failed to load config {config_id}: {e}")
+            logger.warning(f"Failed to load config {config_id}: {e}")
             return None
 
     def get_default_config(self, entity_type: str) -> Optional[Dict[str, Any]]:
@@ -194,7 +197,7 @@ class VisualizationConfigService:
         with open(config_path, 'w') as f:
             json.dump(config_dict, f, indent=2)
 
-        print(f"✅ Created visualization config: {display_name} ({entity_type})")
+        logger.info(f"Created visualization config: {display_name} ({entity_type})")
 
         return config_dict
 
@@ -267,7 +270,7 @@ class VisualizationConfigService:
         with open(config_path, 'w') as f:
             json.dump(existing_config, f, indent=2, default=str)
 
-        print(f"✅ Updated visualization config: {config_id}")
+        logger.info(f"Updated visualization config: {config_id}")
 
         return existing_config
 
@@ -289,10 +292,10 @@ class VisualizationConfigService:
         # Check if this is a default config
         config_data = self.get_config(config_id)
         if config_data and config_data.get('is_default', False):
-            print(f"⚠️  Warning: Deleting default config for {config_data.get('entity_type')}")
+            logger.warning(f"Warning: Deleting default config for {config_data.get('entity_type')}")
 
         config_path.unlink()
-        print(f"✅ Deleted visualization config: {config_id}")
+        logger.info(f"Deleted visualization config: {config_id}")
 
         return True
 

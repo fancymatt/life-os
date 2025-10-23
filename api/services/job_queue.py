@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set
 from api.models.jobs import Job, JobStatus, JobType
 from api.services.storage_backend import StorageBackend, InMemoryBackend
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class JobQueueManager:
@@ -418,13 +421,13 @@ def get_job_queue_manager() -> JobQueueManager:
         if settings.job_storage_backend == "redis":
             try:
                 backend = RedisBackend(redis_url=settings.redis_url)
-                print(f"✅ Job queue using Redis: {settings.redis_url}")
+                logger.info(f"Job queue using Redis: {settings.redis_url}")
             except Exception as e:
-                print(f"⚠️  Failed to connect to Redis: {e}")
-                print(f"⚠️  Falling back to in-memory storage")
+                logger.warning(f"Failed to connect to Redis: {e}")
+                logger.warning("Falling back to in-memory storage")
                 backend = InMemoryBackend()
         else:
-            print(f"ℹ️  Job queue using in-memory storage")
+            logger.info("Job queue using in-memory storage")
             backend = InMemoryBackend()
 
         job_queue_manager = JobQueueManager(storage_backend=backend)

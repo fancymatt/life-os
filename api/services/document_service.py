@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 from api.config import settings
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class DocumentService:
@@ -121,7 +124,7 @@ class DocumentService:
 
                     documents.append(document_data)
             except Exception as e:
-                print(f"Error loading document {file_path}: {e}")
+                logger.error(f"Error loading document {file_path}: {e}")
                 continue
 
         # Sort by created_at (newest first)

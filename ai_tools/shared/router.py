@@ -42,6 +42,9 @@ from pydantic import BaseModel
 import litellm
 from litellm import completion, acompletion
 import yaml
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Configure LiteLLM
 litellm.set_verbose = True  # Set to True for debugging
@@ -152,7 +155,7 @@ class LLMRouter:
         file_size_mb = image_path.stat().st_size / (1024 * 1024)
 
         if file_size_mb > max_size_mb:
-            print(f"📏 Image is {file_size_mb:.2f}MB, resizing to reduce size...")
+            logger.info(f"📏 Image is {file_size_mb:.2f}MB, resizing to reduce size...")
 
             # Open image with PIL
             img = Image.open(image_path)
@@ -165,8 +168,8 @@ class LLMRouter:
             new_width = int(img.width * dimension_ratio)
             new_height = int(img.height * dimension_ratio)
 
-            print(f"   Original: {img.width}x{img.height}")
-            print(f"   Resized: {new_width}x{new_height}")
+            logger.info(f"   Original: {img.width}x{img.height}")
+            logger.info(f"   Resized: {new_width}x{new_height}")
 
             # Resize image with high-quality resampling
             resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
@@ -192,7 +195,7 @@ class LLMRouter:
 
             # Check final size
             final_size_mb = len(base64.b64decode(encoded)) / (1024 * 1024)
-            print(f"   Final size: {final_size_mb:.2f}MB")
+            logger.info(f"   Final size: {final_size_mb:.2f}MB")
 
             return encoded
         else:
@@ -615,7 +618,7 @@ Your response must be ONLY the JSON object with real data values - no schema, no
         )
 
         # Debug: Log raw response
-        print(f"\n🔍 RAW MODEL RESPONSE (first 1000 chars):\n{response_text[:1000]}\n")
+        logger.info(f"\n🔍 RAW MODEL RESPONSE (first 1000 chars):\n{response_text[:1000]}\n")
 
         # Parse JSON response with robust extraction
         try:
@@ -850,7 +853,7 @@ Your response must be ONLY the JSON object with real data values - no schema, no
                 if attempt < max_retries - 1:
                     # Calculate exponential backoff with jitter
                     backoff = (2 ** attempt) + (random.random() * 0.5)
-                    print(f"⚠️ {error_type} on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    logger.warning(f"{error_type} on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
                     time.sleep(backoff)
                     continue
                 else:
@@ -871,7 +874,7 @@ Your response must be ONLY the JSON object with real data values - no schema, no
                 if is_transient and attempt < max_retries - 1:
                     last_error = e
                     backoff = (2 ** attempt) + (random.random() * 0.5)
-                    print(f"⚠️ Transient error on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    logger.warning(f"Transient error on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
                     time.sleep(backoff)
                     continue
                 else:
@@ -971,9 +974,9 @@ Your response must be ONLY the JSON object with real data values - no schema, no
                     response = await client.post(url, headers=headers, json=payload)
 
                 # Debug logging
-                print(f"🔍 Gemini API Response Status: {response.status_code}")
-                print(f"🔍 Response Headers: {dict(response.headers)}")
-                print(f"🔍 Response Body (first 500 chars): {response.text[:500]}")
+                logger.info(f"🔍 Gemini API Response Status: {response.status_code}")
+                logger.info(f"🔍 Response Headers: {dict(response.headers)}")
+                logger.info(f"🔍 Response Body (first 500 chars): {response.text[:500]}")
 
                 # Parse response
                 result = response.json()
@@ -1038,7 +1041,7 @@ Your response must be ONLY the JSON object with real data values - no schema, no
                 if attempt < max_retries - 1:
                     # Calculate exponential backoff with jitter
                     backoff = (2 ** attempt) + (random.random() * 0.5)
-                    print(f"⚠️ {error_type} on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    logger.warning(f"{error_type} on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
                     await asyncio.sleep(backoff)
                     continue
                 else:
@@ -1059,7 +1062,7 @@ Your response must be ONLY the JSON object with real data values - no schema, no
                 if is_transient and attempt < max_retries - 1:
                     last_error = e
                     backoff = (2 ** attempt) + (random.random() * 0.5)
-                    print(f"⚠️ Transient error on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
+                    logger.warning(f"Transient error on attempt {attempt + 1}/{max_retries}. Retrying in {backoff:.1f}s...")
                     await asyncio.sleep(backoff)
                     continue
                 else:

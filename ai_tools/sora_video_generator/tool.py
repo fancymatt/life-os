@@ -23,6 +23,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from ai_capabilities.specs import VideoGenerationResult, VideoGenerationRequest, VideoModel
 from ai_tools.video_prompt_enhancer.tool import VideoPromptEnhancer
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -80,29 +83,29 @@ class SoraVideoGenerator:
         Returns:
             VideoGenerationResult
         """
-        print(f"\n{'='*70}")
-        print("SORA VIDEO GENERATION")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info("SORA VIDEO GENERATION")
+        logger.info(f"{'='*70}\n")
 
         # Enhance prompt if needed
         if skip_enhancement:
             enhanced_prompt = prompt
-            print(f"Prompt: {prompt}")
+            logger.info(f"Prompt: {prompt}")
         else:
-            print(f"Original prompt: {prompt}")
+            logger.info(f"Original prompt: {prompt}")
             enhanced_prompt = self.enhancer.enhance(prompt)
-            print(f"Enhanced prompt: {enhanced_prompt}")
+            logger.info(f"Enhanced prompt: {enhanced_prompt}")
 
-        print(f"\nModel: {model}")
-        print(f"Size: {size}")
-        print(f"Duration: {seconds}s")
+        logger.info(f"\nModel: {model}")
+        logger.info(f"Size: {size}")
+        logger.info(f"Duration: {seconds}s")
 
         # Calculate cost
         cost_per_second = 0.50 if model == "sora-2-pro" else 0.125
         estimated_cost = seconds * cost_per_second
 
-        print(f"Estimated cost: ${estimated_cost:.2f}")
-        print(f"\n🎬 Generating video...")
+        logger.info(f"Estimated cost: ${estimated_cost:.2f}")
+        logger.info(f"\n🎬 Generating video...")
 
         # Generate video
         start_time = datetime.now()
@@ -117,8 +120,8 @@ class SoraVideoGenerator:
 
             # Wait for video to be ready
             video_id = response.id
-            print(f"Video ID: {video_id}")
-            print(f"⏳ Waiting for video to be ready...")
+            logger.info(f"Video ID: {video_id}")
+            logger.info(f"⏳ Waiting for video to be ready...")
 
             while True:
                 status = self.client.videos.retrieve(video_id)
@@ -127,9 +130,9 @@ class SoraVideoGenerator:
                 elif status.status == "failed":
                     raise Exception(f"Video generation failed: {status.error}")
                 time.sleep(2)
-                print(".", end="", flush=True)
+                logger.info(".", end="", flush=True)
 
-            print("\n✅ Video ready")
+            logger.info("\nVideo ready")
 
             # Download video
             video_bytes = self.client.videos.content(video_id)
@@ -148,10 +151,10 @@ class SoraVideoGenerator:
             file_size_mb = len(video_bytes) / (1024 * 1024)
             generation_time = (datetime.now() - start_time).total_seconds()
 
-            print(f"\n✅ Saved: {file_path}")
-            print(f"   Size: {file_size_mb:.1f} MB")
-            print(f"   Time: {generation_time:.1f}s")
-            print(f"   Cost: ${estimated_cost:.2f}")
+            logger.info(f"\nSaved: {file_path}")
+            logger.info(f"   Size: {file_size_mb:.1f} MB")
+            logger.info(f"   Time: {generation_time:.1f}s")
+            logger.info(f"   Cost: ${estimated_cost:.2f}")
 
             # Create result
             request = VideoGenerationRequest(
@@ -262,12 +265,12 @@ Models:
             output_dir=args.output
         )
 
-        print(f"\n{'='*70}")
-        print("VIDEO GENERATION COMPLETE")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info("VIDEO GENERATION COMPLETE")
+        logger.info(f"{'='*70}\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

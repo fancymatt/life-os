@@ -13,6 +13,9 @@ import uuid
 
 from api.config import settings
 from ai_capabilities.specs import OutfitCompositionEntity
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class OutfitsService:
@@ -46,7 +49,7 @@ class OutfitsService:
                     outfit_data = json.load(f)
                     outfits.append(outfit_data)
             except Exception as e:
-                print(f"⚠️  Failed to load outfit {outfit_path.name}: {e}")
+                logger.warning(f"Failed to load outfit {outfit_path.name}: {e}")
                 continue
 
         # Sort by updated_at (most recently updated first)
@@ -79,7 +82,7 @@ class OutfitsService:
             with open(outfit_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"⚠️  Failed to load outfit {outfit_id}: {e}")
+            logger.warning(f"Failed to load outfit {outfit_id}: {e}")
             return None
 
     def create_outfit(
@@ -117,7 +120,7 @@ class OutfitsService:
         with open(outfit_path, 'w') as f:
             json.dump(outfit_entity.dict(), f, indent=2, default=str)
 
-        print(f"✅ Created outfit: {name} ({len(clothing_item_ids)} items)")
+        logger.info(f"Created outfit: {name} ({len(clothing_item_ids)} items)")
 
         return outfit_entity.dict()
 
@@ -161,7 +164,7 @@ class OutfitsService:
         with open(outfit_path, 'w') as f:
             json.dump(existing_outfit, f, indent=2, default=str)
 
-        print(f"✅ Updated outfit: {outfit_id}")
+        logger.info(f"Updated outfit: {outfit_id}")
 
         return existing_outfit
 
@@ -181,7 +184,7 @@ class OutfitsService:
             return False
 
         outfit_path.unlink()
-        print(f"✅ Deleted outfit: {outfit_id}")
+        logger.info(f"Deleted outfit: {outfit_id}")
 
         return True
 
@@ -210,7 +213,7 @@ class OutfitsService:
             with open(outfit_path, 'w') as f:
                 json.dump(outfit, f, indent=2, default=str)
 
-            print(f"✅ Added item {item_id} to outfit {outfit_id}")
+            logger.info(f"Added item {item_id} to outfit {outfit_id}")
 
         return outfit
 
@@ -239,6 +242,6 @@ class OutfitsService:
             with open(outfit_path, 'w') as f:
                 json.dump(outfit, f, indent=2, default=str)
 
-            print(f"✅ Removed item {item_id} from outfit {outfit_id}")
+            logger.info(f"Removed item {item_id} from outfit {outfit_id}")
 
         return outfit

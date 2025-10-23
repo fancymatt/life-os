@@ -21,6 +21,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from ai_tools.modular_image_generator.tool import ModularImageGenerator
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -82,9 +85,9 @@ Examples:
     try:
         generator = CombinedTransformation(model=args.model)
 
-        print(f"\n{'='*70}")
-        print("COMBINED TRANSFORMATION")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info("COMBINED TRANSFORMATION")
+        logger.info(f"{'='*70}\n")
 
         result = generator.generate(
             subject_image=args.subject,
@@ -100,12 +103,12 @@ Examples:
             temperature=args.temperature
         )
 
-        print(f"\n{'='*70}")
-        print("COMBINED TRANSFORMATION COMPLETE")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info("COMBINED TRANSFORMATION COMPLETE")
+        logger.info(f"{'='*70}\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

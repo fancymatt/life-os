@@ -26,6 +26,9 @@ from ai_capabilities.specs import (
 )
 from ai_tools.shared.router import LLMRouter
 from ai_tools.shared.preset import PresetManager
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class PresetVisualizer:
@@ -404,7 +407,7 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
         if len(prompt) > 3900:
             prompt = prompt[:3900] + "..."
 
-        print(f"🎨 Generating {spec_type} visualization...")
+        logger.info(f"Generating {spec_type} visualization...")
 
         # Generate image using DALL-E
         image_bytes = self.router.generate_image(
@@ -427,6 +430,6 @@ This is NOT a lifestyle shot - it is a STANDARDIZED ACCESSORY CATALOG REFERENCE.
         with open(output_path, 'wb') as f:
             f.write(image_bytes)
 
-        print(f"✅ Saved visualization: {output_path}")
+        logger.info(f"Saved visualization: {output_path}")
 
         return output_path

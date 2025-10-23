@@ -29,6 +29,9 @@ from ai_capabilities.specs import (
     OutfitSpec
 )
 from ai_tools.shared.router import LLMRouter
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ItemVisualizer:
@@ -64,7 +67,7 @@ class ItemVisualizer:
             art_style_path = settings.presets_dir / "art_styles" / f"{art_style_id}.json"
 
             if not art_style_path.exists():
-                print(f"⚠️  Art style {art_style_id} not found")
+                logger.warning(f"Art style {art_style_id} not found")
                 return None
 
             with open(art_style_path, 'r') as f:
@@ -73,7 +76,7 @@ class ItemVisualizer:
                 data.pop('_metadata', None)
                 return ArtStyleSpec(**data)
         except Exception as e:
-            print(f"⚠️  Failed to load art style {art_style_id}: {e}")
+            logger.warning(f"Failed to load art style {art_style_id}: {e}")
             return None
 
     def _load_reference_image(self, reference_path: str) -> Optional[str]:
@@ -104,15 +107,15 @@ class ItemVisualizer:
                 full_path = settings.base_dir / reference_path
 
             if not full_path.exists():
-                print(f"⚠️  Reference image not found: {reference_path}")
-                print(f"   Tried filesystem path: {full_path}")
+                logger.warning(f"Reference image not found: {reference_path}")
+                logger.info(f"   Tried filesystem path: {full_path}")
                 return None
 
             with open(full_path, 'rb') as f:
                 image_data = f.read()
                 return base64.b64encode(image_data).decode('utf-8')
         except Exception as e:
-            print(f"⚠️  Failed to load reference image: {e}")
+            logger.warning(f"Failed to load reference image: {e}")
             return None
 
     def _entity_to_description(self, entity: Any, entity_type: str) -> str:
@@ -313,8 +316,8 @@ Generate a single, high-quality preview image that clearly shows the item."""
 
             # Verify reference image exists
             if not reference_image_path.exists():
-                print(f"⚠️  Reference image not found: {config.reference_image_path}")
-                print(f"   Tried filesystem path: {reference_image_path}")
+                logger.warning(f"Reference image not found: {config.reference_image_path}")
+                logger.info(f"   Tried filesystem path: {reference_image_path}")
                 reference_image_path = None
 
         # Construct prompt
@@ -326,12 +329,12 @@ Generate a single, high-quality preview image that clearly shows the item."""
             reference_image_b64=reference_image_b64
         )
 
-        print(f"\n🎨 Generating visualization for {entity_type}...")
-        print(f"   Config: {config.display_name}")
+        logger.info(f"\nGenerating visualization for {entity_type}...")
+        logger.info(f"   Config: {config.display_name}")
         if art_style:
-            print(f"   Art Style: {art_style.suggested_name}")
+            logger.info(f"   Art Style: {art_style.suggested_name}")
         if reference_image_path:
-            print(f"   Reference Image: {reference_image_path}")
+            logger.info(f"   Reference Image: {reference_image_path}")
 
         try:
             # Truncate prompt if too long
@@ -360,7 +363,7 @@ Generate a single, high-quality preview image that clearly shows the item."""
             with open(output_path, 'wb') as f:
                 f.write(image_bytes)
 
-            print(f"✅ Visualization saved: {output_path}")
+            logger.info(f"Visualization saved: {output_path}")
 
             return output_path
 
@@ -435,11 +438,11 @@ Examples:
             output_dir=args.output
         )
 
-        print(f"\n✅ Visualization complete!")
-        print(f"   Output: {output_path}")
+        logger.info(f"\nVisualization complete!")
+        logger.info(f"   Output: {output_path}")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

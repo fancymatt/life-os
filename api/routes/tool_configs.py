@@ -354,7 +354,7 @@ async def run_tool_test_job(
                         thread.daemon = True
                         thread.start()
 
-                        print(f"   ✅ Queued preview for {item.get('item')} (job: {preview_job_id[:8]}...)")
+                        logger.info(f"   Queued preview for {item.get('item')} (job: {preview_job_id[:8]}...)")
 
     except Exception as e:
         get_job_queue_manager().fail_job(job_id, str(e))

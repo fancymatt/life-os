@@ -22,6 +22,9 @@ from ai_tools.shared.preset import PresetManager
 from ai_tools.shared.cache import CacheManager
 from api.config import settings
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -102,7 +105,7 @@ class HairStyleAnalyzer:
                 HairStyleSpec
             )
             if cached:
-                print(f"✅ Using cached analysis for {image_path.name}")
+                logger.info(f"Using cached analysis for {image_path.name}")
 
                 # Save as preset if requested
                 if save_as_preset:
@@ -113,8 +116,8 @@ class HairStyleAnalyzer:
                         display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {preset_name}")
-                    print(f"   Location: {preset_path}")
+                    logger.info(f"Saved as preset: {preset_name}")
+                    logger.info(f"   Location: {preset_path}")
 
                 return cached
 
@@ -122,7 +125,7 @@ class HairStyleAnalyzer:
         prompt_template = self._load_template()
 
         # Perform analysis
-        print(f"🔍 Analyzing hair style in {image_path.name}...")
+        logger.info(f"🔍 Analyzing hair style in {image_path.name}...")
 
         try:
             result = await self.router.acall_structured(
@@ -148,7 +151,7 @@ class HairStyleAnalyzer:
                     image_path,
                     result
                 )
-                print(f"💾 Cached analysis")
+                logger.info(f"💾 Cached analysis")
 
             # Save as preset if requested
             if save_as_preset:
@@ -168,9 +171,9 @@ class HairStyleAnalyzer:
                     result._metadata.preset_id = preset_id
 
                     result._metadata.display_name = preset_name
-                print(f"⭐ Saved as preset: {preset_name}")
-                print(f"   ID: {preset_id}")
-                print(f"   Location: {preset_path}")
+                logger.info(f"Saved as preset: {preset_name}")
+                logger.info(f"   ID: {preset_id}")
+                logger.info(f"   Location: {preset_path}")
 
             return result
 
@@ -288,9 +291,9 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Hair Style Analyzer Presets ({len(presets)}):")
+        logger.info(f"\n📋 Hair Style Analyzer Presets ({len(presets)}):")
         for preset in presets:
-            print(f"  - {preset}")
+            logger.info(f"  - {preset}")
         return
 
     # Analyze image
@@ -306,21 +309,21 @@ Examples:
         )
 
         # Print results
-        print("\n" + "="*70)
-        print("Hair Style Analysis")
-        print("="*70)
-        print(f"\nCut: {result.cut}")
-        print(f"Length: {result.length}")
-        print(f"Layers: {result.layers}")
-        print(f"Texture: {result.texture}")
-        print(f"Volume: {result.volume}")
-        print(f"Parting: {result.parting}")
-        print(f"Front Styling: {result.front_styling}")
-        print(f"Overall Style: {result.overall_style}")
-        print("\n" + "="*70)
+        logger.info("\n" + "="*70)
+        logger.info("Hair Style Analysis")
+        logger.info("="*70)
+        logger.info(f"\nCut: {result.cut}")
+        logger.info(f"Length: {result.length}")
+        logger.info(f"Layers: {result.layers}")
+        logger.info(f"Texture: {result.texture}")
+        logger.info(f"Volume: {result.volume}")
+        logger.info(f"Parting: {result.parting}")
+        logger.info(f"Front Styling: {result.front_styling}")
+        logger.info(f"Overall Style: {result.overall_style}")
+        logger.info("\n" + "="*70)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

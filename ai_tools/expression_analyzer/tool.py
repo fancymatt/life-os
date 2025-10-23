@@ -22,6 +22,9 @@ from ai_tools.shared.preset import PresetManager
 from ai_tools.shared.cache import CacheManager
 from api.config import settings
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -102,7 +105,7 @@ class ExpressionAnalyzer:
                 ExpressionSpec
             )
             if cached:
-                print(f"✅ Using cached analysis for {image_path.name}")
+                logger.info(f"Using cached analysis for {image_path.name}")
 
                 # Save as preset if requested
                 if save_as_preset:
@@ -113,8 +116,8 @@ class ExpressionAnalyzer:
                         display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {preset_name}")
-                    print(f"   Location: {preset_path}")
+                    logger.info(f"Saved as preset: {preset_name}")
+                    logger.info(f"   Location: {preset_path}")
 
                 return cached
 
@@ -122,7 +125,7 @@ class ExpressionAnalyzer:
         prompt_template = self._load_template()
 
         # Perform analysis
-        print(f"🔍 Analyzing facial expression in {image_path.name}...")
+        logger.info(f"🔍 Analyzing facial expression in {image_path.name}...")
 
         try:
             result = await self.router.acall_structured(
@@ -148,7 +151,7 @@ class ExpressionAnalyzer:
                     image_path,
                     result
                 )
-                print(f"💾 Cached analysis")
+                logger.info(f"💾 Cached analysis")
 
             # Save as preset if requested
             if save_as_preset:
@@ -168,9 +171,9 @@ class ExpressionAnalyzer:
                     result._metadata.preset_id = preset_id
 
                     result._metadata.display_name = preset_name
-                print(f"⭐ Saved as preset: {preset_name}")
-                print(f"   ID: {preset_id}")
-                print(f"   Location: {preset_path}")
+                logger.info(f"Saved as preset: {preset_name}")
+                logger.info(f"   ID: {preset_id}")
+                logger.info(f"   Location: {preset_path}")
 
             return result
 
@@ -288,9 +291,9 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Expression Analyzer Presets ({len(presets)}):")
+        logger.info(f"\n📋 Expression Analyzer Presets ({len(presets)}):")
         for preset in presets:
-            print(f"  - {preset}")
+            logger.info(f"  - {preset}")
         return
 
     # Analyze image
@@ -306,20 +309,20 @@ Examples:
         )
 
         # Print results
-        print("\n" + "="*70)
-        print("Expression Analysis")
-        print("="*70)
-        print(f"\nPrimary Emotion: {result.primary_emotion}")
-        print(f"Intensity: {result.intensity}")
-        print(f"Mouth: {result.mouth}")
-        print(f"Eyes: {result.eyes}")
-        print(f"Eyebrows: {result.eyebrows}")
-        print(f"Gaze Direction: {result.gaze_direction}")
-        print(f"Overall Mood: {result.overall_mood}")
-        print("\n" + "="*70)
+        logger.info("\n" + "="*70)
+        logger.info("Expression Analysis")
+        logger.info("="*70)
+        logger.info(f"\nPrimary Emotion: {result.primary_emotion}")
+        logger.info(f"Intensity: {result.intensity}")
+        logger.info(f"Mouth: {result.mouth}")
+        logger.info(f"Eyes: {result.eyes}")
+        logger.info(f"Eyebrows: {result.eyebrows}")
+        logger.info(f"Gaze Direction: {result.gaze_direction}")
+        logger.info(f"Overall Mood: {result.overall_mood}")
+        logger.info("\n" + "="*70)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

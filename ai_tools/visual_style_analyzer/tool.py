@@ -24,6 +24,9 @@ from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.cache import CacheManager
 from ai_tools.shared.preset import PresetManager
 from api.config import settings
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class VisualStyleAnalyzer:
@@ -108,14 +111,14 @@ class VisualStyleAnalyzer:
                 VisualStyleSpec
             )
             if cached:
-                print(f"✅ Using cached analysis for {image_path.name}")
+                logger.info(f"Using cached analysis for {image_path.name}")
                 return cached
 
         # Load template (supports custom overrides)
         prompt_template = self._load_template()
 
         # Perform analysis
-        print(f"🔍 Analyzing photograph composition in {image_path.name}...")
+        logger.info(f"🔍 Analyzing photograph composition in {image_path.name}...")
 
         try:
             style = await self.router.acall_structured(
@@ -141,7 +144,7 @@ class VisualStyleAnalyzer:
                     image_path,
                     style
                 )
-                print(f"💾 Cached analysis")
+                logger.info(f"💾 Cached analysis")
 
             # Save as preset if requested
             if save_as_preset:
@@ -158,9 +161,9 @@ class VisualStyleAnalyzer:
                 if style._metadata:
                     style._metadata.preset_id = preset_id
                     style._metadata.display_name = preset_name
-                print(f"⭐ Saved as preset: {preset_name}")
-                print(f"   ID: {preset_id}")
-                print(f"   Location: {preset_path}")
+                logger.info(f"Saved as preset: {preset_name}")
+                logger.info(f"   ID: {preset_id}")
+                logger.info(f"   Location: {preset_path}")
 
             return style
 
@@ -300,9 +303,9 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Photograph Composition Presets ({len(presets)}):")
+        logger.info(f"\n📋 Photograph Composition Presets ({len(presets)}):")
         for preset in presets:
-            print(f"  - {preset}")
+            logger.info(f"  - {preset}")
         return
 
     # Analyze image
@@ -318,19 +321,19 @@ Examples:
         )
 
         # Print results
-        print("\n" + "="*70)
-        print("Photograph Composition Analysis")
-        print("="*70)
-        print(f"\nSubject Action: {style.subject_action}")
-        print(f"Setting: {style.setting}")
-        print(f"Framing: {style.framing}")
-        print(f"Camera Angle: {style.camera_angle}")
-        print(f"Lighting: {style.lighting}")
-        print(f"Mood: {style.mood}")
-        print("\n" + "="*70)
+        logger.info("\n" + "="*70)
+        logger.info("Photograph Composition Analysis")
+        logger.info("="*70)
+        logger.info(f"\nSubject Action: {style.subject_action}")
+        logger.info(f"Setting: {style.setting}")
+        logger.info(f"Framing: {style.framing}")
+        logger.info(f"Camera Angle: {style.camera_angle}")
+        logger.info(f"Lighting: {style.lighting}")
+        logger.info(f"Mood: {style.mood}")
+        logger.info("\n" + "="*70)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

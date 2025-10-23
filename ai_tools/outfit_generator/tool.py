@@ -22,6 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from ai_capabilities.specs import OutfitSpec, VisualStyleSpec, ImageGenerationResult, SpecMetadata
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.preset import PresetManager
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class OutfitGenerator:
@@ -158,7 +161,7 @@ CRITICAL REQUIREMENTS:
 
         # Load outfit (from preset or use directly)
         if isinstance(outfit, str):
-            print(f"📦 Loading outfit preset: {outfit}")
+            logger.info(f"📦 Loading outfit preset: {outfit}")
             outfit = self.preset_manager.load("outfits", outfit, OutfitSpec)
         elif outfit is None:
             raise ValueError("outfit parameter is required (OutfitSpec or preset name)")
@@ -166,7 +169,7 @@ CRITICAL REQUIREMENTS:
         # Load visual style if specified
         visual_style_spec = None
         if isinstance(visual_style, str):
-            print(f"🎨 Loading visual style preset: {visual_style}")
+            logger.info(f"Loading visual style preset: {visual_style}")
             visual_style_spec = self.preset_manager.load("visual_styles", visual_style, VisualStyleSpec)
         elif visual_style is not None:
             visual_style_spec = visual_style
@@ -179,16 +182,16 @@ CRITICAL REQUIREMENTS:
             aspect_ratio
         )
 
-        print(f"\n🎨 Generating image...")
-        print(f"   Subject: {subject_image.name}")
-        print(f"   Outfit: {outfit.style_genre} ({outfit.formality})")
+        logger.info(f"\nGenerating image...")
+        logger.info(f"   Subject: {subject_image.name}")
+        logger.info(f"   Outfit: {outfit.style_genre} ({outfit.formality})")
         if visual_style_spec:
-            print(f"   Style: {visual_style_spec.photographic_style}")
+            logger.info(f"   Style: {visual_style_spec.photographic_style}")
 
         # Call generation API
         try:
             # Using Gemini 2.5 Flash for image generation
-            print(f"\n🎯 Calling Gemini 2.5 Flash Image...")
+            logger.info(f"\n🎯 Calling Gemini 2.5 Flash Image...")
             image_bytes = self.router.generate_image(
                 prompt=full_prompt,
                 image_path=subject_image,
@@ -208,7 +211,7 @@ CRITICAL REQUIREMENTS:
             with open(output_path, 'wb') as f:
                 f.write(image_bytes)
 
-            print(f"✅ Generated: {output_path}")
+            logger.info(f"Generated: {output_path}")
 
             # Create result metadata
             result = ImageGenerationResult(
@@ -306,12 +309,12 @@ Examples:
             temperature=args.temperature
         )
 
-        print(f"\n✅ Generation complete!")
-        print(f"   Output: {result.file_path}")
-        print(f"   Model: {result.model_used}")
+        logger.info(f"\nGeneration complete!")
+        logger.info(f"   Output: {result.file_path}")
+        logger.info(f"   Model: {result.model_used}")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

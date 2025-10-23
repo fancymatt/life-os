@@ -16,6 +16,9 @@ from api.core.simple_agent import Agent, AgentConfig
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from api.services.character_service import CharacterService
 from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class IllustrationResult(BaseModel):
@@ -113,30 +116,30 @@ class StoryIllustratorAgent(Agent):
                     # Check if we already have a physical description
                     if character_data.get('physical_description'):
                         analyzed_appearance = character_data['physical_description']
-                        print(f"✅ Using stored physical description")
+                        logger.info(f"Using stored physical description")
 
                     # Get reference image
                     image_path = self.character_service.get_reference_image_path(character_id)
                     if image_path and Path(image_path).exists():
                         character_image_path = Path(image_path)
-                        print(f"✅ Using character reference image: {character_image_path}")
+                        logger.info(f"Using character reference image: {character_image_path}")
 
                         # If no physical description exists, analyze and save it
                         if not analyzed_appearance:
-                            print(f"🔍 Analyzing character appearance...")
+                            logger.info(f"🔍 Analyzing character appearance...")
                             appearance_spec = await self.appearance_analyzer.aanalyze(character_image_path)
                             analyzed_appearance = appearance_spec.overall_description
-                            print(f"📝 Extracted appearance: {analyzed_appearance}")
+                            logger.info(f"📝 Extracted appearance: {analyzed_appearance}")
 
                             # Save the physical description to the character entity
-                            print(f"💾 Saving physical description to character entity...")
+                            logger.info(f"💾 Saving physical description to character entity...")
                             self.character_service.update_character(
                                 character_id,
                                 physical_description=analyzed_appearance
                             )
-                            print(f"✅ Physical description saved")
+                            logger.info(f"Physical description saved")
             except Exception as e:
-                print(f"⚠️  Could not process character: {e}")
+                logger.warning(f"Could not process character: {e}")
                 import traceback
                 traceback.print_exc()
                 # Continue with manual description
@@ -188,7 +191,7 @@ class StoryIllustratorAgent(Agent):
                 total_time += generation_time
 
             except Exception as e:
-                print(f"Failed to generate illustration for scene {scene['scene_number']}: {e}")
+                logger.warning(f"Failed to generate illustration for scene {scene['scene_number']}: {e}")
                 # Continue with other scenes even if one fails
 
         # Replace image placeholders with actual image URLs
@@ -315,7 +318,7 @@ class StoryIllustratorAgent(Agent):
             }
 
         except Exception as e:
-            print(f"Image generation failed: {e}")
+            logger.error(f"Image generation failed: {e}")
             import traceback
             traceback.print_exc()
             # Return placeholder
@@ -356,9 +359,9 @@ class StoryIllustratorAgent(Agent):
 
                     if outfit_items:
                         overrides.append(f"Wearing: {', '.join(outfit_items)}")
-                        print(f"✅ Applied outfit override: {outfit_data.get('suggested_name', outfit_id)}")
+                        logger.info(f"Applied outfit override: {outfit_data.get('suggested_name', outfit_id)}")
             except Exception as e:
-                print(f"⚠️  Could not load outfit preset {outfit_id}: {e}")
+                logger.warning(f"Could not load outfit preset {outfit_id}: {e}")
 
         # Load hair style preset
         if hair_style_id:
@@ -380,9 +383,9 @@ class StoryIllustratorAgent(Agent):
 
                     if style_desc:
                         overrides.append(f"Hair style: {' '.join(style_desc)}")
-                        print(f"✅ Applied hair style override: {hair_style_data.get('suggested_name', hair_style_id)}")
+                        logger.info(f"Applied hair style override: {hair_style_data.get('suggested_name', hair_style_id)}")
             except Exception as e:
-                print(f"⚠️  Could not load hair style preset {hair_style_id}: {e}")
+                logger.warning(f"Could not load hair style preset {hair_style_id}: {e}")
 
         # Load hair color preset
         if hair_color_id:
@@ -404,9 +407,9 @@ class StoryIllustratorAgent(Agent):
 
                     if color_desc:
                         overrides.append(f"Hair color: {' '.join(color_desc)}")
-                        print(f"✅ Applied hair color override: {hair_color_data.get('suggested_name', hair_color_id)}")
+                        logger.info(f"Applied hair color override: {hair_color_data.get('suggested_name', hair_color_id)}")
             except Exception as e:
-                print(f"⚠️  Could not load hair color preset {hair_color_id}: {e}")
+                logger.warning(f"Could not load hair color preset {hair_color_id}: {e}")
 
         # Combine all overrides
         if overrides:
@@ -421,7 +424,7 @@ class StoryIllustratorAgent(Agent):
                 content = await f.read()
                 return json.loads(content)
         except Exception as e:
-            print(f"⚠️  Could not load illustrator config '{config_id}', using default: {e}")
+            logger.warning(f"Could not load illustrator config '{config_id}', using default: {e}")
             return {
                 "prompt_template": {
                     "system_message": "Create clear, engaging illustrations that capture key story moments.",

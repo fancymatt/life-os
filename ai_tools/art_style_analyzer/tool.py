@@ -24,6 +24,9 @@ from ai_tools.shared.preset import PresetManager
 from ai_tools.shared.cache import CacheManager
 from api.config import settings
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -113,7 +116,7 @@ class ArtStyleAnalyzer:
                 ArtStyleSpec
             )
             if cached:
-                print(f"✅ Using cached analysis for {image_path.name}")
+                logger.info(f"Using cached analysis for {image_path.name}")
 
                 # Save as preset if requested
                 if save_as_preset:
@@ -126,8 +129,8 @@ class ArtStyleAnalyzer:
                         display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {preset_name}")
-                    print(f"   Location: {preset_path}")
+                    logger.info(f"Saved as preset: {preset_name}")
+                    logger.info(f"   Location: {preset_path}")
 
                 return cached
 
@@ -135,7 +138,7 @@ class ArtStyleAnalyzer:
         prompt_template = self._load_template()
 
         # Perform analysis
-        print(f"🎨 Analyzing art style in {image_path.name}...")
+        logger.info(f"Analyzing art style in {image_path.name}...")
 
         try:
             art_style = await self.router.acall_structured(
@@ -161,7 +164,7 @@ class ArtStyleAnalyzer:
                     image_path,
                     art_style
                 )
-                print(f"💾 Cached analysis")
+                logger.info(f"💾 Cached analysis")
 
             # Save as preset if requested
             if save_as_preset:
@@ -174,8 +177,8 @@ class ArtStyleAnalyzer:
                     display_name=preset_name,
                     notes=preset_notes
                 )
-                print(f"⭐ Saved as preset: {preset_name}")
-                print(f"   Location: {preset_path}")
+                logger.info(f"Saved as preset: {preset_name}")
+                logger.info(f"   Location: {preset_path}")
 
             return art_style
 
@@ -311,9 +314,9 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Art Style Presets ({len(presets)}):")
+        logger.info(f"\n📋 Art Style Presets ({len(presets)}):")
         for preset in presets:
-            print(f"  - {preset}")
+            logger.info(f"  - {preset}")
         return
 
     # Analyze image
@@ -329,28 +332,28 @@ Examples:
         )
 
         # Print results
-        print("\n" + "="*70)
-        print("Art Style Analysis")
-        print("="*70)
-        print(f"\nMedium: {art_style.medium}")
-        print(f"Technique: {art_style.technique}")
-        print(f"Artistic Movement: {art_style.artistic_movement}")
-        print(f"Mood: {art_style.mood}")
+        logger.info("\n" + "="*70)
+        logger.info("Art Style Analysis")
+        logger.info("="*70)
+        logger.info(f"\nMedium: {art_style.medium}")
+        logger.info(f"Technique: {art_style.technique}")
+        logger.info(f"Artistic Movement: {art_style.artistic_movement}")
+        logger.info(f"Mood: {art_style.mood}")
 
-        print(f"\nColor Palette ({len(art_style.color_palette)}):")
-        print(f"  {', '.join(art_style.color_palette)}")
+        logger.info(f"\nColor Palette ({len(art_style.color_palette)}):")
+        logger.info(f"  {', '.join(art_style.color_palette)}")
 
         if art_style.brush_style:
-            print(f"\nBrush Style: {art_style.brush_style}")
+            logger.info(f"\nBrush Style: {art_style.brush_style}")
 
-        print(f"\nTexture: {art_style.texture}")
-        print(f"Composition Style: {art_style.composition_style}")
-        print(f"Level of Detail: {art_style.level_of_detail}")
+        logger.info(f"\nTexture: {art_style.texture}")
+        logger.info(f"Composition Style: {art_style.composition_style}")
+        logger.info(f"Level of Detail: {art_style.level_of_detail}")
 
-        print("\n" + "="*70)
+        logger.info("\n" + "="*70)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

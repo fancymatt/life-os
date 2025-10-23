@@ -33,6 +33,9 @@ from ai_tools.shared.preset import PresetManager
 from ai_tools.outfit_visualizer.tool import OutfitVisualizer
 from api.config import settings
 from api.services.clothing_items_service import ClothingItemsService
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class OutfitAnalyzer:
@@ -141,11 +144,11 @@ class OutfitAnalyzer:
         model_hash = hashlib.sha256(self.router.model.encode('utf-8')).hexdigest()[:8]
         combined_key = f"{image_hash}_{template_hash}_{model_hash}"
 
-        print(f"🔍 Cache key computation:")
-        print(f"   Image hash: {image_hash}")
-        print(f"   Template hash: {template_hash} (from {len(prompt_template)} chars)")
-        print(f"   Model: {self.router.model} (hash: {model_hash})")
-        print(f"   Combined key: {combined_key}")
+        logger.info(f"🔍 Cache key computation:")
+        logger.info(f"   Image hash: {image_hash}")
+        logger.info(f"   Template hash: {template_hash} (from {len(prompt_template)} chars)")
+        logger.info(f"   Model: {self.router.model} (hash: {model_hash})")
+        logger.info(f"   Combined key: {combined_key}")
 
         # Check cache first (unless skipped)
         # NOTE: Cache lookup disabled for new architecture - old OutfitSpec cache is incompatible
@@ -159,7 +162,7 @@ class OutfitAnalyzer:
                     OutfitAnalysisResult
                 )
                 if cached:
-                    print(f"✅ CACHE HIT - Processing cached analysis for {image_path.name}")
+                    logger.info(f"CACHE HIT - Processing cached analysis for {image_path.name}")
                     # Process cached result into clothing items using service
                     created_items = []
                     for item_data in cached.clothing_items:
@@ -188,9 +191,9 @@ class OutfitAnalyzer:
                                 background_tasks=None
                             )
                         created_items.append(item_dict)
-                        print(f"   ✅ Saved {item_dict['category']}: {item_dict['item']}")
+                        logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
 
-                    print(f"\n✨ Created {len(created_items)} clothing items from cache")
+                    logger.info(f"\n✨ Created {len(created_items)} clothing items from cache")
                     return {
                         "clothing_items": created_items,  # Already dicts from service
                         "suggested_outfit_name": cached.suggested_outfit_name,
@@ -198,13 +201,13 @@ class OutfitAnalyzer:
                     }
             except Exception as e:
                 # Cache miss or incompatible cache format - analyze fresh
-                print(f"❌ CACHE MISS - Will analyze fresh ({e})")
+                logger.error(f"CACHE MISS - Will analyze fresh ({e})")
         else:
             if skip_cache:
-                print(f"⏩ CACHE SKIPPED - Will analyze fresh")
+                logger.info(f"⏩ CACHE SKIPPED - Will analyze fresh")
 
         # Perform analysis
-        print(f"🔍 Analyzing outfit in {image_path.name}...")
+        logger.info(f"🔍 Analyzing outfit in {image_path.name}...")
 
         # GPT-5 models only support temperature=1, use 0.3 for all others
         temperature = 1.0 if "gpt-5" in self.router.model.lower() else 0.3
@@ -246,7 +249,7 @@ class OutfitAnalyzer:
                         background_tasks=None
                     )
                 created_items.append(item_dict)
-                print(f"   ✅ Saved {item_dict['category']}: {item_dict['item']}")
+                logger.info(f"   Saved {item_dict['category']}: {item_dict['item']}")
 
             # Cache the result using combined key (image + template + model)
             if self.use_cache:
@@ -256,9 +259,9 @@ class OutfitAnalyzer:
                     analysis,
                     source_file=image_path
                 )
-                print(f"💾 Cached analysis (key: {combined_key[:16]}...)")
+                logger.info(f"💾 Cached analysis (key: {combined_key[:16]}...)")
 
-            print(f"\n✨ Created {len(created_items)} clothing items")
+            logger.info(f"\n✨ Created {len(created_items)} clothing items")
 
             # Return the created items with suggested name
             return {
@@ -406,10 +409,10 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Outfit Presets ({len(presets)}):")
+        logger.info(f"\n📋 Outfit Presets ({len(presets)}):")
         for preset in presets:
             display_name = preset.get("display_name") or preset["preset_id"][:8]
-            print(f"  - {display_name} (ID: {preset['preset_id'][:8]}...)")
+            logger.info(f"  - {display_name} (ID: {preset['preset_id'][:8]}...)")
         return
 
     # Analyze image
@@ -425,25 +428,25 @@ Examples:
         )
 
         # Print results
-        print("\n" + "="*70)
-        print("Outfit Analysis - Individual Clothing Items")
-        print("="*70)
+        logger.info("\n" + "="*70)
+        logger.info("Outfit Analysis - Individual Clothing Items")
+        logger.info("="*70)
         if result.get("suggested_outfit_name"):
-            print(f"\nSuggested Name: {result['suggested_outfit_name']}")
+            logger.info(f"\nSuggested Name: {result['suggested_outfit_name']}")
 
-        print(f"\nClothing Items ({result['item_count']}):")
+        logger.info(f"\nClothing Items ({result['item_count']}):")
         for i, item in enumerate(result['clothing_items'], 1):
-            print(f"\n  {i}. {item['item']} ({item['category']})")
-            print(f"     Fabric: {item['fabric']}")
-            print(f"     Color: {item['color']}")
-            print(f"     Details: {item['details'][:100]}{'...' if len(item['details']) > 100 else ''}")
-            print(f"     ID: {item['item_id']}")
+            logger.info(f"\n  {i}. {item['item']} ({item['category']})")
+            logger.info(f"     Fabric: {item['fabric']}")
+            logger.info(f"     Color: {item['color']}")
+            logger.info(f"     Details: {item['details'][:100]}{'...' if len(item['details']) > 100 else ''}")
+            logger.info(f"     ID: {item['item_id']}")
 
-        print("\n" + "="*70)
-        print(f"\n💾 Saved {result['item_count']} items to data/clothing_items/")
+        logger.info("\n" + "="*70)
+        logger.info(f"\n💾 Saved {result['item_count']} items to data/clothing_items/")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

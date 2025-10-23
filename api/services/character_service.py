@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 
 from api.config import settings
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class CharacterService:
@@ -130,7 +133,7 @@ class CharacterService:
                     if character_data.get('name', '').lower() == name_lower:
                         return character_data
             except Exception as e:
-                print(f"Error loading character {file_path}: {e}")
+                logger.error(f"Error loading character {file_path}: {e}")
                 continue
 
         return None
@@ -150,7 +153,7 @@ class CharacterService:
                     character_data = json.load(f)
                     characters.append(character_data)
             except Exception as e:
-                print(f"Error loading character {file_path}: {e}")
+                logger.error(f"Error loading character {file_path}: {e}")
                 continue
 
         # Sort by created_at (newest first)

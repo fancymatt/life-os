@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 from api.config import settings
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class QAService:
@@ -138,7 +141,7 @@ class QAService:
 
                     qas.append(qa_data)
             except Exception as e:
-                print(f"Error loading Q&A {file_path}: {e}")
+                logger.error(f"Error loading Q&A {file_path}: {e}")
                 continue
 
         # Sort by created_at (newest first)
@@ -249,7 +252,7 @@ class QAService:
                     if query_lower in question or query_lower in answer:
                         matching_qas.append(qa_data)
             except Exception as e:
-                print(f"Error searching Q&A {file_path}: {e}")
+                logger.error(f"Error searching Q&A {file_path}: {e}")
                 continue
 
         # Sort by created_at (newest first)

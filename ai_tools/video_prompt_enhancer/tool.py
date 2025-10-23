@@ -19,6 +19,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -74,11 +77,11 @@ class VideoPromptEnhancer:
         Returns:
             Enhanced prompt string
         """
-        print(f"\n{'='*70}")
-        print("VIDEO PROMPT ENHANCEMENT")
-        print(f"{'='*70}\n")
-        print(f"Original: {prompt}")
-        print(f"Model: {self.router.model}")
+        logger.info(f"\n{'='*70}")
+        logger.info("VIDEO PROMPT ENHANCEMENT")
+        logger.info(f"{'='*70}\n")
+        logger.info(f"Original: {prompt}")
+        logger.info(f"Model: {self.router.model}")
 
         enhancement_prompt = ENHANCEMENT_TEMPLATE.format(original_prompt=prompt)
 
@@ -90,9 +93,9 @@ class VideoPromptEnhancer:
         # Clean up response
         enhanced = enhanced.strip().strip('"').strip("'")
 
-        print(f"\n{'='*70}")
-        print(f"Enhanced: {enhanced}")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"Enhanced: {enhanced}")
+        logger.info(f"{'='*70}\n")
 
         return enhanced
 
@@ -141,11 +144,11 @@ Examples:
         enhanced = enhancer.enhance(args.prompt, temperature=args.temperature)
 
         # Print for easy copying
-        print("\n📋 Copy enhanced prompt:")
-        print(f"\n{enhanced}\n")
+        logger.info("\n📋 Copy enhanced prompt:")
+        logger.info(f"\n{enhanced}\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

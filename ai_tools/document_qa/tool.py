@@ -31,6 +31,9 @@ except ImportError:
     GEMINI_AVAILABLE = False
 
 from ai_tools.shared.router import LLMRouter
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 TOOL_INFO = {
@@ -105,10 +108,10 @@ class DocumentQA:
 
         # Check dependencies
         if not CHROMADB_AVAILABLE:
-            print("⚠️  ChromaDB not available - document Q&A will be limited")
+            logger.warning("ChromaDB not available - document Q&A will be limited")
 
         if not GEMINI_AVAILABLE:
-            print("⚠️  Gemini API not available - embeddings will use fallback")
+            logger.warning("Gemini API not available - embeddings will use fallback")
 
     def ask_question(
         self,
@@ -373,7 +376,7 @@ Answer:"""
                     })
 
             except Exception as e:
-                print(f"Error searching document {doc_id}: {e}")
+                logger.error(f"Error searching document {doc_id}: {e}")
                 continue
 
         # Sort by relevance and return top_k overall
@@ -420,7 +423,7 @@ Answer:"""
             return collection
 
         except Exception as e:
-            print(f"Error loading collection for {document_id}: {e}")
+            logger.error(f"Error loading collection for {document_id}: {e}")
             return None
 
     def _generate_query_embedding(self, text: str) -> List[float]:
@@ -443,7 +446,7 @@ Answer:"""
                 )
                 return result["embedding"]
             except Exception as e:
-                print(f"Gemini embedding failed: {e}")
+                logger.error(f"Gemini embedding failed: {e}")
 
         # Fallback to sentence-transformers
         try:
@@ -452,7 +455,7 @@ Answer:"""
             embedding = model.encode(text, convert_to_numpy=True)
             return embedding.tolist()
         except Exception as e:
-            print(f"Sentence-transformers embedding failed: {e}")
+            logger.error(f"Sentence-transformers embedding failed: {e}")
             # Return zero vector as last resort
             return [0.0] * 384
 

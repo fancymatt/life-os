@@ -10,13 +10,18 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 import hashlib
 
+from api.config import settings
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 # Docling imports (PDF to Markdown conversion)
 try:
     from docling import DocumentConverter
     DOCLING_AVAILABLE = True
 except ImportError:
     DOCLING_AVAILABLE = False
-    print("⚠️  Docling not available - PDF conversion will be limited")
+    logger.warning("Docling not available - PDF conversion will be limited")
 
 # ChromaDB imports (vector database)
 try:
@@ -25,9 +30,7 @@ try:
     CHROMADB_AVAILABLE = True
 except ImportError:
     CHROMADB_AVAILABLE = False
-    print("⚠️  ChromaDB not available - vector storage disabled")
-
-from api.config import settings
+    logger.warning("ChromaDB not available - vector storage disabled")
 
 
 class DocumentChunk:
@@ -90,7 +93,7 @@ class DocumentRAGPreparer:
             return self._fallback_pdf_conversion(pdf_path)
 
         try:
-            print(f"📄 Converting PDF to Markdown: {pdf_path.name}")
+            logger.info(f"📄 Converting PDF to Markdown: {pdf_path.name}")
 
             # Initialize Docling converter
             converter = DocumentConverter()
@@ -109,12 +112,12 @@ class DocumentRAGPreparer:
                 "conversion_method": "docling"
             }
 
-            print(f"✅ Converted to {len(markdown_text)} characters")
+            logger.info(f"Converted to {len(markdown_text)} characters")
 
             return markdown_text, metadata
 
         except Exception as e:
-            print(f"⚠️  Docling conversion failed: {e}, using fallback")
+            logger.warning(f"Docling conversion failed: {e}, using fallback")
             return self._fallback_pdf_conversion(pdf_path)
 
     def _fallback_pdf_conversion(self, pdf_path: Path) -> Tuple[str, Dict[str, Any]]:
@@ -150,7 +153,7 @@ class DocumentRAGPreparer:
                 return full_text, metadata
 
         except Exception as e:
-            print(f"❌ PDF conversion failed completely: {e}")
+            logger.error(f"PDF conversion failed completely: {e}")
             return f"ERROR: Could not convert PDF: {str(e)}", {"conversion_method": "failed"}
 
     def chunk_text(
@@ -170,7 +173,7 @@ class DocumentRAGPreparer:
         Returns:
             List of DocumentChunk objects
         """
-        print(f"✂️  Chunking text ({len(text)} chars) with size={chunk_size}, overlap={overlap}")
+        logger.info(f"✂Chunking text ({len(text)} chars) with size={chunk_size}, overlap={overlap}")
 
         chunks = []
 
@@ -217,7 +220,7 @@ class DocumentRAGPreparer:
                     # Move to next chunk with overlap
                     start = end - overlap
 
-        print(f"✅ Created {len(chunks)} chunks")
+        logger.info(f"Created {len(chunks)} chunks")
         return chunks
 
     def _split_by_headers(self, text: str) -> List[Tuple[str, str]]:
@@ -280,7 +283,7 @@ class DocumentRAGPreparer:
         Returns:
             List of embedding vectors
         """
-        print(f"🔢 Generating embeddings for {len(texts)} chunks using {model}")
+        logger.info(f"🔢 Generating embeddings for {len(texts)} chunks using {model}")
 
         try:
             import google.generativeai as genai
@@ -303,11 +306,11 @@ class DocumentRAGPreparer:
 
                 embeddings.extend(batch_embeddings['embedding'])
 
-            print(f"✅ Generated {len(embeddings)} embeddings")
+            logger.info(f"Generated {len(embeddings)} embeddings")
             return embeddings
 
         except Exception as e:
-            print(f"⚠️  Gemini embedding failed: {e}, using fallback")
+            logger.warning(f"Gemini embedding failed: {e}, using fallback")
             return self._fallback_embeddings(texts)
 
     def _fallback_embeddings(self, texts: List[str]) -> List[List[float]]:
@@ -323,14 +326,14 @@ class DocumentRAGPreparer:
         try:
             from sentence_transformers import SentenceTransformer
 
-            print("📦 Using sentence-transformers for embeddings")
+            logger.info("📦 Using sentence-transformers for embeddings")
             model = SentenceTransformer('all-MiniLM-L6-v2')
             embeddings = model.encode(texts, show_progress_bar=True)
 
             return embeddings.tolist()
 
         except Exception as e:
-            print(f"❌ All embedding methods failed: {e}")
+            logger.error(f"All embedding methods failed: {e}")
             # Return zero vectors as last resort
             return [[0.0] * 384 for _ in texts]
 
@@ -352,10 +355,10 @@ class DocumentRAGPreparer:
             Path to vector database
         """
         if not CHROMADB_AVAILABLE:
-            print("⚠️  ChromaDB not available, skipping vector storage")
+            logger.warning("ChromaDB not available, skipping vector storage")
             return ""
 
-        print(f"💾 Storing {len(chunks)} chunks in ChromaDB for document {document_id}")
+        logger.info(f"💾 Storing {len(chunks)} chunks in ChromaDB for document {document_id}")
 
         try:
             # Initialize ChromaDB client
@@ -386,11 +389,11 @@ class DocumentRAGPreparer:
                 metadatas=metadatas
             )
 
-            print(f"✅ Stored {len(chunks)} chunks in vector database")
+            logger.info(f"Stored {len(chunks)} chunks in vector database")
             return str(db_path)
 
         except Exception as e:
-            print(f"❌ Vector storage failed: {e}")
+            logger.error(f"Vector storage failed: {e}")
             return ""
 
     def prepare_document(
@@ -413,9 +416,9 @@ class DocumentRAGPreparer:
             Dict with processing results and paths
         """
         try:
-            print(f"\n{'='*60}")
-            print(f"📚 Preparing document: {pdf_path.name}")
-            print(f"{'='*60}\n")
+            logger.info(f"\n{'='*60}")
+            logger.info(f"📚 Preparing document: {pdf_path.name}")
+            logger.info(f"{'='*60}\n")
 
             # Step 1: Convert PDF to Markdown
             markdown_text, conversion_metadata = self.convert_pdf_to_markdown(pdf_path)
@@ -455,17 +458,17 @@ class DocumentRAGPreparer:
             with open(metadata_path, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2)
 
-            print(f"\n{'='*60}")
-            print(f"✅ Document preparation complete!")
-            print(f"   Chunks: {len(chunks)}")
-            print(f"   Markdown: {markdown_path}")
-            print(f"   Vector DB: {vector_db_path}")
-            print(f"{'='*60}\n")
+            logger.info(f"\n{'='*60}")
+            logger.info(f"Document preparation complete!")
+            logger.info(f"   Chunks: {len(chunks)}")
+            logger.info(f"   Markdown: {markdown_path}")
+            logger.info(f"   Vector DB: {vector_db_path}")
+            logger.info(f"{'='*60}\n")
 
             return metadata
 
         except Exception as e:
-            print(f"\n❌ Document preparation failed: {e}\n")
+            logger.error(f"\nDocument preparation failed: {e}\n")
             return {
                 "document_id": document_id,
                 "processing_status": "failed",

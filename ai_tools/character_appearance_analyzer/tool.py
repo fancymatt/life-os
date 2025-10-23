@@ -16,6 +16,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_capabilities.specs import CharacterAppearanceSpec
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -81,10 +84,10 @@ class CharacterAppearanceAnalyzer:
         if not image_path.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        print(f"\n{'='*70}")
-        print(f"CHARACTER APPEARANCE ANALYSIS")
-        print(f"{'='*70}\n")
-        print(f"Image: {image_path.name}")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"CHARACTER APPEARANCE ANALYSIS")
+        logger.info(f"{'='*70}\n")
+        logger.info(f"Image: {image_path.name}")
 
         # Load template fresh (picks up any edits immediately)
         prompt_template = self._load_template()
@@ -97,11 +100,11 @@ class CharacterAppearanceAnalyzer:
             temperature=self.temperature
         )
 
-        print(f"\n✅ Analysis complete")
-        print(f"\n📝 Summary:")
-        print(f"   Age: {result.age}")
-        print(f"   Hair: {result.hair_description}")
-        print(f"   Skin: {result.skin_tone}")
+        logger.info(f"\nAnalysis complete")
+        logger.info(f"\n📝 Summary:")
+        logger.info(f"   Age: {result.age}")
+        logger.info(f"   Hair: {result.hair_description}")
+        logger.info(f"   Skin: {result.skin_tone}")
 
         return result
 
@@ -123,10 +126,10 @@ class CharacterAppearanceAnalyzer:
         if not image_path.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        print(f"\n{'='*70}")
-        print(f"CHARACTER APPEARANCE ANALYSIS (ASYNC)")
-        print(f"{'='*70}\n")
-        print(f"Image: {image_path.name}")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"CHARACTER APPEARANCE ANALYSIS (ASYNC)")
+        logger.info(f"{'='*70}\n")
+        logger.info(f"Image: {image_path.name}")
 
         # Load template fresh (picks up any edits immediately)
         prompt_template = self._load_template()
@@ -139,11 +142,11 @@ class CharacterAppearanceAnalyzer:
             temperature=self.temperature
         )
 
-        print(f"\n✅ Analysis complete")
-        print(f"\n📝 Summary:")
-        print(f"   Age: {result.age}")
-        print(f"   Hair: {result.hair_description}")
-        print(f"   Skin: {result.skin_tone}")
+        logger.info(f"\nAnalysis complete")
+        logger.info(f"\n📝 Summary:")
+        logger.info(f"   Age: {result.age}")
+        logger.info(f"   Hair: {result.hair_description}")
+        logger.info(f"   Skin: {result.skin_tone}")
 
         return result
 
@@ -174,18 +177,18 @@ def main():
         result = analyzer.analyze(args.image)
 
         # Print detailed results
-        print(f"\n{'='*70}")
-        print("DETAILED ANALYSIS")
-        print(f"{'='*70}\n")
-        print(f"Age: {result.age}")
-        print(f"Skin Tone: {result.skin_tone}")
-        print(f"\nFace: {result.face_description}")
-        print(f"\nHair: {result.hair_description}")
-        print(f"\nBody: {result.body_description}")
-        print(f"\n{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info("DETAILED ANALYSIS")
+        logger.info(f"{'='*70}\n")
+        logger.info(f"Age: {result.age}")
+        logger.info(f"Skin Tone: {result.skin_tone}")
+        logger.info(f"\nFace: {result.face_description}")
+        logger.info(f"\nHair: {result.hair_description}")
+        logger.info(f"\nBody: {result.body_description}")
+        logger.info(f"\n{'='*70}\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

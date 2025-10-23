@@ -22,6 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from ai_capabilities.specs import ClothingItemEntity
 from ai_tools.shared.router import LLMRouter, RouterConfig
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ClothingItemVisualizer:
@@ -133,10 +136,10 @@ The visualization should clearly show the item's fabric, color, and construction
         # Construct generation prompt
         prompt = self._construct_generation_prompt(item)
 
-        print(f"\n🎨 Generating clothing item visualization...")
-        print(f"   Category: {item.category}")
-        print(f"   Item: {item.item}")
-        print(f"   Color: {item.color}")
+        logger.info(f"\nGenerating clothing item visualization...")
+        logger.info(f"   Category: {item.category}")
+        logger.info(f"   Item: {item.item}")
+        logger.info(f"   Color: {item.color}")
 
         try:
             # Truncate prompt if too long
@@ -167,7 +170,7 @@ The visualization should clearly show the item's fabric, color, and construction
             with open(output_path, 'wb') as f:
                 f.write(image_bytes)
 
-            print(f"✅ Visualization saved: {output_path}")
+            logger.info(f"Visualization saved: {output_path}")
 
             return output_path
 
@@ -242,11 +245,11 @@ Examples:
             item_id=item_id
         )
 
-        print(f"\n✅ Visualization complete!")
-        print(f"   Output: {output_path}")
+        logger.info(f"\nVisualization complete!")
+        logger.info(f"   Output: {output_path}")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

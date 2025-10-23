@@ -24,6 +24,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from ai_capabilities.specs import OutfitSpec, SpecMetadata
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.preset import PresetManager
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class OutfitVisualizer:
@@ -133,16 +136,16 @@ Style the presentation to match the {outfit.aesthetic} aesthetic while maintaini
 
         # Load outfit if given as preset name/ID
         if isinstance(outfit, str):
-            print(f"📦 Loading outfit preset: {outfit}")
+            logger.info(f"📦 Loading outfit preset: {outfit}")
             outfit = self.preset_manager.load("outfits", outfit, OutfitSpec)
 
         # Construct generation prompt
         prompt = self._construct_generation_prompt(outfit)
 
-        print(f"\n🎨 Generating outfit visualization...")
-        print(f"   Style: {outfit.style_genre} ({outfit.formality})")
-        print(f"   Aesthetic: {outfit.aesthetic}")
-        print(f"   Items: {len(outfit.clothing_items)}")
+        logger.info(f"\nGenerating outfit visualization...")
+        logger.info(f"   Style: {outfit.style_genre} ({outfit.formality})")
+        logger.info(f"   Aesthetic: {outfit.aesthetic}")
+        logger.info(f"   Items: {len(outfit.clothing_items)}")
 
         try:
             # Truncate prompt if too long for DALL-E (4000 char limit)
@@ -174,7 +177,7 @@ Style the presentation to match the {outfit.aesthetic} aesthetic while maintaini
             with open(output_path, 'wb') as f:
                 f.write(image_bytes)
 
-            print(f"✅ Visualization saved: {output_path}")
+            logger.info(f"Visualization saved: {output_path}")
 
             return output_path
 
@@ -297,11 +300,11 @@ Examples:
                 quality=args.quality
             )
 
-        print(f"\n✅ Visualization complete!")
-        print(f"   Output: {output_path}")
+        logger.info(f"\nVisualization complete!")
+        logger.info(f"   Output: {output_path}")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

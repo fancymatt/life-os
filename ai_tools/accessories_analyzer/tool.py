@@ -22,6 +22,9 @@ from ai_tools.shared.preset import PresetManager
 from ai_tools.shared.cache import CacheManager
 from api.config import settings
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -102,7 +105,7 @@ class AccessoriesAnalyzer:
                 AccessoriesSpec
             )
             if cached:
-                print(f"✅ Using cached analysis for {image_path.name}")
+                logger.info(f"Using cached analysis for {image_path.name}")
 
                 # Save as preset if requested
                 if save_as_preset:
@@ -114,8 +117,8 @@ class AccessoriesAnalyzer:
                         display_name=preset_name,
                         notes=preset_notes
                     )
-                    print(f"⭐ Saved as preset: {preset_name}")
-                    print(f"   Location: {preset_path}")
+                    logger.info(f"Saved as preset: {preset_name}")
+                    logger.info(f"   Location: {preset_path}")
 
                 return cached
 
@@ -123,7 +126,7 @@ class AccessoriesAnalyzer:
         prompt_template = self._load_template()
 
         # Perform analysis
-        print(f"🔍 Analyzing accessories in {image_path.name}...")
+        logger.info(f"🔍 Analyzing accessories in {image_path.name}...")
 
         try:
             result = await self.router.acall_structured(
@@ -149,7 +152,7 @@ class AccessoriesAnalyzer:
                     image_path,
                     result
                 )
-                print(f"💾 Cached analysis")
+                logger.info(f"💾 Cached analysis")
 
             # Save as preset if requested
             if save_as_preset:
@@ -170,9 +173,9 @@ class AccessoriesAnalyzer:
                     result._metadata.preset_id = preset_id
 
                     result._metadata.display_name = preset_name
-                print(f"⭐ Saved as preset: {preset_name}")
-                print(f"   ID: {preset_id}")
-                print(f"   Location: {preset_path}")
+                logger.info(f"Saved as preset: {preset_name}")
+                logger.info(f"   ID: {preset_id}")
+                logger.info(f"   Location: {preset_path}")
 
             return result
 
@@ -290,9 +293,9 @@ Examples:
     # List presets
     if args.list:
         presets = analyzer.list_presets()
-        print(f"\n📋 Accessories Analyzer Presets ({len(presets)}):")
+        logger.info(f"\n📋 Accessories Analyzer Presets ({len(presets)}):")
         for preset in presets:
-            print(f"  - {preset}")
+            logger.info(f"  - {preset}")
         return
 
     # Analyze image
@@ -308,32 +311,32 @@ Examples:
         )
 
         # Print results
-        print("\n" + "="*70)
-        print("Accessories Analysis")
-        print("="*70)
+        logger.info("\n" + "="*70)
+        logger.info("Accessories Analysis")
+        logger.info("="*70)
         if result.jewelry:
-            print(f"\nJewelry ({len(result.jewelry)}):")
+            logger.info(f"\nJewelry ({len(result.jewelry)}):")
             for item in result.jewelry:
-                print(f"  - {item}")
+                logger.info(f"  - {item}")
         if result.bags:
-            print(f"\nBags: {result.bags}")
+            logger.info(f"\nBags: {result.bags}")
         if result.belts:
-            print(f"Belts: {result.belts}")
+            logger.info(f"Belts: {result.belts}")
         if result.scarves:
-            print(f"Scarves: {result.scarves}")
+            logger.info(f"Scarves: {result.scarves}")
         if result.hats:
-            print(f"Hats: {result.hats}")
+            logger.info(f"Hats: {result.hats}")
         if result.watches:
-            print(f"Watches: {result.watches}")
+            logger.info(f"Watches: {result.watches}")
         if result.other:
-            print(f"\nOther ({len(result.other)}):")
+            logger.info(f"\nOther ({len(result.other)}):")
             for item in result.other:
-                print(f"  - {item}")
-        print(f"\nOverall Style: {result.overall_style}")
-        print("\n" + "="*70)
+                logger.info(f"  - {item}")
+        logger.info(f"\nOverall Style: {result.overall_style}")
+        logger.info("\n" + "="*70)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

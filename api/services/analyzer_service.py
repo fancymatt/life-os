@@ -20,6 +20,9 @@ from ai_tools.expression_analyzer.tool import ExpressionAnalyzer
 from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
 from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
 from ai_tools.comprehensive_analyzer.tool import ComprehensiveAnalyzer
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class AnalyzerService:
@@ -203,7 +206,7 @@ class AnalyzerService:
                         if result._metadata:
                             result._metadata.preset_id = preset_id
                             result._metadata.display_name = suggested_name
-                        print(f"⭐ Saved as preset: {suggested_name} (ID: {preset_id})")
+                        logger.info(f"Saved as preset: {suggested_name} (ID: {preset_id})")
 
         # Convert Pydantic model to dict and include metadata
         if hasattr(result, 'model_dump'):
@@ -330,12 +333,12 @@ class AnalyzerService:
                                             preset_id=pid
                                         )
 
-                                    print(f"✅ Generated preview for {pid} ({cat})")
+                                    logger.info(f"Generated preview for {pid} ({cat})")
                                 except Exception as e:
-                                    print(f"⚠️  Preview generation failed for {pid}: {e}")
+                                    logger.warning(f"Preview generation failed for {pid}: {e}")
 
                             background_tasks.add_task(generate_visualization)
-                            print(f"🎨 Queued preview generation for {preset_id} ({category})")
+                            logger.info(f"Queued preview generation for {preset_id} ({category})")
 
             # Handle individual analyzer
             elif "_metadata" in data and "preset_id" in data["_metadata"]:
@@ -370,12 +373,12 @@ class AnalyzerService:
                                     preset_id=preset_id
                                 )
 
-                            print(f"✅ Generated preview for {preset_id}")
+                            logger.info(f"Generated preview for {preset_id}")
                         except Exception as e:
-                            print(f"⚠️  Preview generation failed: {e}")
+                            logger.warning(f"Preview generation failed: {e}")
 
                     background_tasks.add_task(generate_visualization)
-                    print(f"🎨 Queued preview generation for {preset_id}")
+                    logger.info(f"Queued preview generation for {preset_id}")
 
         return data
 

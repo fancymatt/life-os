@@ -27,6 +27,9 @@ from ai_tools.accessories_analyzer.tool import AccessoriesAnalyzer
 from ai_tools.shared.preset import PresetManager
 from ai_tools.shared.cache import CacheManager
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -109,9 +112,9 @@ class ComprehensiveAnalyzer:
                 'accessories': True
             }
 
-        print(f"\n{'='*70}")
-        print(f"COMPREHENSIVE ANALYSIS: {image_path.name}")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"COMPREHENSIVE ANALYSIS: {image_path.name}")
+        logger.info(f"{'='*70}\n")
 
         created_presets = []
         results = {}
@@ -121,7 +124,7 @@ class ComprehensiveAnalyzer:
         total_selected = sum(1 for v in selected_analyses.values() if v)
 
         if selected_analyses.get('outfit', False):
-            print(f"[{step}/{total_selected}] Analyzing outfit...")
+            logger.info(f"[{step}/{total_selected}] Analyzing outfit...")
             outfit = self.outfit_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -135,7 +138,7 @@ class ComprehensiveAnalyzer:
             results['outfit'] = None
 
         if selected_analyses.get('visual_style', False):
-            print(f"[{step}/{total_selected}] Analyzing visual style...")
+            logger.info(f"[{step}/{total_selected}] Analyzing visual style...")
             result = self.visual_style_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -149,7 +152,7 @@ class ComprehensiveAnalyzer:
             results['visual_style'] = None
 
         if selected_analyses.get('art_style', False):
-            print(f"[{step}/{total_selected}] Analyzing art style...")
+            logger.info(f"[{step}/{total_selected}] Analyzing art style...")
             result = self.art_style_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -163,7 +166,7 @@ class ComprehensiveAnalyzer:
             results['art_style'] = None
 
         if selected_analyses.get('hair_style', False):
-            print(f"[{step}/{total_selected}] Analyzing hair style...")
+            logger.info(f"[{step}/{total_selected}] Analyzing hair style...")
             result = self.hair_style_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -177,7 +180,7 @@ class ComprehensiveAnalyzer:
             results['hair_style'] = None
 
         if selected_analyses.get('hair_color', False):
-            print(f"[{step}/{total_selected}] Analyzing hair color...")
+            logger.info(f"[{step}/{total_selected}] Analyzing hair color...")
             result = self.hair_color_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -191,7 +194,7 @@ class ComprehensiveAnalyzer:
             results['hair_color'] = None
 
         if selected_analyses.get('makeup', False):
-            print(f"[{step}/{total_selected}] Analyzing makeup...")
+            logger.info(f"[{step}/{total_selected}] Analyzing makeup...")
             result = self.makeup_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -205,7 +208,7 @@ class ComprehensiveAnalyzer:
             results['makeup'] = None
 
         if selected_analyses.get('expression', False):
-            print(f"[{step}/{total_selected}] Analyzing expression...")
+            logger.info(f"[{step}/{total_selected}] Analyzing expression...")
             result = self.expression_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -219,7 +222,7 @@ class ComprehensiveAnalyzer:
             results['expression'] = None
 
         if selected_analyses.get('accessories', False):
-            print(f"[{step}/{total_selected}] Analyzing accessories...")
+            logger.info(f"[{step}/{total_selected}] Analyzing accessories...")
             result = self.accessories_analyzer.analyze(
                 image_path,
                 skip_cache=skip_cache,
@@ -232,9 +235,9 @@ class ComprehensiveAnalyzer:
         else:
             results['accessories'] = None
 
-        print(f"\n{'='*70}")
-        print(f"COMPREHENSIVE ANALYSIS COMPLETE - {len(created_presets)} presets created")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info(f"COMPREHENSIVE ANALYSIS COMPLETE - {len(created_presets)} presets created")
+        logger.info(f"{'='*70}\n")
 
         return {
             'created_presets': created_presets,
@@ -304,21 +307,21 @@ Examples:
         )
 
         # Print summary
-        print("\n" + "="*70)
-        print("SUMMARY")
-        print("="*70)
-        print(f"\n✅ Outfit: {result.outfit.style_genre} ({result.outfit.formality})")
-        print(f"✅ Visual Style: {result.visual_style.framing} / {result.visual_style.camera_angle}")
-        print(f"✅ Art Style: {result.art_style.artistic_movement}")
-        print(f"✅ Hair Style: {result.hair_style.overall_style}")
-        print(f"✅ Hair Color: {result.hair_color.base_color}")
-        print(f"✅ Makeup: {result.makeup.overall_style} ({result.makeup.intensity})")
-        print(f"✅ Expression: {result.expression.primary_emotion} ({result.expression.intensity})")
-        print(f"✅ Accessories: {result.accessories.overall_style}")
-        print("\n" + "="*70)
+        logger.info("\n" + "="*70)
+        logger.info("SUMMARY")
+        logger.info("="*70)
+        logger.info(f"\nOutfit: {result.outfit.style_genre} ({result.outfit.formality})")
+        logger.info(f"Visual Style: {result.visual_style.framing} / {result.visual_style.camera_angle}")
+        logger.info(f"Art Style: {result.art_style.artistic_movement}")
+        logger.info(f"Hair Style: {result.hair_style.overall_style}")
+        logger.info(f"Hair Color: {result.hair_color.base_color}")
+        logger.info(f"Makeup: {result.makeup.overall_style} ({result.makeup.intensity})")
+        logger.info(f"Expression: {result.expression.primary_emotion} ({result.expression.intensity})")
+        logger.info(f"Accessories: {result.accessories.overall_style}")
+        logger.info("\n" + "="*70)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

@@ -50,6 +50,9 @@ from ai_capabilities.specs import (
 from ai_tools.shared.router import LLMRouter, RouterConfig
 from ai_tools.shared.preset import PresetManager
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -115,7 +118,7 @@ class ModularImageGenerator:
         formality = formality_levels[0] if formality_levels else None
         aesthetic = ", ".join(set(aesthetics)) if aesthetics else None
 
-        print(f"🔀 Merged {len(outfit_specs)} outfits into one ({len(all_clothing_items)} total items)")
+        logger.info(f"🔀 Merged {len(outfit_specs)} outfits into one ({len(all_clothing_items)} total items)")
 
         return OutfitSpec(
             suggested_name=suggested_name,
@@ -166,12 +169,12 @@ class ModularImageGenerator:
                             details=item_dict['details']
                         )
                         all_clothing_items.append(clothing_item)
-                        print(f"  ✓ Loaded {item_dict['category']}: {item_dict['item']}")
+                        logger.info(f"  ✓ Loaded {item_dict['category']}: {item_dict['item']}")
 
         if not all_clothing_items:
             return None
 
-        print(f"🧥 Loaded {len(all_clothing_items)} clothing items from database")
+        logger.info(f"🧥 Loaded {len(all_clothing_items)} clothing items from database")
 
         return OutfitSpec(
             suggested_name="Custom Outfit from Clothing Items",
@@ -219,18 +222,18 @@ class ModularImageGenerator:
         if not subject_image.exists():
             raise FileNotFoundError(f"Subject image not found: {subject_image}")
 
-        print(f"\n{'='*70}")
-        print("MODULAR IMAGE GENERATION")
-        print(f"{'='*70}\n")
-        print(f"Subject: {subject_image.name}")
+        logger.info(f"\n{'='*70}")
+        logger.info("MODULAR IMAGE GENERATION")
+        logger.info(f"{'='*70}\n")
+        logger.info(f"Subject: {subject_image.name}")
 
         # Debug: Check what we received
-        print(f"🔍 DEBUG: outfit parameter type: {type(outfit)}, value: {outfit}")
+        logger.info(f"🔍 DEBUG: outfit parameter type: {type(outfit)}, value: {outfit}")
 
         # Load specs from presets if needed
         # Special handling for outfit - can be a list of IDs
         if isinstance(outfit, list):
-            print(f"📦 Loading {len(outfit)} outfits for amalgamation...")
+            logger.info(f"📦 Loading {len(outfit)} outfits for amalgamation...")
             outfit_specs = []
             for outfit_id in outfit:
                 spec = self._load_spec(outfit_id, "outfits", OutfitSpec, "Outfit")
@@ -260,8 +263,8 @@ class ModularImageGenerator:
             accessories_spec
         )
 
-        print(f"\n🎨 Generating image with Gemini 2.5 Flash...")
-        print(f"   Temperature: {temperature}")
+        logger.info(f"\nGenerating image with Gemini 2.5 Flash...")
+        logger.info(f"   Temperature: {temperature}")
 
         # Generate image
         start_time = datetime.now()
@@ -287,9 +290,9 @@ class ModularImageGenerator:
         with open(file_path, 'wb') as f:
             f.write(image_bytes)
 
-        print(f"\n✅ Generated: {file_path}")
-        print(f"   Time: {generation_time:.1f}s")
-        print(f"   Cost: ~$0.04")
+        logger.info(f"\nGenerated: {file_path}")
+        logger.info(f"   Time: {generation_time:.1f}s")
+        logger.info(f"   Cost: ~$0.04")
 
         # Create result
         request = ImageGenerationRequest(
@@ -320,10 +323,10 @@ class ModularImageGenerator:
             return None
 
         if isinstance(spec_or_name, str):
-            print(f"📦 Loading {label}: {spec_or_name}")
+            logger.info(f"📦 Loading {label}: {spec_or_name}")
             return self.preset_manager.load(category, spec_or_name, spec_class)
         else:
-            print(f"✓ Using provided {label} spec")
+            logger.info(f"✓ Using provided {label} spec")
             return spec_or_name
 
     def _build_prompt(
@@ -489,13 +492,13 @@ class ModularImageGenerator:
         if not subject_image.exists():
             raise FileNotFoundError(f"Subject image not found: {subject_image}")
 
-        print(f"\n{'='*70}")
-        print("MODULAR IMAGE GENERATION (ASYNC)")
-        print(f"{'='*70}\n")
-        print(f"Subject: {subject_image.name}")
+        logger.info(f"\n{'='*70}")
+        logger.info("MODULAR IMAGE GENERATION (ASYNC)")
+        logger.info(f"{'='*70}\n")
+        logger.info(f"Subject: {subject_image.name}")
 
         # Debug: Check what we received
-        print(f"🔍 DEBUG: outfit parameter type: {type(outfit)}, value: {outfit}")
+        logger.info(f"🔍 DEBUG: outfit parameter type: {type(outfit)}, value: {outfit}")
 
         # Load clothing items from database if any category is provided
         clothing_items_spec = await self._load_clothing_items_from_db(
@@ -519,7 +522,7 @@ class ModularImageGenerator:
         # Load outfit presets if provided
         outfit_preset_spec = None
         if isinstance(outfit, list):
-            print(f"📦 Loading {len(outfit)} outfits for amalgamation...")
+            logger.info(f"📦 Loading {len(outfit)} outfits for amalgamation...")
             outfit_specs = []
             for outfit_id in outfit:
                 spec = self._load_spec(outfit_id, "outfits", OutfitSpec, "Outfit")
@@ -531,7 +534,7 @@ class ModularImageGenerator:
 
         # Merge clothing items with outfit presets
         if clothing_items_spec and outfit_preset_spec:
-            print("🔀 Merging clothing items with outfit presets...")
+            logger.info("🔀 Merging clothing items with outfit presets...")
             outfit_spec = self._merge_outfits([clothing_items_spec, outfit_preset_spec])
         elif clothing_items_spec:
             outfit_spec = clothing_items_spec
@@ -558,8 +561,8 @@ class ModularImageGenerator:
             accessories_spec
         )
 
-        print(f"\n🎨 Generating image with Gemini 2.5 Flash (async)...")
-        print(f"   Temperature: {temperature}")
+        logger.info(f"\nGenerating image with Gemini 2.5 Flash (async)...")
+        logger.info(f"   Temperature: {temperature}")
 
         # Generate image (async)
         start_time = datetime.now()
@@ -586,9 +589,9 @@ class ModularImageGenerator:
         async with aiofiles.open(file_path, 'wb') as f:
             await f.write(image_bytes)
 
-        print(f"\n✅ Generated: {file_path}")
-        print(f"   Time: {generation_time:.1f}s")
-        print(f"   Cost: ~$0.04")
+        logger.info(f"\nGenerated: {file_path}")
+        logger.info(f"   Time: {generation_time:.1f}s")
+        logger.info(f"   Cost: ~$0.04")
 
         # Create result
         request = ImageGenerationRequest(
@@ -693,12 +696,12 @@ Examples:
             temperature=args.temperature
         )
 
-        print(f"\n{'='*70}")
-        print("GENERATION COMPLETE")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info("GENERATION COMPLETE")
+        logger.info(f"{'='*70}\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

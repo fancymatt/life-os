@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 
 from api.core.simple_agent import Agent, AgentConfig
 from ai_tools.shared.router import LLMRouter
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class CharacterInput(BaseModel):
@@ -291,7 +294,7 @@ Create a compelling transformation story outline with VIVID, SPECIFIC transforma
                 content = await f.read()
                 return json.loads(content)
         except Exception as e:
-            print(f"⚠️  Could not load planner config '{config_id}', using default: {e}")
+            logger.warning(f"Could not load planner config '{config_id}', using default: {e}")
             # Return minimal default if file not found
             return {
                 "prompt_template": {
@@ -308,7 +311,7 @@ Create a compelling transformation story outline with VIVID, SPECIFIC transforma
                 content = await f.read()
                 return json.loads(content)
         except Exception as e:
-            print(f"⚠️  Could not load preset '{category}/{preset_id}': {e}")
+            logger.warning(f"Could not load preset '{category}/{preset_id}': {e}")
             return {}
 
     async def _build_planning_prompt_from_config(

@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 from api.config import settings
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class BoardGameService:
@@ -136,7 +139,7 @@ class BoardGameService:
                     game_data = json.load(f)
                     games.append(game_data)
             except Exception as e:
-                print(f"Error loading board game {file_path}: {e}")
+                logger.error(f"Error loading board game {file_path}: {e}")
                 continue
 
         # Sort by name

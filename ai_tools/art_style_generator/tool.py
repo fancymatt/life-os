@@ -17,6 +17,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from ai_tools.modular_image_generator.tool import ModularImageGenerator
 from dotenv import load_dotenv
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -45,11 +48,11 @@ class ArtStyleGenerator(ModularImageGenerator):
         Returns:
             ImageGenerationResult
         """
-        print(f"\n{'='*70}")
-        print("ART STYLE GENERATION")
-        print(f"{'='*70}\n")
-        print(f"Subject: {Path(subject_image).name}")
-        print(f"Art Style: {art_style}")
+        logger.info(f"\n{'='*70}")
+        logger.info("ART STYLE GENERATION")
+        logger.info(f"{'='*70}\n")
+        logger.info(f"Subject: {Path(subject_image).name}")
+        logger.info(f"Art Style: {art_style}")
 
         # Use modular generator with only art style
         return self.generate(
@@ -94,12 +97,12 @@ Examples:
             output_dir=args.output
         )
 
-        print(f"\n{'='*70}")
-        print("ART STYLE GENERATION COMPLETE")
-        print(f"{'='*70}\n")
+        logger.info(f"\n{'='*70}")
+        logger.info("ART STYLE GENERATION COMPLETE")
+        logger.info(f"{'='*70}\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\nError: {e}")
         sys.exit(1)
 
 

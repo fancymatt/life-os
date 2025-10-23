@@ -29,10 +29,13 @@ from ai_capabilities.specs import (
 )
 from api.config import settings
 from api.logging_config import (
+    get_logger,
     log_background_task_start,
     log_background_task_success,
     log_background_task_error
 )
+
+logger = get_logger(__name__)
 
 
 class PresetService:
@@ -92,7 +95,7 @@ class PresetService:
                 }
 
                 if category not in spec_class_map:
-                    print(f"⚠️  No visualizer for category: {category}")
+                    logger.warning(f"No visualizer for category: {category}")
                     return
 
                 spec_class = spec_class_map[category]
@@ -105,10 +108,10 @@ class PresetService:
                     preset_id=preset_id
                 )
 
-            print(f"✅ Generated preview: {viz_path}")
+            logger.info(f"Generated preview: {viz_path}")
         except Exception as e:
             # Don't fail the whole operation if visualization fails
-            print(f"⚠️  Preview generation failed: {e}")
+            logger.warning(f"Preview generation failed: {e}")
 
     def _generate_preview_safe(self, category: str, preset_id: str, data: Dict[str, Any]):
         """
@@ -264,7 +267,7 @@ class PresetService:
                 preset_id,
                 data
             )
-            print(f"🎨 Queued preview generation for new preset {preset_id}")
+            logger.info(f"Queued preview generation for new preset {preset_id}")
         else:
             # Fallback to synchronous generation
             self._generate_preview(category, preset_id, data)
@@ -313,14 +316,14 @@ class PresetService:
             new_outfit_data = {k: v for k, v in data.items() if k != "_metadata"}
             data_changed = old_outfit_data != new_outfit_data
             should_generate_preview = data_changed or not has_preview
-            print(f"🔍 Outfit - data changed: {data_changed}, has preview: {has_preview}, will generate: {should_generate_preview}")
+            logger.info(f"🔍 Outfit - data changed: {data_changed}, has preview: {has_preview}, will generate: {should_generate_preview}")
         elif category in ["visual_styles", "art_styles", "hair_styles", "hair_colors", "makeup", "expressions", "accessories"]:
             # For non-outfit categories, compare data (excluding metadata)
             old_data = {k: v for k, v in existing_data.items() if k != "_metadata"}
             new_data = {k: v for k, v in data.items() if k != "_metadata"}
             data_changed = old_data != new_data
             should_generate_preview = data_changed or not has_preview
-            print(f"🔍 {category} - data changed: {data_changed}, has preview: {has_preview}, will generate: {should_generate_preview}")
+            logger.info(f"🔍 {category} - data changed: {data_changed}, has preview: {has_preview}, will generate: {should_generate_preview}")
 
         # Update fields
         existing_data.update(data)
@@ -347,7 +350,7 @@ class PresetService:
                     preset_id,
                     existing_data
                 )
-                print(f"🎨 Queued preview generation for {preset_id}")
+                logger.info(f"Queued preview generation for {preset_id}")
             else:
                 # Fallback to synchronous generation
                 self._generate_preview(category, preset_id, existing_data)

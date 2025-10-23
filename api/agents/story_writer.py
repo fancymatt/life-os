@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 
 from api.core.simple_agent import Agent, AgentConfig
 from ai_tools.shared.router import LLMRouter
+from api.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class WrittenScene(BaseModel):
@@ -275,7 +278,7 @@ Write the complete story now with all {len(outline['outline'])} scenes:"""
                 content = await f.read()
                 return json.loads(content)
         except Exception as e:
-            print(f"⚠️  Could not load writer config '{config_id}', using default: {e}")
+            logger.warning(f"Could not load writer config '{config_id}', using default: {e}")
             return {
                 "prompt_template": {
                     "system_message": "You are a skilled story writer. Write engaging prose.",
@@ -291,7 +294,7 @@ Write the complete story now with all {len(outline['outline'])} scenes:"""
                 content = await f.read()
                 return json.loads(content)
         except Exception as e:
-            print(f"⚠️  Could not load preset '{category}/{preset_id}': {e}")
+            logger.warning(f"Could not load preset '{category}/{preset_id}': {e}")
             return {}
 
     async def _build_writing_prompt_from_config(
