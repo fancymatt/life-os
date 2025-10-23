@@ -503,7 +503,6 @@ async def generate_clothing_item_preview(
     item_id: str,
     background_tasks: BackgroundTasks,
     async_mode: bool = Query(True, description="Run generation in background and return job_id"),
-    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -517,6 +516,7 @@ async def generate_clothing_item_preview(
     """
     from api.services.job_queue import get_job_queue_manager
     from api.models.jobs import JobType
+    from api.database import get_db, get_session
 
     # Async mode: Create job and return immediately
     if async_mode:
@@ -542,27 +542,28 @@ async def generate_clothing_item_preview(
         }
 
     # Synchronous mode: Run generation and return result
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    async with get_session() as db:
+        service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
-    try:
-        item = await service.generate_preview(item_id)
+        try:
+            item = await service.generate_preview(item_id)
 
-        if not item:
-            raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+            if not item:
+                raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
 
-        return ClothingItemInfo(
-            item_id=item['item_id'],
-            category=item['category'],
-            item=item['item'],
-            fabric=item['fabric'],
-            color=item['color'],
-            details=item['details'],
-            source_image=item.get('source_image'),
-            preview_image_path=item.get('preview_image_path'),
-            created_at=item.get('created_at', '')
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate preview: {str(e)}")
+            return ClothingItemInfo(
+                item_id=item['item_id'],
+                category=item['category'],
+                item=item['item'],
+                fabric=item['fabric'],
+                color=item['color'],
+                details=item['details'],
+                source_image=item.get('source_image'),
+                preview_image_path=item.get('preview_image_path'),
+                created_at=item.get('created_at', '')
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate preview: {str(e)}")
 
 
 class TestImageRequest(BaseModel):
@@ -650,7 +651,7 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
                 subject_image=str(subject_path),
                 outfit=morphsuit_outfit,
                 visual_style=visual_style_id,  # Pass UUID, not name
-                output_dir="output/generated"
+                output_dir="output/test_generations/clothing_items"
             )
 
             job_manager.update_progress(job_id, 0.9, "Finalizing...")
@@ -673,7 +674,6 @@ async def generate_test_image(
     item_id: str,
     request: TestImageRequest,
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -692,21 +692,14 @@ async def generate_test_image(
     from api.services.job_queue import get_job_queue_manager
     from api.models.jobs import JobType
 
-    # Verify clothing item exists
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
-    item = await service.get_clothing_item(item_id)
-
-    if not item:
-        raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
-
-    # Create job
+    # Create job immediately (verification happens in background task)
     job_id = get_job_queue_manager().create_job(
         job_type=JobType.GENERATE_IMAGE,
-        title=f"Test image: {item['item']}",
-        description=f"{request.character_id} wearing {item['item']} ({request.visual_style})"
+        title=f"Test image: {item_id[:8]}...",
+        description=f"{request.character_id} wearing item ({request.visual_style[:8]}...)"
     )
 
-    # Queue background task
+    # Queue background task (will fail gracefully if item doesn't exist)
     background_tasks.add_task(
         run_test_image_generation_job,
         job_id,
