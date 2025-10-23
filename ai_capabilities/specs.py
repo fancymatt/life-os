@@ -5,7 +5,7 @@ All Pydantic models defining inputs/outputs for tools and workflows.
 Each spec includes metadata support for provenance and versioning.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, field_serializer, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -27,10 +27,9 @@ class SpecMetadata(BaseModel):
     model_used: str = Field(..., description="LLM model used for generation")
     notes: Optional[str] = Field(None, description="User-editable notes")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    @field_serializer('created_at')
+    def serialize_datetime(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 # ==============================================================================
@@ -68,10 +67,9 @@ class ClothingItemEntity(BaseModel):
     preview_image_path: Optional[str] = Field(None, description="Generated preview image path")
     created_at: datetime = Field(default_factory=datetime.now)
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    @field_serializer('created_at')
+    def serialize_datetime(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 class OutfitCompositionEntity(BaseModel):
@@ -83,10 +81,9 @@ class OutfitCompositionEntity(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 class OutfitAnalysisResult(BaseModel):
@@ -321,10 +318,9 @@ class ImageGenerationResult(BaseModel):
     cost_estimate: Optional[float] = Field(None, description="Estimated cost in USD")
     generation_time: Optional[float] = Field(None, description="Time in seconds")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    @field_serializer('timestamp')
+    def serialize_datetime(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 class StyleTransferRequest(BaseModel):
@@ -455,10 +451,9 @@ class VisualizationConfigEntity(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.now)
     is_default: bool = Field(False, description="Whether this is the default config for this entity type")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 # ==============================================================================
@@ -508,10 +503,9 @@ class VideoGenerationResult(BaseModel):
     generation_time: float = Field(..., description="Time in seconds")
     cost_estimate: Optional[float] = Field(None, description="Estimated cost in USD")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    @field_serializer('timestamp')
+    def serialize_datetime(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 # ==============================================================================
