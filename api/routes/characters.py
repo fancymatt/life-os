@@ -4,7 +4,7 @@ Character Routes
 Endpoints for managing character entities.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, BackgroundTasks, Query, Request
 from fastapi.responses import FileResponse
 from typing import Optional, List
 import base64
@@ -23,13 +23,16 @@ from api.services.job_queue import get_job_queue_manager
 from api.models.jobs import JobType
 from ai_tools.character_appearance_analyzer.tool import CharacterAppearanceAnalyzer
 from api.logging_config import get_logger
+from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
 logger = get_logger(__name__)
 
 
 @router.get("/", response_model=CharacterListResponse)
+@cached(cache_type="list", include_user=True)
 async def list_characters(
+    request: Request,
     limit: Optional[int] = Query(None, description="Maximum number of characters to return"),
     offset: int = Query(0, description="Number of characters to skip"),
     db: AsyncSession = Depends(get_db),
@@ -40,6 +43,8 @@ async def list_characters(
 
     Returns a list of character entities with their metadata.
     Supports pagination via limit/offset parameters.
+
+    **Cached**: 60 seconds (user-specific)
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -78,6 +83,7 @@ async def list_characters(
 
 
 @router.post("/multipart", response_model=CharacterInfo)
+@invalidates_cache(entity_types=["characters"])
 async def create_character_multipart(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
@@ -93,6 +99,8 @@ async def create_character_multipart(
     Accepts form data including a reference image file.
     Physical appearance is automatically analyzed from the image in the background.
     Returns immediately without waiting for analysis to complete.
+
+    **Cache Invalidation**: Clears all character list caches
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -182,6 +190,7 @@ async def create_character_multipart(
 
 
 @router.post("/", response_model=CharacterInfo)
+@invalidates_cache(entity_types=["characters"])
 async def create_character(
     request: CharacterCreate,
     db: AsyncSession = Depends(get_db),
@@ -194,6 +203,8 @@ async def create_character(
     Optionally accepts a reference image in base64 format.
 
     Note: For file uploads, use the /multipart endpoint instead.
+
+    **Cache Invalidation**: Clears all character list caches
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -284,6 +295,7 @@ async def get_character_image(
 
 
 @router.post("/{character_id}/image", response_model=CharacterInfo)
+@invalidates_cache(entity_types=["characters"])
 async def upload_character_image(
     character_id: str,
     file: UploadFile = File(...),
@@ -295,6 +307,8 @@ async def upload_character_image(
 
     Accepts an image file upload and sets it as the character's reference image.
     Automatically analyzes the image to extract physical appearance.
+
+    **Cache Invalidation**: Clears all character caches
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -365,7 +379,9 @@ async def upload_character_image(
 
 
 @router.get("/{character_id}", response_model=CharacterInfo)
+@cached(cache_type="detail", include_user=True)
 async def get_character(
+    request: Request,
     character_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
@@ -374,6 +390,8 @@ async def get_character(
     Get a character by ID
 
     Returns full character data including visual description, personality, etc.
+
+    **Cached**: 5 minutes (user-specific)
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
     character_data = await service.get_character(character_id)
@@ -405,6 +423,7 @@ async def get_character(
 
 
 @router.put("/{character_id}", response_model=CharacterInfo)
+@invalidates_cache(entity_types=["characters"])
 async def update_character(
     character_id: str,
     request: CharacterUpdate,
@@ -415,6 +434,8 @@ async def update_character(
     Update a character
 
     Updates character fields. Only provided fields will be updated.
+
+    **Cache Invalidation**: Clears all character caches
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
 
@@ -465,6 +486,7 @@ async def update_character(
 
 
 @router.delete("/{character_id}")
+@invalidates_cache(entity_types=["characters"])
 async def delete_character(
     character_id: str,
     db: AsyncSession = Depends(get_db),
@@ -474,6 +496,8 @@ async def delete_character(
     Delete a character
 
     Removes the character and its associated reference image.
+
+    **Cache Invalidation**: Clears all character caches
     """
     service = CharacterServiceDB(db, user_id=current_user.id if current_user else None)
     success = await service.delete_character(character_id)
