@@ -45,6 +45,9 @@ class MergeService:
             ...
         }
         """
+        from api.models.db import ImageEntityRelationship
+        from sqlalchemy import select
+
         references = {
             "stories": [],
             "images": [],
@@ -53,9 +56,25 @@ class MergeService:
             "visualization_configs": []
         }
 
-        # For now, skip reference checking for most entity types
-        # This can be expanded later as needed
-        logger.info(f"Skipping reference lookup for {entity_type} {entity_id} (not yet implemented)")
+        # Find image relationships
+        try:
+            stmt = select(ImageEntityRelationship).where(
+                ImageEntityRelationship.entity_type == entity_type,
+                ImageEntityRelationship.entity_id == entity_id
+            )
+            result = await self.db.execute(stmt)
+            image_rels = result.scalars().all()
+
+            for rel in image_rels:
+                references["images"].append({
+                    "relationship_id": rel.id,
+                    "image_id": rel.image_id,
+                    "role": rel.role
+                })
+
+            logger.info(f"Found {len(image_rels)} image references for {entity_type} {entity_id}")
+        except Exception as e:
+            logger.warning(f"Error finding image references: {e}")
 
         return references
 
@@ -233,21 +252,19 @@ Return ONLY valid JSON matching the {entity_type} schema."""
             references = await self.find_references(entity_type, target_id)
             total_updated = 0
 
-            # Update image references
+            # Update image entity relationships
             if references["images"]:
-                from api.models.db import Image
+                from api.models.db import ImageEntityRelationship
                 for img_ref in references["images"]:
+                    # Update the relationship to point to source_id instead of target_id
                     stmt = (
-                        update(Image)
-                        .where(Image.image_id == UUID(img_ref["image_id"]))
-                        .values(
-                            metadata=Image.metadata.op('||')(
-                                json.dumps({f"{entity_type}_id": source_id})
-                            )
-                        )
+                        update(ImageEntityRelationship)
+                        .where(ImageEntityRelationship.id == img_ref["relationship_id"])
+                        .values(entity_id=source_id)
                     )
                     await self.db.execute(stmt)
                     total_updated += 1
+                logger.info(f"Updated {len(references['images'])} image relationships")
 
             # Update story references
             if references["stories"]:
