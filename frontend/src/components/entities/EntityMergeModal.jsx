@@ -51,16 +51,54 @@ function EntityMergeModal({
       setLoading(true)
       setError(null)
 
+      // Call analyze endpoint with job-based workflow
       const response = await api.post('/merge/analyze', {
         entity_type: entityType,
         source_entity: sourceEntity.data || sourceEntity,
-        target_entity: targetEntity.data || targetEntity
+        target_entity: targetEntity.data || targetEntity,
+        source_id: sourceEntity.id,  // Include IDs explicitly
+        target_id: targetEntity.id,
+        auto_approve: true  // Auto-approve for now (skip Brief card workflow)
       })
 
-      setMergedData(response.data.merged_data)
-      setChangesSummary(response.data.changes_summary)
-      setStep('confirm')
-      setLoading(false)
+      // Response now contains job_id - poll for completion
+      const jobId = response.data.job_id
+
+      // Poll job status until completed
+      const pollInterval = setInterval(async () => {
+        try {
+          const jobResponse = await api.get(`/jobs/${jobId}`)
+          const job = jobResponse.data
+
+          if (job.status === 'completed') {
+            clearInterval(pollInterval)
+
+            // Extract merged_data from job result
+            if (job.result?.merged_data) {
+              setMergedData(job.result.merged_data)
+              setChangesSummary(job.result.changes_summary)
+              setStep('confirm')
+            } else if (job.result?.merge_result) {
+              // If auto_approve completed the merge, show success
+              setLoading(false)
+              onMergeComplete()
+              return
+            }
+
+            setLoading(false)
+          } else if (job.status === 'failed') {
+            clearInterval(pollInterval)
+            setError(job.error || 'Analysis failed')
+            setLoading(false)
+          }
+        } catch (pollErr) {
+          clearInterval(pollInterval)
+          console.error('Error polling job:', pollErr)
+          setError('Failed to check job status')
+          setLoading(false)
+        }
+      }, 1000) // Poll every second
+
     } catch (err) {
       console.error('Error analyzing merge:', err)
       setError(err.response?.data?.detail || 'Failed to analyze merge')
