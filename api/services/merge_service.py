@@ -16,7 +16,7 @@ from uuid import UUID
 import json
 
 from api.logging_config import get_logger
-from ai_tools.shared.router import Router
+from ai_tools.shared.router import LLMRouter
 
 logger = get_logger(__name__)
 
@@ -27,7 +27,7 @@ class MergeService:
     def __init__(self, db_session: AsyncSession, user_id: Optional[int] = None):
         self.db = db_session
         self.user_id = user_id
-        self.router = Router()
+        self.router = LLMRouter()
 
     async def find_references(
         self,
@@ -158,10 +158,10 @@ Return ONLY valid JSON matching the {entity_type} schema."""
 
         try:
             # Use router to call AI with structured output
-            response = await self.router.generate_text(
+            response = self.router.call(
                 prompt=user_prompt,
-                system_prompt=system_prompt,
-                model_name="gemini/gemini-2.0-flash-exp",  # Fast model for analysis
+                system=system_prompt,
+                model="gemini/gemini-2.0-flash-exp",  # Fast model for analysis
                 temperature=0.3,  # Lower temperature for consistent merging
                 max_tokens=2000
             )
