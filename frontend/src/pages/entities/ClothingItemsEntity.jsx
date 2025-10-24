@@ -86,7 +86,15 @@ function ClothingItemsEntity() {
     selectionMode: selectionMode,
     selectedItems: selectedItems,
     onItemSelect: handleItemSelect,
-    actions: clothingItemsConfig.actions || []
+    actions: [
+      ...(clothingItemsConfig.actions || []),
+      {
+        label: 'Select...',
+        icon: '☑️',
+        primary: false,
+        onClick: toggleSelectionMode
+      }
+    ]
   }), [selectedCategory, selectionMode, selectedItems])
 
   // Categories for filtering
@@ -192,40 +200,8 @@ function ClothingItemsEntity() {
         padding: '1rem 1.5rem',
         background: 'rgba(0, 0, 0, 0.2)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        overflowX: 'auto',
-        alignItems: 'center'
+        overflowX: 'auto'
       }}>
-        {/* Selection Mode Toggle Button */}
-        {!selectionMode && (
-          <button
-            onClick={toggleSelectionMode}
-            style={{
-              padding: '0.5rem 1rem',
-              background: 'rgba(139, 92, 246, 0.2)',
-              border: '1px solid rgba(139, 92, 246, 0.4)',
-              borderRadius: '8px',
-              color: 'rgba(139, 92, 246, 1)',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: '500',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              transition: 'all 0.2s',
-              marginRight: '0.5rem'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(139, 92, 246, 0.3)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)'
-            }}
-          >
-            <span>☑️</span>
-            <span>Select...</span>
-          </button>
-        )}
         {categories.map(cat => {
           const count = categorySummary?.categories?.[cat.value] || (cat.value === null ? categorySummary?.total_items : 0)
           return (

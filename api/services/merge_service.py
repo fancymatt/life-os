@@ -54,7 +54,7 @@ class MergeService:
         }
 
         # Import models here to avoid circular imports
-        from api.models.db_models import (
+        from api.models.db import (
             Story, Image, Outfit, Composition, VisualizationConfig
         )
 
@@ -254,7 +254,7 @@ Return ONLY valid JSON matching the {entity_type} schema."""
 
             # Update image references
             if references["images"]:
-                from api.models.db_models import Image
+                from api.models.db import Image
                 for img_ref in references["images"]:
                     stmt = (
                         update(Image)
@@ -270,7 +270,7 @@ Return ONLY valid JSON matching the {entity_type} schema."""
 
             # Update story references
             if references["stories"]:
-                from api.models.db_models import Story
+                from api.models.db import Story
                 for story_ref in references["stories"]:
                     if story_ref["reference_type"] == "character":
                         stmt = (
