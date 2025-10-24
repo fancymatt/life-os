@@ -241,6 +241,14 @@ function EntityPreviewImage({
       clearTimeout(retryTimeoutRef.current)
     }
 
+    // Skip optimization for API endpoints (e.g., /api/presets/{category}/{id}/preview)
+    // These use a different preview generation system
+    const isApiEndpoint = currentImageUrl && currentImageUrl.startsWith('/api/')
+    if (isApiEndpoint) {
+      console.log('Image is from API endpoint, skipping optimization')
+      return
+    }
+
     // Check if this is an optimized size (small/medium/large) that might not exist yet
     const isOptimizedSize = currentImageUrl && (
       currentImageUrl.includes('_preview_small.png') ||
