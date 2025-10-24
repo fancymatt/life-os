@@ -269,7 +269,7 @@ function ClothingItemsEntity() {
       {/* Merge Modal */}
       {showMergeModal && mergeSource && mergeTarget && (
         <EntityMergeModal
-          entityType="clothing_item"
+          entityType="clothing_items"
           sourceEntity={mergeSource}
           targetEntity={mergeTarget}
           onClose={handleMergeModalClose}

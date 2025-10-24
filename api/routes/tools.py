@@ -88,10 +88,41 @@ def run_preset_preview_generation_job(job_id: str, category: str, preset_id: str
             viz_config=viz_config  # Pass the visualization config
         )
 
+        logger.info(f"Preview generated, creating optimized versions for {category}/{preset_id}")
+        get_job_queue_manager().update_progress(job_id, 0.7, "Creating optimized preview sizes...")
+
+        # Create optimized versions (small, medium) for faster loading
+        from api.services.image_optimizer import ImageOptimizer
+
+        optimized_paths = {}
+
+        try:
+            optimizer = ImageOptimizer()
+
+            # Clean up old cached versions
+            optimizer.cleanup_old_versions(category, preset_id)
+
+            # Generate optimized versions
+            optimized_paths = optimizer.optimize_preview(
+                str(output_path),
+                category,
+                preset_id
+            )
+            logger.info(f"Created optimized preview versions for {category}/{preset_id}")
+        except Exception as e:
+            logger.warning(f"Failed to create optimized previews for {category}/{preset_id}: {e}")
+            # Non-fatal - continue with just the full-size preview
+            optimized_paths = {'full': f"/presets/{category}/{preset_id}_preview.png"}
+
         get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
         get_job_queue_manager().complete_job(job_id, {
             "status": "success",
-            "preview_path": str(output_path),
+            "entity_type": category,  # For EntityPreviewImage component detection
+            "entity_id": preset_id,   # For EntityPreviewImage component detection
+            "preview_path": str(output_path),  # Backward compatibility
+            "preview_image_path": optimized_paths.get('full', f"/presets/{category}/{preset_id}_preview.png"),
+            "preview_image_small": optimized_paths.get('small'),
+            "preview_image_medium": optimized_paths.get('medium'),
             "preset_id": preset_id
         })
 

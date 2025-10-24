@@ -247,6 +247,9 @@ function TaskItem({ job, onCancel, onDismiss }) {
         <span className="task-status-icon">{getStatusIcon()}</span>
         <div className="task-info">
           <div className="task-title">{job.title}</div>
+          {job.description && (
+            <div className="task-description">{job.description}</div>
+          )}
           <div className="task-meta">
             {job.status === 'running' && job.progress_message && (
               <span className="task-progress-msg">{job.progress_message}</span>

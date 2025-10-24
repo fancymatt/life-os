@@ -737,13 +737,33 @@ async def generate_clothing_item_preview(
 
     # Async mode: Create job and queue via RQ for parallel execution
     if async_mode:
+        # Get item info for better job title/description
+        service = ClothingItemServiceDB(db, user_id=None)
+        item = await service.get_clothing_item(item_id)
+
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+
+        # Get visualization config to determine model
+        from api.services.visualization_config_service_db import VisualizationConfigServiceDB
+        config_service = VisualizationConfigServiceDB(db, user_id=None)
+        config_dict = await config_service.get_default_config("clothing_item")
+
+        # Extract model name (or use default)
+        model_name = "gemini-2.5-flash-image"  # default
+        if config_dict and 'model' in config_dict:
+            model_name = config_dict['model']
+            # Strip "gemini/" prefix if present for cleaner display
+            if model_name.startswith("gemini/"):
+                model_name = model_name[len("gemini/"):]
+
         # Create job for tracking with entity metadata
         job_id = get_job_queue_manager().create_job(
             job_type=JobType.GENERATE_IMAGE,
-            title="Generating clothing item preview",
-            description=f"Item ID: {item_id}",
+            title=f"Create Preview Image ({model_name})",
+            description=f"Clothing Item: {item['item']}",
             metadata={
-                'entity_type': 'clothing_item',
+                'entity_type': 'clothing_items',  # Plural to match frontend
                 'entity_id': item_id
             }
         )

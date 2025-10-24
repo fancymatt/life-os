@@ -244,6 +244,15 @@
   white-space: nowrap;
 }
 
+.task-description {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .task-meta {
   font-size: 0.75rem;
   color: #6b7280;

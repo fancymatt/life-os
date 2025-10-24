@@ -35,11 +35,11 @@ function ClothingItemCard({ item }) {
       {/* Square preview image with live job tracking */}
       <div style={{ position: 'relative' }}>
         <EntityPreviewImage
-          entityType="clothing_item"
+          entityType="clothing_items"
           entityId={item.itemId}
           previewImageUrl={item.previewImage}
           standInIcon={getCategoryIcon(item.category)}
-          size="small"
+          size="medium"
           shape="square"
         />
 
@@ -141,11 +141,11 @@ function ClothingItemPreview({ item, onUpdate }) {
       {/* Preview Image (with automatic job tracking) */}
       <div style={{ marginBottom: '1rem' }}>
         <EntityPreviewImage
-          entityType="clothing_item"
+          entityType="clothing_items"
           entityId={item.itemId}
           previewImageUrl={item.previewImage}
           standInIcon={getCategoryIcon(item.category)}
-          size="medium"
+          size="large"
           onUpdate={onUpdate}
         />
       </div>
@@ -282,7 +282,7 @@ function ClothingItemDetail({ item, onUpdate }) {
       {/* Preview Image (with automatic job tracking) */}
       <div style={{ marginBottom: '1rem', maxWidth: '400px' }}>
         <EntityPreviewImage
-          entityType="clothing_item"
+          entityType="clothing_items"
           entityId={item.itemId}
           previewImageUrl={item.previewImage}
           standInIcon={getCategoryIcon(item.category)}
@@ -359,7 +359,7 @@ function ClothingItemDetail({ item, onUpdate }) {
  * Clothing Items Entity Configuration
  */
 export const clothingItemsConfig = {
-  entityType: 'clothing_item',
+  entityType: 'clothing_items',
   title: 'Clothing Items',
   icon: '👕',
   emptyMessage: 'No clothing items yet. Analyze an outfit image to extract items!',
@@ -610,7 +610,7 @@ export const clothingItemsConfig = {
 
       {/* Tags */}
       <TagManager
-        entityType="clothing_item"
+        entityType="clothing_items"
         entityId={item.itemId}
         tags={item.tags || []}
         onTagsChange={(newTags) => {

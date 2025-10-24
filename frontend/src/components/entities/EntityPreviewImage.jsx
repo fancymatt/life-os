@@ -19,7 +19,7 @@ import api from '../../api/client'
  * @param {string} props.entityId - Entity ID for job matching
  * @param {string} props.previewImageUrl - Current preview image URL (or null/undefined)
  * @param {string} props.standInIcon - Emoji or text to show when no preview (e.g., '👕', '👤')
- * @param {string} props.size - Size variant: 'small', 'medium', 'large' (default: 'medium')
+ * @param {string} props.size - Size variant: 'small' (100x100), 'medium' (400x400), 'large' (800x800), 'full' (original) (default: 'medium')
  * @param {string} props.shape - Shape: 'square', 'circle' (default: 'square')
  * @param {Function} props.onUpdate - Optional callback when image updates
  */
@@ -41,12 +41,69 @@ function EntityPreviewImage({
   // Use ref for retry count to avoid triggering re-renders
   const retryCountRef = useRef(0)
   const retryTimeoutRef = useRef(null)
+  const optimizationTriggeredRef = useRef(false) // Track if we've triggered optimization
 
   // Size mappings
   const sizeStyles = {
     small: { fontSize: '2rem', padding: '1.5rem' },
     medium: { fontSize: '4rem', padding: '3rem' },
     large: { fontSize: '6rem', padding: '4rem' }
+  }
+
+  /**
+   * Get size-appropriate image URL
+   *
+   * Transforms preview URLs to use optimized versions (small/medium/large) when available.
+   * This reduces bandwidth usage by 80-99% for grid/list views.
+   *
+   * Sizes:
+   * - small: 100x100px (~3-5KB)
+   * - medium: 400x400px (~40-60KB) - used for grid cards
+   * - large: 800x800px (~180-220KB) - used for preview panels
+   * - full: Original resolution (~1MB+)
+   *
+   * @param {string} baseUrl - Base preview image URL
+   * @param {string} size - Size variant ('small', 'medium', 'large', 'full')
+   * @param {Object} jobResult - Optional job result with explicit size URLs
+   * @returns {string} Size-appropriate URL
+   */
+  const getSizedImageUrl = (baseUrl, size, jobResult = null) => {
+    if (!baseUrl) return null
+
+    // If job result has explicit size URLs, use those
+    if (jobResult) {
+      if (size === 'small' && jobResult.preview_image_small) {
+        return jobResult.preview_image_small
+      }
+      if (size === 'medium' && jobResult.preview_image_medium) {
+        return jobResult.preview_image_medium
+      }
+      if (size === 'large' && jobResult.preview_image_large) {
+        return jobResult.preview_image_large
+      }
+      if (jobResult.preview_image_path) {
+        return jobResult.preview_image_path
+      }
+    }
+
+    // Strip existing query params and timestamp
+    const stripQuery = (url) => url.split('?')[0]
+    const cleanUrl = stripQuery(baseUrl)
+
+    // Transform URL based on size
+    // Pattern: /entity_previews/{type}/{id}_preview.png -> /entity_previews/{type}/{id}_preview_{size}.png
+    if (size === 'small' && cleanUrl.includes('_preview.png')) {
+      return cleanUrl.replace('_preview.png', '_preview_small.png')
+    }
+    if (size === 'medium' && cleanUrl.includes('_preview.png')) {
+      return cleanUrl.replace('_preview.png', '_preview_medium.png')
+    }
+    if (size === 'large' && cleanUrl.includes('_preview.png')) {
+      return cleanUrl.replace('_preview.png', '_preview_large.png')
+    }
+
+    // Full size or non-standard URL: use as-is
+    return cleanUrl
   }
 
   // Check for active jobs on mount
@@ -124,14 +181,19 @@ function EntityPreviewImage({
         console.log(`✅ Preview generation completed for ${entityType}:`, entityId)
 
         // Update the preview image immediately from job result
-        if (job.result && job.result.preview_image_path) {
-          const imageUrl = `${job.result.preview_image_path}?t=${Date.now()}`
+        // Use size-appropriate version (small/medium/full) to save bandwidth
+        // Check both preview_image_path (full generation) and path (optimization)
+        const imagePath = job.result?.preview_image_path || job.result?.path
+        if (imagePath) {
+          const sizedUrl = getSizedImageUrl(imagePath, size, job.result)
+          const imageUrl = `${sizedUrl}?t=${Date.now()}`
           setCurrentImageUrl(imageUrl)
-          console.log('Updated preview image:', imageUrl)
+          console.log(`Updated preview image (${size}):`, imageUrl)
         }
 
         setGeneratingJobId(null)
         setJobProgress(null)
+        optimizationTriggeredRef.current = false // Reset for future optimizations
 
         // Trigger callback if provided
         if (onUpdate) onUpdate()
@@ -139,6 +201,7 @@ function EntityPreviewImage({
         console.error(`❌ Preview generation failed for ${entityType}:`, job.error)
         setGeneratingJobId(null)
         setJobProgress(null)
+        optimizationTriggeredRef.current = false // Allow retry
       }
     }
 
@@ -159,18 +222,61 @@ function EntityPreviewImage({
 
     // ALWAYS use a fresh cache-busting timestamp
     // This ensures browser never shows stale cached images
-    const stripQuery = (url) => url?.split('?')[0]
-    const baseUrl = stripQuery(previewImageUrl)
-    const urlWithTimestamp = `${baseUrl}?t=${Date.now()}`
+    // Also transform URL to use size-appropriate version (small/medium/full)
+    const sizedUrl = getSizedImageUrl(previewImageUrl, size)
+    const urlWithTimestamp = `${sizedUrl}?t=${Date.now()}`
 
+    console.log(`📸 Loading ${size} preview:`, urlWithTimestamp)
     setCurrentImageUrl(urlWithTimestamp)
-  }, [previewImageUrl])
+  }, [previewImageUrl, size])
 
-  // Handle image load errors with retry logic
-  const handleImageError = () => {
+  // Handle image load errors with on-demand optimization
+  const handleImageError = async () => {
     // Clear any pending retry
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current)
+    }
+
+    // Check if this is an optimized size (small/medium/large) that might not exist yet
+    const isOptimizedSize = currentImageUrl && (
+      currentImageUrl.includes('_preview_small.png') ||
+      currentImageUrl.includes('_preview_medium.png') ||
+      currentImageUrl.includes('_preview_large.png')
+    )
+
+    // If it's an optimized size and we haven't triggered optimization yet, do it now
+    if (isOptimizedSize && !optimizationTriggeredRef.current && !generatingJobId) {
+      console.log(`🔧 Optimized ${size} version not found, triggering generation...`)
+      optimizationTriggeredRef.current = true
+
+      try {
+        const response = await api.post('/entity-previews/optimize', {
+          entity_type: entityType,
+          entity_id: entityId,
+          size: size
+        })
+
+        if (response.data.status === 'generating') {
+          console.log(`✨ Started optimization job: ${response.data.job_id}`)
+          setGeneratingJobId(response.data.job_id)
+          setJobProgress(0)
+          // SSE will pick up the job and update when complete
+        } else if (response.data.status === 'exists') {
+          console.log(`✅ Optimized version already exists, retrying load...`)
+          // Force reload
+          setImageKey(prev => prev + 1)
+        }
+      } catch (error) {
+        console.error('Failed to trigger optimization:', error)
+        optimizationTriggeredRef.current = false // Allow retry
+      }
+      return
+    }
+
+    // If optimization is already running, don't retry - wait for SSE
+    if (generatingJobId) {
+      console.log(`⏳ Optimization in progress (job ${generatingJobId}), waiting...`)
+      return
     }
 
     // Only retry for fresh URLs (likely newly generated images)
@@ -195,13 +301,14 @@ function EntityPreviewImage({
     }
   }
 
-  // Reset retry count when entity changes
+  // Reset retry count and optimization flag when entity changes
   useEffect(() => {
     retryCountRef.current = 0
+    optimizationTriggeredRef.current = false
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current)
     }
-  }, [entityId])
+  }, [entityId, size])
 
   // Cleanup timeout on unmount
   useEffect(() => {

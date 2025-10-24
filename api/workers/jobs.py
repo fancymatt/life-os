@@ -71,21 +71,54 @@ def preview_generation_job(job_id: str, item_id: str):
                     job_manager.fail_job(job_id, f"Clothing item {item_id} not found")
                     return
 
-                logger.debug(f"Job {job_id}: Preview generated, finalizing")
+                logger.debug(f"Job {job_id}: Preview generated, creating optimized versions")
+                job_manager.update_progress(job_id, 0.7, "Creating optimized preview sizes...")
+
+                # Create optimized versions (small, medium) for faster loading
+                from api.services.image_optimizer import ImageOptimizer
+
+                preview_path = item.get('preview_image_path')
+                optimized_paths = {}
+
+                if preview_path:
+                    try:
+                        optimizer = ImageOptimizer()
+
+                        # Clean up old cached versions
+                        optimizer.cleanup_old_versions('clothing_items', item_id)
+
+                        # Convert web path to filesystem path
+                        fs_path = preview_path.replace('/entity_previews/', 'entity_previews/')
+
+                        # Generate optimized versions
+                        optimized_paths = optimizer.optimize_preview(
+                            fs_path,
+                            'clothing_items',
+                            item_id
+                        )
+                        logger.info(f"Job {job_id}: Created optimized preview versions")
+                    except Exception as e:
+                        logger.warning(f"Job {job_id}: Failed to create optimized previews: {e}")
+                        # Non-fatal - continue with just the full-size preview
+                        optimized_paths = {'full': preview_path}
+
+                logger.debug(f"Job {job_id}: Finalizing...")
                 job_manager.update_progress(job_id, 0.9, "Finalizing...")
 
                 # Complete job with item data
                 result = {
-                    'entity_type': 'clothing_item',  # For universal component
-                    'entity_id': item['item_id'],    # For universal component
-                    'item_id': item['item_id'],      # Backward compatibility
+                    'entity_type': 'clothing_items',  # Plural to match frontend
+                    'entity_id': item['item_id'],     # For universal component
+                    'item_id': item['item_id'],       # Backward compatibility
                     'category': item['category'],
                     'item': item['item'],
                     'fabric': item['fabric'],
                     'color': item['color'],
                     'details': item['details'],
                     'source_image': item.get('source_image'),
-                    'preview_image_path': item.get('preview_image_path'),
+                    'preview_image_path': optimized_paths.get('full', preview_path),
+                    'preview_image_small': optimized_paths.get('small'),
+                    'preview_image_medium': optimized_paths.get('medium'),
                     'created_at': item.get('created_at', '')
                 }
 
@@ -380,3 +413,86 @@ def preset_preview_generation_job(job_id: str, category: str, preset_id: str, na
 
     # This function is already sync, so we can call it directly
     run_preset_preview_generation_job(job_id, category, preset_id, name)
+
+
+# ========== On-Demand Preview Optimization ==========
+
+def optimize_preview_size_job(job_id: str, entity_type: str, entity_id: str, size: str):
+    """
+    Generate a single optimized preview size on-demand
+
+    This is called when EntityPreviewImage tries to load a size that doesn't exist yet.
+    Only generates the requested size (not all sizes).
+
+    Args:
+        job_id: Job tracking ID
+        entity_type: Entity type (e.g., 'clothing_items', 'characters')
+        entity_id: Entity UUID
+        size: Size to generate ('small' or 'medium')
+    """
+    from api.services.job_queue import get_job_queue_manager
+    from api.services.image_optimizer import ImageOptimizer
+    from pathlib import Path
+
+    logger.info(f"On-demand optimization: {entity_type}/{entity_id} ({size})")
+
+    try:
+        job_manager = get_job_queue_manager()
+        job_manager.start_job(job_id)
+        job_manager.update_progress(job_id, 0.3, f"Generating {size} preview...")
+
+        # Source preview path
+        source_path = Path(f"entity_previews/{entity_type}/{entity_id}_preview.png")
+
+        if not source_path.exists():
+            job_manager.fail_job(job_id, f"Source preview not found: {source_path}")
+            return
+
+        # Generate only the requested size
+        optimizer = ImageOptimizer()
+
+        # Generate the specific size
+        from PIL import Image
+        img = Image.open(source_path)
+
+        # Convert to RGB if necessary
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        # Get size dimensions
+        dimensions = optimizer.SIZES.get(size)
+        if not dimensions:
+            job_manager.fail_job(job_id, f"Invalid size: {size}")
+            return
+
+        # Resize
+        resized = img.copy()
+        resized.thumbnail(dimensions, Image.Resampling.LANCZOS)
+
+        # Save
+        output_dir = Path(f"entity_previews/{entity_type}")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{entity_id}_preview_{size}.png"
+        resized.save(output_path, 'PNG', optimize=True, quality=85)
+
+        file_size_kb = output_path.stat().st_size / 1024
+        logger.info(f"Generated {size} preview: {file_size_kb:.1f}KB at {output_path}")
+
+        job_manager.update_progress(job_id, 0.9, "Finalizing...")
+
+        # Complete job with path info
+        result = {
+            "status": "success",
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "size": size,
+            "path": f"/entity_previews/{entity_type}/{entity_id}_preview_{size}.png",
+            "file_size_kb": round(file_size_kb, 2)
+        }
+
+        job_manager.complete_job(job_id, result)
+        logger.info(f"Completed on-demand optimization: {entity_type}/{entity_id} ({size})")
+
+    except Exception as e:
+        logger.error(f"On-demand optimization failed: {e}", exc_info=True)
+        get_job_queue_manager().fail_job(job_id, str(e))
