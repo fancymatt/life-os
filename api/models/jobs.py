@@ -56,6 +56,7 @@ class Job(BaseModel):
 
     # Metadata
     user_id: Optional[str] = None  # For future multi-user support
+    metadata: Optional[Dict[str, Any]] = None  # Generic metadata (entity_type, entity_id, etc.)
     cancelable: bool = True
 
     class Config:

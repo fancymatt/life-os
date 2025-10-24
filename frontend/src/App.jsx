@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { useAuth } from './contexts/AuthContext'
+import { JobStreamProvider } from './contexts/JobStreamContext'
 import Login from './components/Login'
 import Layout from './components/layout/Layout'
 import Dashboard from './pages/Dashboard'
@@ -70,12 +71,13 @@ function App() {
   }
 
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route
-        path="/login"
-        element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />}
-      />
+    <JobStreamProvider>
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />}
+        />
 
       {/* Protected routes */}
       <Route
@@ -174,6 +176,7 @@ function App() {
 
           {/* Entity Management Tools */}
           <Route path="entity-merger" element={<ToolConfigPage />} />
+          <Route path="clothing-modifier" element={<ToolConfigPage />} />
         </Route>
 
         {/* Workflows */}
@@ -201,9 +204,10 @@ function App() {
         <Route path="story-tools/*" element={<Navigate to="/tools/story" replace />} />
       </Route>
 
-      {/* Catch all - redirect to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </JobStreamProvider>
   )
 }
 

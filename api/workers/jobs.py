@@ -41,43 +41,44 @@ def preview_generation_job(job_id: str, item_id: str):
         job_id: Job tracking ID (from JobQueueManager)
         item_id: Clothing item UUID
     """
-    import sys
     from api.services.job_queue import get_job_queue_manager
     from api.database import get_session
     from api.services.clothing_items_service_db import ClothingItemServiceDB
 
-    print(f"[WORKER] preview_generation_job called: job_id={job_id}, item_id={item_id}", file=sys.stderr, flush=True)
+    logger.debug(f"Preview generation job called: job_id={job_id}, item_id={item_id}")
 
     async def _async_preview_generation():
         try:
-            print(f"[WORKER] Getting job manager...", file=sys.stderr, flush=True)
+            logger.debug(f"Getting job manager for job {job_id}")
             job_manager = get_job_queue_manager()
-            print(f"[WORKER] Starting job {job_id}...", file=sys.stderr, flush=True)
+            logger.debug(f"Starting job {job_id}")
             job_manager.start_job(job_id)
-            print(f"[WORKER] Job started, updating progress...", file=sys.stderr, flush=True)
+            logger.debug(f"Job {job_id} started, updating progress")
             job_manager.update_progress(job_id, 0.1, "Loading clothing item...")
 
             async with get_session() as session:
                 service = ClothingItemServiceDB(session, user_id=None)
 
-                print(f"[WORKER] Updating progress to 0.3...", file=sys.stderr, flush=True)
+                logger.debug(f"Job {job_id}: Updating progress to 30%")
                 job_manager.update_progress(job_id, 0.3, "Generating preview image...")
 
-                print(f"[WORKER] Calling generate_preview for item {item_id}...", file=sys.stderr, flush=True)
+                logger.debug(f"Job {job_id}: Calling generate_preview for item {item_id}")
                 # Generate preview
                 item = await service.generate_preview(item_id)
 
                 if not item:
-                    print(f"[WORKER] Item not found, failing job...", file=sys.stderr, flush=True)
+                    logger.warning(f"Job {job_id}: Item {item_id} not found")
                     job_manager.fail_job(job_id, f"Clothing item {item_id} not found")
                     return
 
-                print(f"[WORKER] Preview generated, finalizing...", file=sys.stderr, flush=True)
+                logger.debug(f"Job {job_id}: Preview generated, finalizing")
                 job_manager.update_progress(job_id, 0.9, "Finalizing...")
 
                 # Complete job with item data
                 result = {
-                    'item_id': item['item_id'],
+                    'entity_type': 'clothing_item',  # For universal component
+                    'entity_id': item['item_id'],    # For universal component
+                    'item_id': item['item_id'],      # Backward compatibility
                     'category': item['category'],
                     'item': item['item'],
                     'fabric': item['fabric'],
@@ -88,18 +89,17 @@ def preview_generation_job(job_id: str, item_id: str):
                     'created_at': item.get('created_at', '')
                 }
 
-                print(f"[WORKER] Completing job {job_id}...", file=sys.stderr, flush=True)
+                logger.debug(f"Job {job_id}: Completing job")
                 job_manager.complete_job(job_id, result)
-                print(f"[WORKER] Job {job_id} completed successfully!", file=sys.stderr, flush=True)
+                logger.info(f"Preview generation completed successfully: job_id={job_id}, item_id={item_id}")
 
         except Exception as e:
-            print(f"[WORKER] ERROR in job {job_id}: {e}", file=sys.stderr, flush=True)
             logger.error(f"Preview generation job failed: {e}", exc_info=True)
             get_job_queue_manager().fail_job(job_id, str(e))
 
-    print(f"[WORKER] Calling run_async_job...", file=sys.stderr, flush=True)
+    logger.debug(f"Job {job_id}: Running async preview generation")
     run_async_job(_async_preview_generation)
-    print(f"[WORKER] run_async_job returned", file=sys.stderr, flush=True)
+    logger.debug(f"Job {job_id}: Async job completed")
 
 
 def test_image_generation_job(job_id: str, item_id: str, character_id: str, visual_style_id: str):

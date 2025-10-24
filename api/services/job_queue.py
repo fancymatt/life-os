@@ -72,7 +72,8 @@ class JobQueueManager:
         description: Optional[str] = None,
         parent_job_id: Optional[str] = None,
         total_steps: Optional[int] = None,
-        cancelable: bool = True
+        cancelable: bool = True,
+        metadata: Optional[Dict] = None
     ) -> str:
         """
         Create and queue a new job
@@ -84,6 +85,7 @@ class JobQueueManager:
             parent_job_id: Optional parent job ID for hierarchical jobs
             total_steps: Total number of steps (for progress tracking)
             cancelable: Whether job can be cancelled
+            metadata: Optional metadata dict (e.g., entity_type, entity_id)
 
         Returns:
             job_id: Unique job identifier
@@ -94,7 +96,8 @@ class JobQueueManager:
             description=description,
             parent_job_id=parent_job_id,
             total_steps=total_steps,
-            cancelable=cancelable
+            cancelable=cancelable,
+            metadata=metadata
         )
 
         self._save_job(job)

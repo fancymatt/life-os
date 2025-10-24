@@ -1,77 +1,86 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import api from '../../../api/client'
 import { formatDate, getPreview } from './helpers'
 import TagManager from '../../tags/TagManager'
+import EntityPreviewImage from '../EntityPreviewImage'
+
+// Helper function to get category icon
+function getCategoryIcon(category) {
+  const icons = {
+    'headwear': '🎩',
+    'eyewear': '👓',
+    'earrings': '👂',
+    'neckwear': '📿',
+    'tops': '👚',
+    'overtops': '🧥',
+    'outerwear': '🧥',
+    'one_piece': '👗',
+    'bottoms': '👖',
+    'belts': '👔',
+    'hosiery': '🧦',
+    'footwear': '👞',
+    'bags': '👜',
+    'wristwear': '⌚',
+    'handwear': '🧤'
+  }
+  return icons[category] || '👕'
+}
 
 /**
- * Preview component with job tracking
+ * Card component for grid view - uses EntityPreviewImage for live updates
+ */
+function ClothingItemCard({ item }) {
+  return (
+    <div className="entity-card">
+      {/* Square preview image with live job tracking */}
+      <div style={{ position: 'relative' }}>
+        <EntityPreviewImage
+          entityType="clothing_item"
+          entityId={item.itemId}
+          previewImageUrl={item.previewImage}
+          standInIcon={getCategoryIcon(item.category)}
+          size="small"
+          shape="square"
+        />
+
+        {/* Archived badge overlay */}
+        {item.archived && (
+          <div style={{
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0.5rem',
+            background: 'rgba(255, 152, 0, 0.9)',
+            color: 'white',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            zIndex: 10,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            📦 ARCHIVED
+          </div>
+        )}
+      </div>
+
+      {/* Item name */}
+      <div className="entity-card-content">
+        <h3 className="entity-card-title" style={{
+          fontSize: '0.95rem',
+          margin: '0',
+          textAlign: 'center'
+        }}>
+          {item.item}
+        </h3>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Preview component - shows image and action buttons
  */
 function ClothingItemPreview({ item, onUpdate }) {
-  const [generatingJobId, setGeneratingJobId] = useState(null)
-  const [jobProgress, setJobProgress] = useState(null)
-  const [previewImageUrl, setPreviewImageUrl] = useState(item.previewImage)
-
-  // Always listen to SSE job updates (even if job triggered externally)
-  useEffect(() => {
-    const eventSource = new EventSource('/api/jobs/stream')
-
-    eventSource.onmessage = (event) => {
-      try {
-        const job = JSON.parse(event.data)
-
-        // Check if this job is for OUR item
-        const isOurJob = generatingJobId && job.job_id === generatingJobId
-        const isOurItem = job.result && job.result.item_id === item.itemId
-
-        if (!isOurJob && !isOurItem) return
-
-        // If we weren't tracking this job, start tracking it
-        if (!generatingJobId && isOurItem && job.status === 'running') {
-          console.log('🎨 Detected preview generation for this item:', item.itemId)
-          setGeneratingJobId(job.job_id)
-        }
-
-        setJobProgress(job.progress)
-
-        if (job.status === 'completed') {
-          console.log('✅ Preview generation completed, updating image...')
-
-          // Update the preview image immediately from job result
-          if (job.result && job.result.preview_image_path) {
-            const imageUrl = `${job.result.preview_image_path}?t=${Date.now()}`
-            setPreviewImageUrl(imageUrl)
-            console.log('Updated preview image:', imageUrl)
-          }
-
-          setGeneratingJobId(null)
-          setJobProgress(null)
-
-          // Also trigger entity refresh for consistency
-          if (onUpdate) onUpdate()
-        } else if (job.status === 'failed') {
-          console.error('❌ Preview generation failed:', job.error)
-          setGeneratingJobId(null)
-          setJobProgress(null)
-        }
-      } catch (error) {
-        console.error('Error processing SSE message:', error)
-      }
-    }
-
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error)
-      eventSource.close()
-    }
-
-    return () => {
-      eventSource.close()
-    }
-  }, [generatingJobId, item.itemId, onUpdate])
-
-  // Update preview image when item prop changes
-  useEffect(() => {
-    setPreviewImageUrl(item.previewImage)
-  }, [item.previewImage])
 
   const handleGeneratePreview = async (e) => {
     const button = e.currentTarget
@@ -81,15 +90,10 @@ function ClothingItemPreview({ item, onUpdate }) {
       button.disabled = true
       button.textContent = '⏳ Queueing...'
 
-      const response = await api.post(`/clothing-items/${item.itemId}/generate-preview`)
-      const jobId = response.data.job_id
+      await api.post(`/clothing-items/${item.itemId}/generate-preview`)
 
-      console.log(`✅ Preview generation queued (Job: ${jobId})`)
       button.textContent = '✅ Queued!'
-
-      // Start tracking this job
       setTimeout(() => {
-        setGeneratingJobId(jobId)
         button.textContent = originalText
         button.disabled = false
       }, 500)
@@ -134,70 +138,16 @@ function ClothingItemPreview({ item, onUpdate }) {
 
   return (
     <div style={{ padding: '1rem' }}>
-      {/* Preview Image with loading overlay */}
-      <div style={{ position: 'relative', marginBottom: '1rem' }}>
-        {previewImageUrl ? (
-          <div style={{
-            borderRadius: '8px',
-            overflow: 'hidden',
-            background: 'rgba(0, 0, 0, 0.3)'
-          }}>
-            <img
-              src={previewImageUrl}
-              alt={item.item}
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block'
-              }}
-            />
-          </div>
-        ) : (
-          <div style={{
-            padding: '3rem 1rem',
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '4rem'
-          }}>
-            {getCategoryIcon(item.category)}
-          </div>
-        )}
-
-        {/* Loading overlay when generating */}
-        {generatingJobId && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            borderRadius: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '1rem'
-          }}>
-            <div style={{
-              fontSize: '3rem',
-              animation: 'spin 2s linear infinite'
-            }}>
-              🎨
-            </div>
-            <div style={{ color: 'white', fontSize: '0.95rem' }}>
-              Generating preview...
-            </div>
-            {jobProgress !== null && (
-              <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
-                {Math.round(jobProgress)}%
-              </div>
-            )}
-          </div>
-        )}
+      {/* Preview Image (with automatic job tracking) */}
+      <div style={{ marginBottom: '1rem' }}>
+        <EntityPreviewImage
+          entityType="clothing_item"
+          entityId={item.itemId}
+          previewImageUrl={item.previewImage}
+          standInIcon={getCategoryIcon(item.category)}
+          size="medium"
+          onUpdate={onUpdate}
+        />
       </div>
 
       {/* Generate Preview Button */}
@@ -270,75 +220,9 @@ function ClothingItemPreview({ item, onUpdate }) {
 }
 
 /**
- * Detail component with job tracking
+ * Detail component - shows large preview and action buttons
  */
 function ClothingItemDetail({ item, onUpdate }) {
-  const [generatingJobId, setGeneratingJobId] = useState(null)
-  const [jobProgress, setJobProgress] = useState(null)
-  const [previewImageUrl, setPreviewImageUrl] = useState(item.previewImage)
-
-  // Always listen to SSE job updates (even if job triggered externally)
-  useEffect(() => {
-    const eventSource = new EventSource('/api/jobs/stream')
-
-    eventSource.onmessage = (event) => {
-      try {
-        const job = JSON.parse(event.data)
-
-        // Check if this job is for OUR item
-        const isOurJob = generatingJobId && job.job_id === generatingJobId
-        const isOurItem = job.result && job.result.item_id === item.itemId
-
-        if (!isOurJob && !isOurItem) return
-
-        // If we weren't tracking this job, start tracking it
-        if (!generatingJobId && isOurItem && job.status === 'running') {
-          console.log('🎨 Detected preview generation for this item:', item.itemId)
-          setGeneratingJobId(job.job_id)
-        }
-
-        setJobProgress(job.progress)
-
-        if (job.status === 'completed') {
-          console.log('✅ Preview generation completed, updating image...')
-
-          // Update the preview image immediately from job result
-          if (job.result && job.result.preview_image_path) {
-            const imageUrl = `${job.result.preview_image_path}?t=${Date.now()}`
-            setPreviewImageUrl(imageUrl)
-            console.log('Updated preview image:', imageUrl)
-          }
-
-          setGeneratingJobId(null)
-          setJobProgress(null)
-
-          // Also trigger entity refresh for consistency
-          if (onUpdate) onUpdate()
-        } else if (job.status === 'failed') {
-          console.error('❌ Preview generation failed:', job.error)
-          setGeneratingJobId(null)
-          setJobProgress(null)
-        }
-      } catch (error) {
-        console.error('Error processing SSE message:', error)
-      }
-    }
-
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error)
-      eventSource.close()
-    }
-
-    return () => {
-      eventSource.close()
-    }
-  }, [generatingJobId, item.itemId, onUpdate])
-
-  // Update preview image when item prop changes
-  useEffect(() => {
-    setPreviewImageUrl(item.previewImage)
-  }, [item.previewImage])
-
   const handleGeneratePreview = async (e) => {
     const button = e.currentTarget
     const originalText = button.textContent
@@ -347,15 +231,10 @@ function ClothingItemDetail({ item, onUpdate }) {
       button.disabled = true
       button.textContent = '⏳ Queueing...'
 
-      const response = await api.post(`/clothing-items/${item.itemId}/generate-preview`)
-      const jobId = response.data.job_id
+      await api.post(`/clothing-items/${item.itemId}/generate-preview`)
 
-      console.log(`✅ Preview generation queued (Job: ${jobId})`)
       button.textContent = '✅ Queued!'
-
-      // Start tracking this job
       setTimeout(() => {
-        setGeneratingJobId(jobId)
         button.textContent = originalText
         button.disabled = false
       }, 500)
@@ -400,59 +279,17 @@ function ClothingItemDetail({ item, onUpdate }) {
 
   return (
     <div style={{ padding: '2rem' }}>
-      {/* Preview Image with loading overlay */}
-      {previewImageUrl && (
-        <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <div style={{
-            borderRadius: '8px',
-            overflow: 'hidden',
-            maxWidth: '400px'
-          }}>
-            <img
-              src={previewImageUrl}
-              alt={item.item}
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block'
-              }}
-            />
-          </div>
-
-          {/* Loading overlay when generating */}
-          {generatingJobId && (
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0, 0, 0, 0.7)',
-              borderRadius: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '1rem'
-            }}>
-              <div style={{
-                fontSize: '3rem',
-                animation: 'spin 2s linear infinite'
-              }}>
-                🎨
-              </div>
-              <div style={{ color: 'white', fontSize: '0.95rem' }}>
-                Generating preview...
-              </div>
-              {jobProgress !== null && (
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
-                  {Math.round(jobProgress)}%
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Preview Image (with automatic job tracking) */}
+      <div style={{ marginBottom: '1rem', maxWidth: '400px' }}>
+        <EntityPreviewImage
+          entityType="clothing_item"
+          entityId={item.itemId}
+          previewImageUrl={item.previewImage}
+          standInIcon={getCategoryIcon(item.category)}
+          size="large"
+          onUpdate={onUpdate}
+        />
+      </div>
 
       {/* Generate Preview Button */}
       <button
@@ -514,13 +351,6 @@ function ClothingItemDetail({ item, onUpdate }) {
       >
         🎨 Create Test Image
       </button>
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }
@@ -644,65 +474,7 @@ export const clothingItemsConfig = {
     gap: '1rem'
   },
 
-  renderCard: (item) => (
-    <div className="entity-card">
-      {/* Square preview image */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        paddingBottom: '100%', // Creates square aspect ratio
-        background: item.previewImage
-          ? `url(${item.previewImage}) center/cover`
-          : 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
-        borderRadius: '8px 8px 0 0',
-        overflow: 'hidden',
-        opacity: item.archived ? 0.6 : 1
-      }}>
-        {item.archived && (
-          <div style={{
-            position: 'absolute',
-            top: '0.5rem',
-            right: '0.5rem',
-            background: 'rgba(255, 152, 0, 0.9)',
-            color: 'white',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
-            zIndex: 10,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-          }}>
-            📦 ARCHIVED
-          </div>
-        )}
-        {!item.previewImage && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '4rem'
-          }}>
-            {getCategoryIcon(item.category)}
-          </div>
-        )}
-      </div>
-      {/* Just the item name */}
-      <div className="entity-card-content">
-        <h3 className="entity-card-title" style={{
-          fontSize: '0.95rem',
-          margin: '0',
-          textAlign: 'center'
-        }}>
-          {item.item}
-        </h3>
-      </div>
-    </div>
-  ),
+  renderCard: (item) => <ClothingItemCard item={item} />,
 
   renderPreview: (item, onUpdate) => <ClothingItemPreview item={item} onUpdate={onUpdate} />,
 
@@ -876,26 +648,4 @@ export const clothingItemsConfig = {
   unarchiveEntity: async (item) => {
     await api.post(`/clothing-items/${item.itemId}/unarchive`)
   }
-}
-
-// Helper function to get category icon
-function getCategoryIcon(category) {
-  const icons = {
-    'headwear': '🎩',
-    'eyewear': '👓',
-    'earrings': '👂',
-    'neckwear': '📿',
-    'tops': '👚',
-    'overtops': '🧥',
-    'outerwear': '🧥',
-    'one_piece': '👗',
-    'bottoms': '👖',
-    'belts': '👔',
-    'hosiery': '🧦',
-    'footwear': '👞',
-    'bags': '👜',
-    'wristwear': '⌚',
-    'handwear': '🧤'
-  }
-  return icons[category] || '👕'
 }

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.services.clothing_items_service_db import ClothingItemServiceDB
 from api.services.tag_service import TagService
+from api.services.rq_worker import get_rq_service
 from api.database import get_db
 from api.models.auth import User
 from api.models.responses import TagInfo
@@ -67,6 +68,27 @@ class CategoriesSummaryResponse(BaseModel):
     """Summary of items per category"""
     categories: dict  # {category: count}
     total_items: int
+
+
+class ModifyItemRequest(BaseModel):
+    """Request to modify a clothing item"""
+    instruction: str
+
+
+class CreateVariantRequest(BaseModel):
+    """Request to create a variant of a clothing item"""
+    instruction: str
+
+
+class TestImageRequest(BaseModel):
+    """Request to generate test image with character wearing item"""
+    character_id: str
+    visual_style: str
+
+
+class BatchGenerateRequest(BaseModel):
+    """Request to batch generate previews for specific items"""
+    item_ids: List[str]
 
 
 # Helper Functions
@@ -374,48 +396,6 @@ async def unarchive_clothing_item(
     return {"message": f"Clothing item {item_id} unarchived successfully"}
 
 
-async def run_preview_generation_job(job_id: str, item_id: str):
-    """Background task to generate preview and update job"""
-    from api.services.job_queue import get_job_queue_manager
-    from api.database import get_session
-
-    try:
-        get_job_queue_manager().start_job(job_id)
-        get_job_queue_manager().update_progress(job_id, 0.1, "Loading clothing item...")
-
-        async with get_session() as session:
-            service = ClothingItemServiceDB(session, user_id=None)
-
-            get_job_queue_manager().update_progress(job_id, 0.3, "Generating preview image...")
-
-            # Generate preview
-            item = await service.generate_preview(item_id)
-
-            if not item:
-                get_job_queue_manager().fail_job(job_id, f"Clothing item {item_id} not found")
-                return
-
-            get_job_queue_manager().update_progress(job_id, 0.9, "Finalizing...")
-
-            # Complete job with item data
-            result = {
-                'item_id': item['item_id'],
-                'category': item['category'],
-                'item': item['item'],
-                'fabric': item['fabric'],
-                'color': item['color'],
-                'details': item['details'],
-                'source_image': item.get('source_image'),
-                'preview_image_path': item.get('preview_image_path'),
-                'created_at': item.get('created_at', '')
-            }
-
-            get_job_queue_manager().complete_job(job_id, result)
-
-    except Exception as e:
-        get_job_queue_manager().fail_job(job_id, str(e))
-
-
 class BatchGenerateRequest(BaseModel):
     """Request to batch generate previews for specific items"""
     item_ids: List[str]
@@ -424,7 +404,6 @@ class BatchGenerateRequest(BaseModel):
 @router.post("/batch-generate-previews-by-ids")
 async def batch_generate_previews_by_ids(
     request: BatchGenerateRequest,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
@@ -432,7 +411,7 @@ async def batch_generate_previews_by_ids(
     Batch generate previews for specific clothing items by ID
 
     Useful after outfit analysis to generate previews for all items
-    that were just created.
+    that were just created. Jobs are executed in parallel via RQ workers.
 
     Request Body:
     - item_ids: List of clothing item UUIDs to generate previews for
@@ -442,6 +421,7 @@ async def batch_generate_previews_by_ids(
     from api.services.job_queue import get_job_queue_manager
     from api.models.jobs import JobType
     from api.logging_config import get_logger
+    from api.workers.jobs import preview_generation_job
 
     logger = get_logger(__name__)
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
@@ -454,14 +434,15 @@ async def batch_generate_previews_by_ids(
         }
 
     logger.info(
-        f"Batch generating previews for {len(request.item_ids)} specific clothing items",
+        f"Batch generating previews for {len(request.item_ids)} specific clothing items (via RQ)",
         extra={'extra_fields': {
             'item_count': len(request.item_ids),
             'item_ids': request.item_ids[:5]  # Log first 5 for debugging
         }}
     )
 
-    # Queue preview generation jobs
+    # Queue preview generation jobs via RQ (parallel execution)
+    rq_service = get_rq_service()
     job_ids = []
     not_found = []
 
@@ -472,18 +453,20 @@ async def batch_generate_previews_by_ids(
             not_found.append(item_id)
             continue
 
-        # Create job
+        # Create job for tracking
         job_id = get_job_queue_manager().create_job(
             job_type=JobType.GENERATE_IMAGE,
             title=f"Generate preview: {item['item']}",
             description=f"{item['category']} - {item['color']} {item['fabric']}"
         )
 
-        # Queue background task
-        background_tasks.add_task(
-            run_preview_generation_job,
+        # Enqueue via RQ for parallel execution
+        rq_service.enqueue(
+            preview_generation_job,
             job_id,
-            item_id
+            item_id,
+            priority='normal',  # Normal priority for user-requested batch
+            job_id=job_id
         )
 
         job_ids.append({
@@ -494,7 +477,7 @@ async def batch_generate_previews_by_ids(
         })
 
     logger.info(
-        f"Queued {len(job_ids)} preview generation jobs",
+        f"Queued {len(job_ids)} preview generation jobs via RQ",
         extra={'extra_fields': {
             'job_count': len(job_ids),
             'not_found_count': len(not_found)
@@ -502,17 +485,16 @@ async def batch_generate_previews_by_ids(
     )
 
     return {
-        "message": f"Queued {len(job_ids)} preview generation jobs",
+        "message": f"Queued {len(job_ids)} preview generation jobs (parallel execution via RQ)",
         "jobs_queued": len(job_ids),
         "job_ids": job_ids,
         "not_found": not_found if not_found else None,
-        "note": "Use /jobs endpoint to monitor progress"
+        "note": "Jobs will execute in parallel. Use /jobs endpoint to monitor progress"
     }
 
 
 @router.post("/batch-generate-previews")
 async def batch_generate_previews(
-    background_tasks: BackgroundTasks,
     category: Optional[str] = Query(None, description="Only generate previews for items in this category"),
     limit: Optional[int] = Query(None, description="Maximum number of previews to generate"),
     db: AsyncSession = Depends(get_db),
@@ -522,8 +504,7 @@ async def batch_generate_previews(
     Batch generate previews for all clothing items without preview images
 
     Scans all clothing items and queues preview generation jobs for items
-    that don't have preview images. Useful for generating previews for items
-    created by the outfit analyzer.
+    that don't have preview images. Jobs are executed in parallel by RQ workers.
 
     Query Parameters:
     - category: Optional filter to only generate previews for specific category
@@ -534,6 +515,7 @@ async def batch_generate_previews(
     from api.services.job_queue import get_job_queue_manager
     from api.models.jobs import JobType
     from api.logging_config import get_logger
+    from api.workers.jobs import preview_generation_job
 
     logger = get_logger(__name__)
     service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
@@ -561,7 +543,7 @@ async def batch_generate_previews(
         }
 
     logger.info(
-        f"Batch generating previews for {len(items_without_previews)} clothing items",
+        f"Batch generating previews for {len(items_without_previews)} clothing items (via RQ)",
         extra={'extra_fields': {
             'total_items': len(all_items),
             'items_without_previews': len(items_without_previews),
@@ -569,23 +551,26 @@ async def batch_generate_previews(
         }}
     )
 
-    # Queue preview generation jobs
+    # Queue preview generation jobs via RQ (parallel execution)
+    rq_service = get_rq_service()
     job_ids = []
     for item in items_without_previews:
         item_id = item['item_id']
 
-        # Create job
+        # Create job for tracking
         job_id = get_job_queue_manager().create_job(
             job_type=JobType.GENERATE_IMAGE,
             title=f"Generate preview: {item['item']}",
             description=f"{item['category']} - {item['color']} {item['fabric']}"
         )
 
-        # Queue background task
-        background_tasks.add_task(
-            run_preview_generation_job,
+        # Enqueue via RQ for parallel execution (low priority for batch operations)
+        rq_service.enqueue(
+            preview_generation_job,
             job_id,
-            item_id
+            item_id,
+            priority='low',
+            job_id=job_id  # Use same ID for RQ job
         )
 
         job_ids.append({
@@ -596,7 +581,7 @@ async def batch_generate_previews(
         })
 
     logger.info(
-        f"Queued {len(job_ids)} preview generation jobs",
+        f"Queued {len(job_ids)} preview generation jobs via RQ",
         extra={'extra_fields': {
             'job_count': len(job_ids),
             'first_job_id': job_ids[0]['job_id'] if job_ids else None
@@ -604,20 +589,135 @@ async def batch_generate_previews(
     )
 
     return {
-        "message": f"Queued {len(job_ids)} preview generation jobs",
+        "message": f"Queued {len(job_ids)} preview generation jobs (parallel execution via RQ)",
         "total_items": len(all_items),
         "items_without_previews": len(items_without_previews),
         "jobs_queued": len(job_ids),
         "job_ids": job_ids,
-        "note": "Use /jobs endpoint to monitor progress"
+        "note": "Jobs will execute in parallel. Use /jobs endpoint to monitor progress"
     }
+
+
+@router.post("/{item_id}/modify", response_model=ClothingItemInfo)
+@invalidates_cache(entity_types=["clothing_items"])
+async def modify_clothing_item_with_ai(
+    item_id: str,
+    request: ModifyItemRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Modify a clothing item using AI based on natural language instruction
+
+    Uses AI to update the clothing item's description based on your instruction.
+    This modifies the item in-place and marks it as manually_modified.
+
+    Examples:
+    - "Make these shoulder-length"
+    - "Change the color to red"
+    - "Add lace trim"
+    - "Make this more formal"
+
+    Request Body:
+    - instruction: Natural language modification request
+
+    **Cache Invalidation**: Clears all clothing_items caches
+    """
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+
+    try:
+        item = await service.modify_clothing_item(
+            item_id=item_id,
+            instruction=request.instruction
+        )
+
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+
+        tags_info = await get_entity_tags_info(db, "clothing_item", item_id)
+
+        return ClothingItemInfo(
+            item_id=item['item_id'],
+            category=item['category'],
+            item=item['item'],
+            fabric=item['fabric'],
+            color=item['color'],
+            details=item['details'],
+            source_image=item.get('source_image'),
+            preview_image_path=item.get('preview_image_path'),
+            tags=tags_info,
+            created_at=item.get('created_at', '')
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to modify item: {str(e)}")
+
+
+@router.post("/{item_id}/create-variant", response_model=ClothingItemInfo)
+@invalidates_cache(entity_types=["clothing_items"])
+async def create_clothing_item_variant(
+    item_id: str,
+    request: CreateVariantRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_user)
+):
+    """
+    Create a variant of a clothing item with AI-based modifications
+
+    Creates a copy of the clothing item with AI-applied modifications based on your instruction.
+    The original item remains unchanged. The new variant tracks its source with source_entity_id.
+
+    Examples:
+    - "What would this look like in red?"
+    - "Summer version with lighter fabric"
+    - "More formal version"
+    - "Ankle-length version"
+
+    Request Body:
+    - instruction: Natural language modification request
+
+    **Cache Invalidation**: Clears all clothing_items caches
+    """
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+
+    try:
+        variant = await service.create_variant(
+            item_id=item_id,
+            instruction=request.instruction
+        )
+
+        if not variant:
+            raise HTTPException(status_code=404, detail=f"Source clothing item {item_id} not found")
+
+        # Fetch tags (will be empty for new variant)
+        tags_info = await get_entity_tags_info(db, "clothing_item", variant['item_id'])
+
+        return ClothingItemInfo(
+            item_id=variant['item_id'],
+            category=variant['category'],
+            item=variant['item'],
+            fabric=variant['fabric'],
+            color=variant['color'],
+            details=variant['details'],
+            source_image=variant.get('source_image'),
+            preview_image_path=variant.get('preview_image_path'),
+            tags=tags_info,
+            created_at=variant.get('created_at', '')
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create variant: {str(e)}")
 
 
 @router.post("/{item_id}/generate-preview")
 async def generate_clothing_item_preview(
     item_id: str,
-    background_tasks: BackgroundTasks,
     async_mode: bool = Query(True, description="Run generation in background and return job_id"),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_user)
 ):
     """
@@ -626,68 +726,71 @@ async def generate_clothing_item_preview(
     Creates a visualization of the clothing item using AI image generation.
     The preview shows the item based on the configured visualization settings.
 
+    Jobs are executed in parallel via RQ workers - you can submit multiple preview
+    generation requests and they will all process simultaneously.
+
     Query Parameters:
     - async_mode: If true (default), returns job_id immediately and processes in background
     """
     from api.services.job_queue import get_job_queue_manager
     from api.models.jobs import JobType
-    from api.database import get_db, get_session
+    from api.workers.jobs import preview_generation_job
 
-    # Async mode: Create job and return immediately
+    # Async mode: Create job and queue via RQ for parallel execution
     if async_mode:
-        # Create job
+        # Create job for tracking with entity metadata
         job_id = get_job_queue_manager().create_job(
             job_type=JobType.GENERATE_IMAGE,
             title="Generating clothing item preview",
-            description=f"Item ID: {item_id}"
+            description=f"Item ID: {item_id}",
+            metadata={
+                'entity_type': 'clothing_item',
+                'entity_id': item_id
+            }
         )
 
-        # Queue background task
-        background_tasks.add_task(
-            run_preview_generation_job,
+        # Enqueue via RQ for parallel execution
+        rq_service = get_rq_service()
+        rq_service.enqueue(
+            preview_generation_job,
             job_id,
-            item_id
+            item_id,
+            priority='normal',  # Normal priority for single-item requests
+            job_id=job_id
         )
 
         # Return job info
         return {
             "job_id": job_id,
             "status": "queued",
-            "message": "Preview generation queued. Use /jobs/{job_id} to check status."
+            "message": "Preview generation queued (parallel execution via RQ). Use /jobs/{job_id} to check status."
         }
 
-    # Synchronous mode: Run generation and return result
-    async with get_session() as db:
-        service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    # Synchronous mode: Run generation directly and return result
+    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
 
-        try:
-            item = await service.generate_preview(item_id)
+    try:
+        item = await service.generate_preview(item_id)
 
-            if not item:
-                raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
 
-            tags_info = await get_entity_tags_info(db, "clothing_item", item_id)
+        tags_info = await get_entity_tags_info(db, "clothing_item", item_id)
 
-            return ClothingItemInfo(
-                item_id=item['item_id'],
-                category=item['category'],
-                item=item['item'],
-                fabric=item['fabric'],
-                color=item['color'],
-                details=item['details'],
-                source_image=item.get('source_image'),
-                preview_image_path=item.get('preview_image_path'),
-                tags=tags_info,
-                created_at=item.get('created_at', '')
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to generate preview: {str(e)}")
-
-
-class TestImageRequest(BaseModel):
-    """Request to generate test image with character wearing item"""
-    character_id: str
-    visual_style: str
+        return ClothingItemInfo(
+            item_id=item['item_id'],
+            category=item['category'],
+            item=item['item'],
+            fabric=item['fabric'],
+            color=item['color'],
+            details=item['details'],
+            source_image=item.get('source_image'),
+            preview_image_path=item.get('preview_image_path'),
+            tags=tags_info,
+            created_at=item.get('created_at', '')
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate preview: {str(e)}")
 
 
 async def run_test_image_generation_job(job_id: str, item_id: str, character_id: str, visual_style_id: str):
@@ -784,6 +887,50 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
 
     except Exception as e:
         from api.services.job_queue import get_job_queue_manager
+        get_job_queue_manager().fail_job(job_id, str(e))
+
+
+async def run_preview_generation_job(job_id: str, item_id: str):
+    """Background task to generate preview image for a clothing item"""
+    from api.services.job_queue import get_job_queue_manager
+    from api.database import get_session
+
+    try:
+        job_manager = get_job_queue_manager()
+        job_manager.start_job(job_id)
+        job_manager.update_progress(job_id, 0.1, "Loading clothing item...")
+
+        async with get_session() as session:
+            service = ClothingItemServiceDB(session, user_id=None)
+            job_manager.update_progress(job_id, 0.3, "Generating preview image...")
+
+            item = await service.generate_preview(item_id)
+
+            if not item:
+                job_manager.fail_job(job_id, f"Clothing item {item_id} not found")
+                return
+
+            job_manager.update_progress(job_id, 0.9, "Finalizing...")
+
+            result = {
+                'item_id': item['item_id'],
+                'category': item['category'],
+                'item': item['item'],
+                'fabric': item['fabric'],
+                'color': item['color'],
+                'details': item['details'],
+                'source_image': item.get('source_image'),
+                'preview_image_path': item.get('preview_image_path'),
+                'created_at': item.get('created_at', '')
+            }
+
+            job_manager.complete_job(job_id, result)
+
+    except Exception as e:
+        from api.services.job_queue import get_job_queue_manager
+        from api.logging_config import get_logger
+        logger = get_logger(__name__)
+        logger.error(f"Preview generation job failed: {e}", exc_info=True)
         get_job_queue_manager().fail_job(job_id, str(e))
 
 
