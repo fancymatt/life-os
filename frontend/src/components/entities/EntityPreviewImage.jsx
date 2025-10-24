@@ -35,6 +35,7 @@ function EntityPreviewImage({
   const [generatingJobId, setGeneratingJobId] = useState(null)
   const [jobProgress, setJobProgress] = useState(null)
   const [currentImageUrl, setCurrentImageUrl] = useState(previewImageUrl)
+  const [jobUpdatedImage, setJobUpdatedImage] = useState(false) // Track if job updated the image
   const { subscribe } = useJobStream()
 
   // Size mappings
@@ -49,17 +50,29 @@ function EntityPreviewImage({
     const checkForActiveJobs = async () => {
       try {
         const response = await api.get('/jobs?limit=50')
+        console.log(`🔍 Checking for active jobs for ${entityType}:${entityId}`)
+
+        // API returns jobs array directly in response.data
+        const jobs = Array.isArray(response.data) ? response.data : response.data.jobs
+
+        if (!jobs || !Array.isArray(jobs)) {
+          console.warn('No jobs array in response:', response.data)
+          return
+        }
 
         // Look for any active job for this entity
-        const activeJob = response.data.jobs?.find(job => {
+        const activeJobs = jobs.filter(job => {
           const isActive = job.status === 'queued' || job.status === 'pending' || job.status === 'running'
           const isOurEntity = job.metadata?.entity_type === entityType &&
                              job.metadata?.entity_id === entityId
           return isActive && isOurEntity
         })
 
-        if (activeJob) {
-          console.log(`🎨 Found active job on mount for ${entityType}:`, entityId)
+        console.log(`Found ${activeJobs.length} active jobs for this entity`)
+
+        if (activeJobs.length > 0) {
+          const activeJob = activeJobs[0]
+          console.log(`🎨 Found active job on mount for ${entityType}:`, entityId, activeJob.job_id)
           setGeneratingJobId(activeJob.job_id)
           setJobProgress(activeJob.progress || 0)
         }
@@ -110,6 +123,7 @@ function EntityPreviewImage({
         if (job.result && job.result.preview_image_path) {
           const imageUrl = `${job.result.preview_image_path}?t=${Date.now()}`
           setCurrentImageUrl(imageUrl)
+          setJobUpdatedImage(true) // Mark that job updated the image
           console.log('Updated preview image:', imageUrl)
         }
 
@@ -133,25 +147,33 @@ function EntityPreviewImage({
     }
   }, [generatingJobId, entityType, entityId, onUpdate, subscribe])
 
-  // Update image when prop changes (but preserve cache-busting timestamp)
+  // Initialize image from prop (always use fresh timestamp to prevent caching)
   useEffect(() => {
+    // If a job just updated the image, don't overwrite it with the stale prop
+    if (jobUpdatedImage) {
+      console.log('Skipping prop update - job updated image recently')
+      return
+    }
+
     if (!previewImageUrl) {
-      // No preview URL - clear current image
       setCurrentImageUrl(null)
       return
     }
 
-    // Strip query parameters to compare base URLs
+    // ALWAYS use a fresh cache-busting timestamp
+    // This ensures browser never shows stale cached images
     const stripQuery = (url) => url?.split('?')[0]
-    const newBaseUrl = stripQuery(previewImageUrl)
-    const currentBaseUrl = stripQuery(currentImageUrl)
+    const baseUrl = stripQuery(previewImageUrl)
+    const urlWithTimestamp = `${baseUrl}?t=${Date.now()}`
 
-    // Only update if the base URL actually changed
-    // (preserve cache-busting timestamp if same base URL)
-    if (newBaseUrl !== currentBaseUrl) {
-      setCurrentImageUrl(previewImageUrl)
-    }
-  }, [previewImageUrl, currentImageUrl])
+    setCurrentImageUrl(urlWithTimestamp)
+    console.log('Set image from prop with fresh timestamp:', urlWithTimestamp)
+  }, [previewImageUrl, jobUpdatedImage])
+
+  // Reset job updated flag when entity changes
+  useEffect(() => {
+    setJobUpdatedImage(false)
+  }, [entityId])
 
   return (
     <div style={{
