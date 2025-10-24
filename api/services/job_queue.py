@@ -225,6 +225,109 @@ class JobQueueManager:
         # Notify subscribers (safe for sync/async contexts)
         self._schedule_notification(job)
 
+    def pause_for_input(
+        self,
+        job_id: str,
+        awaiting_data: Dict,
+        brief_card: Optional[Dict] = None
+    ):
+        """
+        Pause job and wait for user input
+
+        Transitions job to AWAITING_INPUT state. Optionally creates a Brief card
+        to surface the decision to the user.
+
+        Args:
+            job_id: Job to pause
+            awaiting_data: Data for user to review (e.g., merge preview)
+            brief_card: Optional Brief card config to surface to user
+                {
+                    "title": "Merge Preview Ready",
+                    "description": "Review and approve merged clothing item",
+                    "category": "work",
+                    "actions": [
+                        {"action_id": "approve", "label": "Approve", "style": "primary"},
+                        {"action_id": "edit", "label": "Edit Changes", "style": "secondary"},
+                        {"action_id": "cancel", "label": "Cancel", "style": "danger"}
+                    ],
+                    "provenance": "Analyzed entities and generated merged version"
+                }
+        """
+        job = self._load_job(job_id)
+        if not job:
+            raise ValueError(f"Job not found: {job_id}")
+
+        job.status = JobStatus.AWAITING_INPUT
+        job.awaiting_data = awaiting_data
+        self._save_job(job)
+
+        # Create Brief card if requested
+        if brief_card:
+            from api.services.brief_service import get_brief_service
+            from api.models.jobs import BriefCardAction
+
+            brief_service = get_brief_service()
+
+            # Convert actions to BriefCardAction objects
+            actions = []
+            for action_dict in brief_card.get("actions", []):
+                actions.append(BriefCardAction(**action_dict))
+
+            brief_service.create_card(
+                job_id=job_id,
+                title=brief_card["title"],
+                description=brief_card["description"],
+                actions=actions,
+                data=awaiting_data,
+                category=brief_card.get("category", "work"),
+                provenance=brief_card.get("provenance")
+            )
+
+            logger.info(f"Created Brief card for job {job_id}: {brief_card['title']}")
+
+        # Notify subscribers
+        self._schedule_notification(job)
+
+        logger.info(f"Job {job_id} paused for user input")
+
+    def resume_with_input(
+        self,
+        job_id: str,
+        user_input: Dict
+    ):
+        """
+        Resume paused job with user's decision
+
+        Args:
+            job_id: Job to resume
+            user_input: User's response/decision
+
+        Raises:
+            ValueError: If job not found or not in AWAITING_INPUT state
+        """
+        job = self._load_job(job_id)
+        if not job:
+            raise ValueError(f"Job not found: {job_id}")
+
+        if job.status != JobStatus.AWAITING_INPUT:
+            raise ValueError(f"Job {job_id} is not awaiting input (status: {job.status})")
+
+        job.status = JobStatus.RUNNING
+        job.user_input = user_input
+        self._save_job(job)
+
+        # Dismiss associated Brief card if exists
+        from api.services.brief_service import get_brief_service
+        brief_service = get_brief_service()
+        card = brief_service.get_card_by_job(job_id)
+        if card:
+            brief_service.respond_to_card(card.card_id, user_input)
+
+        # Notify subscribers
+        self._schedule_notification(job)
+
+        logger.info(f"Job {job_id} resumed with user input: {user_input.get('action', 'unknown')}")
+
     def get_job(self, job_id: str) -> Job:
         """Get job by ID"""
         job = self._load_job(job_id)
@@ -275,7 +378,7 @@ class JobQueueManager:
             raise ValueError(f"Job not found: {job_id}")
 
         # Only allow deletion of completed/failed/cancelled jobs
-        if job.status in [JobStatus.QUEUED, JobStatus.RUNNING]:
+        if job.status in [JobStatus.QUEUED, JobStatus.RUNNING, JobStatus.AWAITING_INPUT]:
             raise ValueError(f"Cannot delete active job: {job_id}")
 
         # Remove from parent's child list
