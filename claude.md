@@ -1,7 +1,46 @@
-# Life-OS - Claude AI Assistant Context
+# lifeOS - Claude AI Assistant Context
 
-**Last Updated**: 2025-10-22
-**Current Phase**: Phase 1 - Foundation & Critical Fixes (see ROADMAP.md)
+**Version**: 2.5.1
+**Last Updated**: 2025-10-23
+**Current Phase**: Phase 2 - User Experience & Core Features (see ROADMAP.md)
+
+---
+
+## Versioning Rules
+
+**Format**: `Major.Minor.Patch` (e.g., 2.5.1)
+
+**Version Components**:
+- **Major**: Phase number (e.g., 2 for Phase 2)
+- **Minor**: Section within phase (e.g., 2.5 for Phase 2.5 Tagging System)
+- **Patch**: Increments with each commit/update
+
+**Versioning Rules**:
+1. **On Phase Section Completion**: Version becomes `Phase.Section.0`
+   - Example: Complete Phase 2.3 → version becomes `2.3.0`
+
+2. **On Update/Commit**: Patch version increments
+   - Example: Make documentation update → `2.3.0` → `2.3.1`
+   - Any commit and push counts as an update
+
+3. **During Development**: Version stays at `X.Y.0` until feature is complete and pushed
+   - Example: Working on Phase 2.6 → version is `2.6.0` even if you commit
+   - Once complete and pushed → version becomes `2.6.0` (ready for next update)
+
+4. **Update Definition**: Any reason to make a commit and push changes
+   - Bug fixes, documentation updates, minor improvements
+   - Each pushed commit increments the patch version
+
+**Current Version**: 2.5.1
+- Base: 2.5.0 (Phase 2 progress after completing sections 2.1-2.4)
+- Update: 2.5.1 (ROADMAP.md update documenting Phase 2.3 completion)
+
+**Version History**:
+- 2.5.1 - ROADMAP.md update for Phase 2.3 completion documentation
+- 2.5.0 - Phase 2.4 (UI Theme System) complete
+- 2.4.0 - Phase 2.3 (Database Persistence) complete
+- 2.3.0 - Phase 2.2 (Mobile Responsiveness) complete
+- 2.2.0 - Phase 2.1 (Complete Archive System) complete
 
 ---
 
