@@ -717,8 +717,7 @@ async def create_clothing_item_variant(
 async def generate_clothing_item_preview(
     item_id: str,
     async_mode: bool = Query(True, description="Run generation in background and return job_id"),
-    db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Generate or regenerate a preview image for a clothing item
@@ -767,7 +766,7 @@ async def generate_clothing_item_preview(
         }
 
     # Synchronous mode: Run generation directly and return result
-    service = ClothingItemServiceDB(db, user_id=current_user.id if current_user else None)
+    service = ClothingItemServiceDB(db, user_id=None)
 
     try:
         item = await service.generate_preview(item_id)
