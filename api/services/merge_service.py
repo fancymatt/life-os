@@ -180,14 +180,34 @@ class MergeService:
             # Update image entity relationships
             if references["images"]:
                 from api.models.db import ImageEntityRelationship
+                from sqlalchemy import delete
+
                 for img_ref in references["images"]:
-                    # Update the relationship to point to source_id instead of target_id
-                    stmt = (
-                        update(ImageEntityRelationship)
-                        .where(ImageEntityRelationship.id == img_ref["relationship_id"])
-                        .values(entity_id=source_id)
+                    # Check if source already has a relationship with this image+role
+                    existing_stmt = select(ImageEntityRelationship).where(
+                        ImageEntityRelationship.image_id == img_ref["image_id"],
+                        ImageEntityRelationship.entity_type == entity_type,
+                        ImageEntityRelationship.entity_id == source_id,
+                        ImageEntityRelationship.role == img_ref["role"]
                     )
-                    await self.db.execute(stmt)
+                    existing_result = await self.db.execute(existing_stmt)
+                    existing_rel = existing_result.scalar_one_or_none()
+
+                    if existing_rel:
+                        # Source already has this relationship, delete the duplicate from target
+                        delete_stmt = delete(ImageEntityRelationship).where(
+                            ImageEntityRelationship.id == img_ref["relationship_id"]
+                        )
+                        await self.db.execute(delete_stmt)
+                        logger.info(f"Deleted duplicate relationship {img_ref['relationship_id']} (already exists for source)")
+                    else:
+                        # Update the relationship to point to source_id instead of target_id
+                        stmt = (
+                            update(ImageEntityRelationship)
+                            .where(ImageEntityRelationship.id == img_ref["relationship_id"])
+                            .values(entity_id=source_id)
+                        )
+                        await self.db.execute(stmt)
                     total_updated += 1
                 logger.info(f"Updated {len(references['images'])} image relationships")
 
