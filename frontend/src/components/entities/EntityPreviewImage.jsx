@@ -20,7 +20,8 @@ import api from '../../api/client'
  * @param {string} props.previewImageUrl - Current preview image URL (or null/undefined)
  * @param {string} props.standInIcon - Emoji or text to show when no preview (e.g., '👕', '👤')
  * @param {string} props.size - Size variant: 'small' (100x100), 'medium' (400x400), 'large' (800x800), 'full' (original) (default: 'medium')
- * @param {string} props.shape - Shape: 'square', 'circle' (default: 'square')
+ * @param {string} props.shape - Shape: 'square', 'circle', 'preserve' (default: 'square')
+ *                                'preserve' maintains original aspect ratio (for images entity)
  * @param {Function} props.onUpdate - Optional callback when image updates
  */
 function EntityPreviewImage({
@@ -319,14 +320,41 @@ function EntityPreviewImage({
     }
   }, [])
 
+  // Container styles based on shape
+  const containerStyle = shape === 'preserve' ? {
+    // Preserve aspect ratio - let image determine height
+    position: 'relative',
+    width: '100%',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  } : {
+    // Square or circle - force square aspect ratio
+    position: 'relative',
+    width: '100%',
+    paddingBottom: '100%', // Square aspect ratio
+    borderRadius: shape === 'circle' ? '50%' : '8px',
+    overflow: 'hidden'
+  }
+
+  // Image styles based on shape
+  const imageStyle = shape === 'preserve' ? {
+    width: '100%',
+    height: 'auto',
+    display: 'block'
+  } : {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  }
+
   return (
-    <div style={{
-      position: 'relative',
-      width: '100%',
-      paddingBottom: '100%', // Square aspect ratio
-      borderRadius: shape === 'circle' ? '50%' : '8px',
-      overflow: 'hidden'
-    }}>
+    <div style={containerStyle}>
       {currentImageUrl ? (
         // Show actual preview image
         <img
@@ -334,18 +362,21 @@ function EntityPreviewImage({
           src={currentImageUrl}
           alt="Preview"
           onError={handleImageError}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover'
-          }}
+          style={imageStyle}
         />
       ) : (
         // Show stand-in icon
-        <div style={{
+        <div style={shape === 'preserve' ? {
+          // For preserved aspect - show minimal stand-in
+          width: '100%',
+          aspectRatio: '16/9', // Default aspect ratio for stand-in
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: sizeStyles[size].fontSize
+        } : {
+          // For square/circle - fill the container
           position: 'absolute',
           top: 0,
           left: 0,

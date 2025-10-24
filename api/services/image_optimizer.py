@@ -35,11 +35,20 @@ class ImageOptimizer:
         'full': None  # Original size
     }
 
+    # For images that should preserve aspect ratio with smallest dimension as target
+    SIZES_PRESERVE_ASPECT = {
+        'small': 100,   # smallest dimension = 100px
+        'medium': 400,  # smallest dimension = 400px
+        'large': 800,   # smallest dimension = 800px
+        'full': None
+    }
+
     def optimize_preview(
         self,
         source_path: str,
         entity_type: str,
-        entity_id: str
+        entity_id: str,
+        preserve_aspect_ratio: bool = False
     ) -> Dict[str, str]:
         """
         Generate optimized versions of preview image
@@ -48,6 +57,7 @@ class ImageOptimizer:
             source_path: Path to original preview image (filesystem path, not web path)
             entity_type: Entity type (e.g., 'clothing_item', 'character')
             entity_id: Entity UUID
+            preserve_aspect_ratio: If True, resize based on smallest dimension instead of square crop
 
         Returns:
             Dict with web-accessible paths to all sizes:
@@ -82,9 +92,12 @@ class ImageOptimizer:
 
             result = {}
 
+            # Choose size definitions based on mode
+            sizes_to_generate = self.SIZES_PRESERVE_ASPECT if preserve_aspect_ratio else self.SIZES
+
             # Generate each size
-            for size_name, dimensions in self.SIZES.items():
-                if dimensions is None:
+            for size_name, size_spec in sizes_to_generate.items():
+                if size_spec is None:
                     # Full size - just reference original
                     result['full'] = f"/entity_previews/{entity_type}/{entity_id}_preview.png"
                     logger.debug(f"Full size: using original at {result['full']}")
@@ -93,8 +106,21 @@ class ImageOptimizer:
                 # Create a copy for resizing
                 resized = img.copy()
 
-                # Resize with high-quality downsampling (LANCZOS is best for downsizing)
-                resized.thumbnail(dimensions, Image.Resampling.LANCZOS)
+                if preserve_aspect_ratio:
+                    # Resize based on smallest dimension
+                    target_smallest = size_spec
+                    orig_width, orig_height = resized.size
+                    smallest_dim = min(orig_width, orig_height)
+
+                    # Calculate scale factor
+                    scale = target_smallest / smallest_dim
+                    new_width = int(orig_width * scale)
+                    new_height = int(orig_height * scale)
+
+                    resized = resized.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                else:
+                    # Square resize (thumbnail fits within dimensions)
+                    resized.thumbnail(size_spec, Image.Resampling.LANCZOS)
 
                 # Save optimized version with compression
                 output_path = output_dir / f"{entity_id}_preview_{size_name}.png"

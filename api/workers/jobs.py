@@ -451,6 +451,9 @@ def optimize_preview_size_job(job_id: str, entity_type: str, entity_id: str, siz
         # Generate only the requested size
         optimizer = ImageOptimizer()
 
+        # Determine if we should preserve aspect ratio (for images entity)
+        preserve_aspect = (entity_type == 'images')
+
         # Generate the specific size
         from PIL import Image
         img = Image.open(source_path)
@@ -459,15 +462,33 @@ def optimize_preview_size_job(job_id: str, entity_type: str, entity_id: str, siz
         if img.mode != 'RGB':
             img = img.convert('RGB')
 
-        # Get size dimensions
-        dimensions = optimizer.SIZES.get(size)
-        if not dimensions:
-            job_manager.fail_job(job_id, f"Invalid size: {size}")
-            return
+        # Get size specification
+        if preserve_aspect:
+            size_spec = optimizer.SIZES_PRESERVE_ASPECT.get(size)
+            if not size_spec:
+                job_manager.fail_job(job_id, f"Invalid size: {size}")
+                return
 
-        # Resize
-        resized = img.copy()
-        resized.thumbnail(dimensions, Image.Resampling.LANCZOS)
+            # Resize based on smallest dimension
+            target_smallest = size_spec
+            orig_width, orig_height = img.size
+            smallest_dim = min(orig_width, orig_height)
+
+            # Calculate scale factor
+            scale = target_smallest / smallest_dim
+            new_width = int(orig_width * scale)
+            new_height = int(orig_height * scale)
+
+            resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        else:
+            # Square resize (thumbnail fits within dimensions)
+            dimensions = optimizer.SIZES.get(size)
+            if not dimensions:
+                job_manager.fail_job(job_id, f"Invalid size: {size}")
+                return
+
+            resized = img.copy()
+            resized.thumbnail(dimensions, Image.Resampling.LANCZOS)
 
         # Save
         output_dir = Path(f"entity_previews/{entity_type}")

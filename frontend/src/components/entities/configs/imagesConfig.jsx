@@ -87,7 +87,7 @@ export const imagesConfig = {
             previewImageUrl={image.imageUrl}
             standInIcon="🖼️"
             size="small"
-            shape="square"
+            shape="preserve"
           />
         </div>
         <div className="entity-card-content">
@@ -150,7 +150,7 @@ export const imagesConfig = {
       previewImageUrl={image.imageUrl}
       standInIcon="🖼️"
       size="medium"
-      shape="square"
+      shape="preserve"
     />
   ),
 
@@ -189,7 +189,7 @@ export const imagesConfig = {
             previewImageUrl={image.imageUrl}
             standInIcon="🖼️"
             size="large"
-            shape="square"
+            shape="preserve"
           />
         </div>
 
