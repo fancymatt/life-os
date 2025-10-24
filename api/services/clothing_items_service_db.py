@@ -376,6 +376,159 @@ class ClothingItemServiceDB:
                 'error': str(e)
             }})
 
+    async def modify_clothing_item(
+        self,
+        item_id: str,
+        instruction: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Modify a clothing item using AI based on natural language instruction
+
+        Args:
+            item_id: UUID of the clothing item
+            instruction: Natural language modification request (e.g., "Make these shoulder-length", "Change to red")
+
+        Returns:
+            Modified clothing item dict or None if not found
+        """
+        from ai_tools.clothing_modifier.tool import ClothingModifier
+
+        # Load existing item
+        clothing_item = await self.repository.get_by_id(item_id)
+        if not clothing_item:
+            return None
+
+        # Check user permission
+        if self.user_id and clothing_item.user_id != self.user_id:
+            return None
+
+        logger.info(f"Modifying clothing item {item_id} with instruction: {instruction}", extra={'extra_fields': {
+            'item_id': item_id,
+            'instruction': instruction
+        }})
+
+        # Use AI to modify the item
+        modifier = ClothingModifier()
+        item_dict = {
+            'item': clothing_item.item,
+            'category': clothing_item.category,
+            'color': clothing_item.color,
+            'fabric': clothing_item.fabric,
+            'details': clothing_item.details,
+            'visual_description': getattr(clothing_item, 'visual_description', '')
+        }
+
+        try:
+            modified_data = modifier.modify(item_dict, instruction)
+
+            # Update the item with modified data
+            clothing_item.item = modified_data.get('item', clothing_item.item)
+            clothing_item.color = modified_data.get('color', clothing_item.color)
+            clothing_item.fabric = modified_data.get('fabric', clothing_item.fabric)
+            clothing_item.details = modified_data.get('details', clothing_item.details)
+            if 'visual_description' in modified_data:
+                clothing_item.visual_description = modified_data['visual_description']
+
+            # Mark as manually modified
+            clothing_item.manually_modified = True
+            clothing_item.updated_at = datetime.utcnow()
+
+            clothing_item = await self.repository.update(clothing_item)
+            await self.session.commit()
+
+            logger.info(f"Successfully modified clothing item {item_id}", extra={'extra_fields': {
+                'item_id': item_id
+            }})
+
+            return self._clothing_item_to_dict(clothing_item)
+
+        except Exception as e:
+            logger.error(f"Failed to modify clothing item {item_id}: {e}", extra={'extra_fields': {
+                'item_id': item_id,
+                'error': str(e)
+            }})
+            raise
+
+    async def create_variant(
+        self,
+        item_id: str,
+        instruction: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Create a variant of a clothing item with AI-based modifications
+
+        Args:
+            item_id: UUID of the source clothing item
+            instruction: Natural language modification request
+
+        Returns:
+            New variant clothing item dict or None if source not found
+        """
+        from ai_tools.clothing_modifier.tool import ClothingModifier
+
+        # Load source item
+        source_item = await self.repository.get_by_id(item_id)
+        if not source_item:
+            return None
+
+        # Check user permission
+        if self.user_id and source_item.user_id != self.user_id:
+            return None
+
+        logger.info(f"Creating variant of clothing item {item_id} with instruction: {instruction}", extra={'extra_fields': {
+            'source_item_id': item_id,
+            'instruction': instruction
+        }})
+
+        # Use AI to modify the item
+        modifier = ClothingModifier()
+        item_dict = {
+            'item': source_item.item,
+            'category': source_item.category,
+            'color': source_item.color,
+            'fabric': source_item.fabric,
+            'details': source_item.details,
+            'visual_description': getattr(source_item, 'visual_description', '')
+        }
+
+        try:
+            modified_data = modifier.modify(item_dict, instruction)
+
+            # Create new item as variant
+            variant_id = str(uuid.uuid4())
+            variant_item = ClothingItem(
+                item_id=variant_id,
+                category=modified_data.get('category', source_item.category),
+                item=f"{modified_data.get('item', source_item.item)} (Variant)",
+                fabric=modified_data.get('fabric', source_item.fabric),
+                color=modified_data.get('color', source_item.color),
+                details=modified_data.get('details', source_item.details),
+                source_image=source_item.source_image,
+                source_entity_id=item_id,  # Track the source
+                manually_modified=False,  # Variant is AI-generated, not manually modified
+                user_id=self.user_id
+            )
+
+            if 'visual_description' in modified_data:
+                variant_item.visual_description = modified_data['visual_description']
+
+            variant_item = await self.repository.create(variant_item)
+            await self.session.commit()
+
+            logger.info(f"Successfully created variant {variant_id} from {item_id}", extra={'extra_fields': {
+                'variant_id': variant_id,
+                'source_item_id': item_id
+            }})
+
+            return self._clothing_item_to_dict(variant_item)
+
+        except Exception as e:
+            logger.error(f"Failed to create variant of {item_id}: {e}", extra={'extra_fields': {
+                'item_id': item_id,
+                'error': str(e)
+            }})
+            raise
+
     async def generate_preview(self, item_id: str) -> Optional[Dict[str, Any]]:
         """
         Generate a preview image for a clothing item using configured visualization settings
@@ -434,30 +587,20 @@ class ClothingItemServiceDB:
 
             # Generate preview using ItemVisualizer
             # Save to output directory so nginx can serve it
-            # Add timestamp to filename to prevent browser caching issues when regenerating
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            # Use consistent filename (cache busting handled by query param ?t=timestamp)
             preview_path = self.visualizer.visualize(
                 entity=item_entity,
                 entity_type="clothing_item",
                 config=config,
                 output_dir=settings.output_dir / "clothing_items",
-                filename=f"{item_id}_preview_{timestamp}"
+                filename=f"{item_id}_preview"
             )
 
             # Convert to web-accessible URL path
             # /app/output/clothing_items/xyz.png -> /output/clothing_items/xyz.png
             web_path = f"/output/clothing_items/{preview_path.name}"
 
-            # Delete old preview if it exists (to save disk space)
-            if clothing_item.preview_image_path:
-                old_preview_name = Path(clothing_item.preview_image_path).name
-                old_preview_path = settings.output_dir / "clothing_items" / old_preview_name
-                if old_preview_path.exists():
-                    try:
-                        old_preview_path.unlink()
-                        logger.debug(f"Deleted old preview: {old_preview_name}")
-                    except Exception as e:
-                        logger.warning(f"Failed to delete old preview {old_preview_name}: {e}")
+            # No need to delete old preview - we're overwriting the same file
 
             # Update item with preview path
             clothing_item.preview_image_path = web_path

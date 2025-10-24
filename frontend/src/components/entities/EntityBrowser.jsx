@@ -463,7 +463,8 @@ function EntityBrowser({ config }) {
       // Don't block UI - just fire and forget for job-queueing actions
       setError(null)
       try {
-        const result = await action.handler(entity || selectedEntity)
+        // Pass entity and handleEntityUpdate callback so action can trigger refresh
+        const result = await action.handler(entity || selectedEntity, handleEntityUpdate)
         // If action returns success=false, show error
         if (result && result.success === false) {
           setError(result.message || 'Action failed')

@@ -41,6 +41,7 @@ httpx>=0.25.0
 
 # Job Queue Storage
 redis>=5.0.0
+rq>=1.15.0
 
 # Database (PostgreSQL)
 sqlalchemy[asyncio]>=2.0.0

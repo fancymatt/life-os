@@ -116,6 +116,10 @@ class ClothingItem(Base):
     source_image: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     preview_image_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
+    # Modification tracking (Phase 2.8)
+    manually_modified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    source_entity_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)  # If variant, ID of source entity
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)

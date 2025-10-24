@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useJobStream } from '../../contexts/JobStreamContext'
 import api from '../../api/client'
 
@@ -35,8 +35,12 @@ function EntityPreviewImage({
   const [generatingJobId, setGeneratingJobId] = useState(null)
   const [jobProgress, setJobProgress] = useState(null)
   const [currentImageUrl, setCurrentImageUrl] = useState(previewImageUrl)
-  const [jobUpdatedImage, setJobUpdatedImage] = useState(false) // Track if job updated the image
+  const [imageKey, setImageKey] = useState(0) // Force re-mount of img tag
   const { subscribe } = useJobStream()
+
+  // Use ref for retry count to avoid triggering re-renders
+  const retryCountRef = useRef(0)
+  const retryTimeoutRef = useRef(null)
 
   // Size mappings
   const sizeStyles = {
@@ -123,7 +127,6 @@ function EntityPreviewImage({
         if (job.result && job.result.preview_image_path) {
           const imageUrl = `${job.result.preview_image_path}?t=${Date.now()}`
           setCurrentImageUrl(imageUrl)
-          setJobUpdatedImage(true) // Mark that job updated the image
           console.log('Updated preview image:', imageUrl)
         }
 
@@ -149,12 +152,6 @@ function EntityPreviewImage({
 
   // Initialize image from prop (always use fresh timestamp to prevent caching)
   useEffect(() => {
-    // If a job just updated the image, don't overwrite it with the stale prop
-    if (jobUpdatedImage) {
-      console.log('Skipping prop update - job updated image recently')
-      return
-    }
-
     if (!previewImageUrl) {
       setCurrentImageUrl(null)
       return
@@ -167,13 +164,53 @@ function EntityPreviewImage({
     const urlWithTimestamp = `${baseUrl}?t=${Date.now()}`
 
     setCurrentImageUrl(urlWithTimestamp)
-    console.log('Set image from prop with fresh timestamp:', urlWithTimestamp)
-  }, [previewImageUrl, jobUpdatedImage])
+  }, [previewImageUrl])
 
-  // Reset job updated flag when entity changes
+  // Handle image load errors with retry logic
+  const handleImageError = () => {
+    // Clear any pending retry
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current)
+    }
+
+    // Only retry for fresh URLs (likely newly generated images)
+    const isFreshUrl = currentImageUrl && currentImageUrl.includes('?t=')
+
+    if (isFreshUrl && retryCountRef.current < 10) {
+      // Exponential backoff: 100ms, 200ms, 400ms, 800ms, etc.
+      const delay = Math.min(100 * Math.pow(2, retryCountRef.current), 3000)
+
+      console.log(`Image load failed (attempt ${retryCountRef.current + 1}/10), retrying in ${delay}ms...`)
+
+      retryTimeoutRef.current = setTimeout(() => {
+        // Increment retry count using ref (doesn't cause re-render)
+        retryCountRef.current += 1
+
+        // Force reload by incrementing key (re-mounts img tag)
+        setImageKey(prev => prev + 1)
+      }, delay)
+    } else if (retryCountRef.current >= 10) {
+      console.error('Image failed to load after 10 retries, giving up')
+      retryCountRef.current = 0 // Reset for next attempt
+    }
+  }
+
+  // Reset retry count when entity changes
   useEffect(() => {
-    setJobUpdatedImage(false)
+    retryCountRef.current = 0
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current)
+    }
   }, [entityId])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div style={{
@@ -186,8 +223,10 @@ function EntityPreviewImage({
       {currentImageUrl ? (
         // Show actual preview image
         <img
+          key={imageKey}
           src={currentImageUrl}
           alt="Preview"
+          onError={handleImageError}
           style={{
             position: 'absolute',
             top: 0,

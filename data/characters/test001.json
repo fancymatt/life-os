@@ -1,0 +1,13 @@
+{
+  "character_id": "test001",
+  "name": "Alice Smith",
+  "personality": "Cheerful and optimistic. Always sees the bright side of things.",
+  "age": "28",
+  "skin_tone": "Fair with warm undertones",
+  "face_description": "Round face with high cheekbones and a bright smile",
+  "hair_description": "Long blonde hair, usually worn in a ponytail",
+  "body_description": "Athletic build, approximately 5'6\" tall",
+  "archived": false,
+  "created_at": "2025-10-23T19:00:00Z",
+  "updated_at": "2025-10-23T19:00:00Z"
+}

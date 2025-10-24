@@ -240,6 +240,10 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">🎲</span>
                   <span className="nav-label">BGG Rulebook Fetcher</span>
                 </NavLink>
+                <NavLink to="/tools/clothing-modifier" className="nav-link nav-link-sibling" onClick={onClose}>
+                  <span className="nav-icon">✂️</span>
+                  <span className="nav-label">Clothing Modifier</span>
+                </NavLink>
                 <NavLink to="/tools/document-processor" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📄</span>
                   <span className="nav-label">Document Processor</span>

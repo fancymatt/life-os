@@ -1,0 +1,13 @@
+{
+  "character_id": "test002",
+  "name": "Alice S.",
+  "personality": "Energetic and positive. Loves helping others.",
+  "age": "27",
+  "skin_tone": "Light skin",
+  "face_description": "Heart-shaped face with dimples",
+  "hair_description": "Shoulder-length golden blonde hair",
+  "body_description": "Fit physique, medium height",
+  "archived": false,
+  "created_at": "2025-10-23T19:00:00Z",
+  "updated_at": "2025-10-23T19:00:00Z"
+}

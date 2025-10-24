@@ -62,6 +62,23 @@
 
 If you're Claude Code or another AI assistant working on this project, here's what you need to know:
 
+### 🚨 CRITICAL: Every AI Tool MUST Have a Config UI
+
+**When creating ANY new AI tool, you MUST complete ALL of these steps:**
+1. ✅ Tool files: `ai_tools/{tool_name}/{tool.py,template.md,README.md}`
+2. ✅ Add to `configs/models.yaml` defaults section
+3. ✅ Add route to `frontend/src/App.jsx` (~line 175)
+4. ✅ Add sidebar link to `frontend/src/components/layout/Sidebar.jsx` (~line 240-270)
+5. ✅ Add custom test UI to `ToolConfigPage.jsx` if tool doesn't use image uploads
+6. ✅ **REBUILD API**: `docker-compose up -d --build api`
+7. ✅ **REBUILD FRONTEND**: `docker-compose up -d --build frontend`
+
+**See `ai_tools/README_TOOL_DEVELOPMENT.md` for detailed checklist and examples.**
+
+**Do NOT skip these steps - users expect ALL tools to have model selection, temperature control, prompt editing, and test interface.**
+
+---
+
 ### What is Life-OS?
 
 Life-OS is evolving from a specialized **AI image generation platform** into a **comprehensive personal AI assistant** capable of autonomous task execution across multiple domains (video, code, home automation, life planning, etc.).

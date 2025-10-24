@@ -17,6 +17,7 @@ from datetime import datetime
 import sys
 import json
 import base64
+import os
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -360,8 +361,12 @@ Generate a single, high-quality preview image that clearly shows the item."""
             output_path = output_dir / output_filename
 
             # Save generated image
+            # CRITICAL: Flush and sync to ensure file is fully written to disk
+            # before job completes (prevents 404s when nginx tries to serve)
             with open(output_path, 'wb') as f:
                 f.write(image_bytes)
+                f.flush()  # Flush Python buffers
+                os.fsync(f.fileno())  # Force OS to write to disk
 
             logger.info(f"Visualization saved: {output_path}")
 

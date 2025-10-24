@@ -54,12 +54,22 @@ function ToolConfigPage() {
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState(null)
 
+  // Clothing modifier test state
+  const [clothingItems, setClothingItems] = useState([])
+  const [selectedItemId, setSelectedItemId] = useState('')
+  const [modifyInstruction, setModifyInstruction] = useState('')
+
   // Available models
   const [availableModels, setAvailableModels] = useState({})
 
   useEffect(() => {
     fetchConfig()
     fetchAvailableModels()
+
+    // Fetch clothing items if this is the clothing_modifier tool
+    if (toolName === 'clothing_modifier') {
+      fetchClothingItems()
+    }
   }, [toolName])
 
   const fetchConfig = async () => {
@@ -85,6 +95,43 @@ function ToolConfigPage() {
       setAvailableModels(response.data)
     } catch (err) {
       console.error('Failed to fetch available models:', err)
+    }
+  }
+
+  const fetchClothingItems = async () => {
+    try {
+      const response = await api.get('/clothing-items/')
+      setClothingItems(response.data.items || [])
+    } catch (err) {
+      console.error('Failed to fetch clothing items:', err)
+    }
+  }
+
+  const handleTestClothingModifier = async () => {
+    if (!selectedItemId) {
+      alert('Please select a clothing item')
+      return
+    }
+    if (!modifyInstruction || !modifyInstruction.trim()) {
+      alert('Please enter a modification instruction')
+      return
+    }
+
+    setTesting(true)
+    setTestResult(null)
+    setError(null)
+
+    try {
+      const response = await api.post(`/clothing-items/${selectedItemId}/modify`, {
+        instruction: modifyInstruction.trim()
+      })
+
+      setTestResult(response.data)
+      setTesting(false)
+    } catch (err) {
+      console.error('Test failed:', err)
+      setError(err.response?.data?.detail || err.message || 'Modification test failed')
+      setTesting(false)
     }
   }
 
@@ -321,35 +368,105 @@ function ToolConfigPage() {
         <div className="test-section">
           <h2>Run Tool</h2>
 
-          <div className="test-upload">
-            <label htmlFor="test-image">Upload Image</label>
-            <input
-              type="file"
-              id="test-image"
-              accept="image/*"
-              onChange={handleImageChange}
-              disabled={testing}
-            />
-
-            {testImagePreview && (
-              <div className="test-image-preview">
-                <img src={testImagePreview} alt="Preview" />
+          {toolName === 'clothing_modifier' ? (
+            /* Clothing Modifier Test Interface */
+            <div className="test-upload">
+              <div className="form-group">
+                <label htmlFor="test-item">Clothing Item</label>
+                <select
+                  id="test-item"
+                  value={selectedItemId}
+                  onChange={(e) => setSelectedItemId(e.target.value)}
+                  disabled={testing}
+                >
+                  <option value="">Select a clothing item...</option>
+                  {clothingItems.map(item => (
+                    <option key={item.item_id} value={item.item_id}>
+                      {item.item} ({item.category})
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
 
-            <button
-              onClick={handleTest}
-              disabled={testing || !testImage}
-              className="primary-button"
-            >
-              {testing ? 'Running...' : 'Run Analysis'}
-            </button>
-          </div>
+              <div className="form-group">
+                <label htmlFor="test-instruction">Modification Instruction</label>
+                <textarea
+                  id="test-instruction"
+                  value={modifyInstruction}
+                  onChange={(e) => setModifyInstruction(e.target.value)}
+                  disabled={testing}
+                  rows={3}
+                  placeholder='e.g., "Change the color to burgundy", "Make these shoulder-length", "Add lace trim"'
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '0.95rem',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
 
-          {testResult && (
-            <div className="test-results">
-              <h3>Results</h3>
-              <pre>{JSON.stringify(testResult, null, 2)}</pre>
+              <button
+                onClick={handleTestClothingModifier}
+                disabled={testing || !selectedItemId || !modifyInstruction}
+                className="primary-button"
+              >
+                {testing ? 'Modifying...' : 'Test Modification'}
+              </button>
+
+              {testResult && (
+                <div className="test-results">
+                  <h3>Modified Item</h3>
+                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+                    <p><strong>Item:</strong> {testResult.item}</p>
+                    <p><strong>Category:</strong> {testResult.category}</p>
+                    <p><strong>Color:</strong> {testResult.color}</p>
+                    <p><strong>Fabric:</strong> {testResult.fabric}</p>
+                    <p><strong>Details:</strong> {testResult.details}</p>
+                    {testResult.visual_description && (
+                      <p><strong>Visual Description:</strong> {testResult.visual_description}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Standard Image Analyzer Test Interface */
+            <div className="test-upload">
+              <label htmlFor="test-image">Upload Image</label>
+              <input
+                type="file"
+                id="test-image"
+                accept="image/*"
+                onChange={handleImageChange}
+                disabled={testing}
+              />
+
+              {testImagePreview && (
+                <div className="test-image-preview">
+                  <img src={testImagePreview} alt="Preview" />
+                </div>
+              )}
+
+              <button
+                onClick={handleTest}
+                disabled={testing || !testImage}
+                className="primary-button"
+              >
+                {testing ? 'Running...' : 'Run Analysis'}
+              </button>
+
+              {testResult && (
+                <div className="test-results">
+                  <h3>Results</h3>
+                  <pre>{JSON.stringify(testResult, null, 2)}</pre>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -20,6 +20,7 @@ defaults:
 
   # Entity Management Tools
   entity_merger: "gemini/gemini-2.0-flash-exp"  # Fast model for merging entities
+  clothing_modifier: "gemini/gemini-2.0-flash-exp"  # Modify clothing descriptions with AI
 
   # Image Generation Tools (using Gemini 2.5 Flash Image - dedicated image generation model)
   outfit_generator: "gemini-2.5-flash-image"
