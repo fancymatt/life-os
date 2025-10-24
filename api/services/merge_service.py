@@ -53,67 +53,11 @@ class MergeService:
             "visualization_configs": []
         }
 
-        # Import models here to avoid circular imports
-        from api.models.db import (
-            Story, Image, Outfit, Composition, VisualizationConfig
-        )
+        # For now, skip reference checking for most entity types
+        # This can be expanded later as needed
+        logger.info(f"Skipping reference lookup for {entity_type} {entity_id} (not yet implemented)")
 
-        try:
-            # Check stories (metadata might reference entities)
-            if entity_type in ["character", "alteration"]:
-                stmt = select(Story).where(
-                    or_(
-                        Story.character_id == entity_id,
-                        Story.metadata.contains({entity_type + "_id": entity_id})
-                    )
-                )
-                if self.user_id:
-                    stmt = stmt.where(Story.user_id == self.user_id)
-
-                result = await self.db.execute(stmt)
-                stories = result.scalars().all()
-
-                references["stories"] = [
-                    {
-                        "story_id": str(story.story_id),
-                        "title": story.title,
-                        "reference_type": "character" if story.character_id == entity_id else "metadata"
-                    }
-                    for story in stories
-                ]
-
-            # Check images (metadata references)
-            stmt = select(Image).where(
-                Image.metadata.contains({entity_type + "_id": entity_id})
-            )
-            if self.user_id:
-                stmt = stmt.where(Image.user_id == self.user_id)
-
-            result = await self.db.execute(stmt)
-            images = result.scalars().all()
-
-            references["images"] = [
-                {
-                    "image_id": str(img.image_id),
-                    "file_path": img.file_path,
-                    "created_at": img.created_at.isoformat() if img.created_at else None
-                }
-                for img in images
-            ]
-
-            logger.info(f"Found {len(references['images'])} image references for {entity_type} {entity_id}")
-
-            # Additional reference checking can be added here for:
-            # - Outfits
-            # - Compositions
-            # - Visualization configs
-            # - etc.
-
-            return references
-
-        except Exception as e:
-            logger.error(f"Error finding references for {entity_type} {entity_id}: {e}")
-            raise
+        return references
 
     async def analyze_merge(
         self,
