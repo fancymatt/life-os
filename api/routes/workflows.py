@@ -13,7 +13,9 @@ from api.agents.story_planner import StoryPlannerAgent
 from api.agents.story_writer import StoryWriterAgent
 from api.agents.story_illustrator import StoryIllustratorAgent
 from api.services.job_queue import get_job_queue_manager
+from api.services.story_service_db import StoryServiceDB
 from api.models.jobs import JobType
+from api.database import get_session
 from api.logging_config import get_logger
 
 router = APIRouter()
@@ -183,6 +185,21 @@ async def execute_story_generation(request: StoryGenerationRequest, background_t
 
             # Check execution status
             if execution.status == "completed":
+                # Persist story to database
+                try:
+                    async with get_session() as session:
+                        story_service = StoryServiceDB(session, user_id=None)  # TODO: Add user_id support
+                        saved_story = await story_service.create_story_from_workflow_result(
+                            workflow_result=execution.result,
+                            character_id=request.character_id,
+                            theme=request.theme_id,
+                            story_type=request.story_type
+                        )
+                        logger.info(f"Story persisted to database: {saved_story['story_id']}")
+                except Exception as db_error:
+                    logger.error(f"Failed to persist story to database: {db_error}", exc_info=True)
+                    # Continue anyway - story is still in job results
+
                 job_manager.complete_job(job_id, result=execution.result)
                 logger.info(f"Story generation completed: {execution.result.get('title', 'Untitled')}")
             else:

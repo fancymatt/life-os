@@ -26,19 +26,27 @@ export const storiesConfig = {
   ],
 
   fetchEntities: async () => {
-    const response = await api.get('/jobs?limit=100')
-    return response.data
-      .filter(job => job.type === 'workflow' && job.status === 'completed' && job.result?.illustrated_story)
-      .map(job => ({
-        id: job.job_id,
-        title: job.result.illustrated_story.title,
-        story: job.result.illustrated_story.story,
-        illustrations: job.result.illustrated_story.illustrations || [],
-        metadata: job.result.illustrated_story.metadata || {},
-        createdAt: job.created_at,
-        completedAt: job.completed_at,
-        jobTitle: job.title
-      }))
+    const response = await api.get('/stories/')
+    return response.data.stories.map(story => {
+      // Extract illustrations from scenes
+      const illustrations = story.scenes
+        .filter(scene => scene.illustration_url)
+        .map(scene => ({
+          scene_number: scene.scene_number,
+          image_url: scene.illustration_url,
+          prompt: scene.illustration_prompt
+        }))
+
+      return {
+        id: story.story_id,
+        title: story.title,
+        story: story.content,
+        illustrations: illustrations,
+        metadata: story.metadata || {},
+        createdAt: story.created_at,
+        completedAt: story.updated_at || story.created_at
+      }
+    })
   },
 
   renderCard: (story) => (

@@ -183,7 +183,7 @@ Life-OS is evolving from a specialized **AI image generation platform** into a *
 
 ---
 
-### 2.4 Tagging System (3-4 days)
+### 2.5 Tagging System (3-4 days)
 **Priority**: HIGH - Improves organization across all entities
 **Complexity**: Medium
 
@@ -219,7 +219,7 @@ CREATE TABLE entity_tags (
 
 ---
 
-### 2.5 Entity Merge Tool (1 week)
+### 2.6 Entity Merge Tool (1 week)
 **Priority**: HIGH - Reduces duplicates
 **Complexity**: High
 
@@ -244,7 +244,7 @@ CREATE TABLE entity_tags (
 
 ---
 
-### 2.6 Visualization Config Linking (1 day)
+### 2.7 Visualization Config Linking (1 day)
 **Priority**: MEDIUM - Better discoverability
 **Complexity**: Low
 
@@ -262,7 +262,7 @@ CREATE TABLE entity_tags (
 
 ---
 
-### 2.7 Clothing Modification Tools (2-3 days)
+### 2.8 Clothing Modification Tools (2-3 days)
 **Priority**: HIGH - Iterative design
 **Complexity**: Low-Medium
 
@@ -285,7 +285,7 @@ CREATE TABLE entity_tags (
 
 ---
 
-### 2.8 Alterations Entity (1 week)
+### 2.9 Alterations Entity (1 week)
 **Priority**: HIGH - Expands creative possibilities
 **Complexity**: High
 
@@ -330,7 +330,7 @@ CREATE TABLE alterations (
 
 ---
 
-### 2.9 Story Import & Text-to-Story (2-3 days)
+### 2.10 Story Import & Text-to-Story (2-3 days)
 **Priority**: MEDIUM - Content flexibility
 **Complexity**: Low-Medium
 
@@ -355,7 +355,7 @@ CREATE TABLE alterations (
 
 ---
 
-### 2.10 NSFW Content Routing (1-2 days)
+### 2.11 NSFW Content Routing (1-2 days)
 **Priority**: MEDIUM - Content flexibility
 **Complexity**: Low
 
@@ -389,7 +389,7 @@ CREATE TABLE alterations (
 
 ---
 
-### 2.11 Extremify Tool (2-3 days)
+### 2.12 Extremify Tool (2-3 days)
 **Priority**: LOW - Fun creative feature
 **Complexity**: Medium
 
@@ -906,7 +906,7 @@ class Asset:
 
 ---
 
-### 7.2 Security Hardening (1 week)
+### 5.2 Security Hardening (1 week)
 
 **SQL Injection Prevention**:
 - [ ] Audit all database queries (parameterized only)
@@ -945,7 +945,7 @@ class Asset:
 
 ---
 
-### 7.3 Backup & Disaster Recovery (1 week)
+### 5.3 Backup & Disaster Recovery (1 week)
 
 **Automated Backups**:
 - [ ] PostgreSQL backups:
@@ -972,7 +972,7 @@ class Asset:
 
 ---
 
-### 6.4 Local LLM Frontend (2-3 days)
+### 5.4 Local LLM Frontend (2-3 days)
 
 **Complete Local LLM Integration** (95% → 100%):
 - [ ] Local Models page (`/local-models`)
@@ -991,7 +991,7 @@ class Asset:
 
 ---
 
-### Phase 7 Success Metrics
+### Phase 5 Success Metrics
 
 - [ ] Prometheus + Grafana operational
 - [ ] All security scans passing
@@ -1004,12 +1004,12 @@ class Asset:
 
 ---
 
-## Phase 7: Developer Autopilot (6-8 weeks)
+## Phase 6: Developer Autopilot (6-8 weeks)
 
 **Goal**: MCP-powered development, quality gates
 **Why Now**: Build developer tools before general autonomy
 
-### 7.1 MCP Integration (2-3 weeks) 🌟 **FOUNDATIONAL**
+### 6.1 MCP Integration (2-3 weeks) 🌟 **FOUNDATIONAL**
 **Priority**: HIGH - Enables ticket completion
 **Complexity**: High
 
@@ -1046,7 +1046,7 @@ class Asset:
 
 ---
 
-### 7.2 Small-PR Factory (1 week)
+### 6.2 Small-PR Factory (1 week)
 **Priority**: MEDIUM - Nightly improvements
 **Complexity**: Medium
 
@@ -1079,7 +1079,7 @@ class Asset:
 
 ---
 
-### 7.3 Default-On Quality Gates (1 week)
+### 6.3 Default-On Quality Gates (1 week)
 **Priority**: HIGH - Prevents regressions
 **Complexity**: Medium
 
@@ -1140,7 +1140,7 @@ class Asset:
 
 ---
 
-### Phase 7 Success Metrics
+### Phase 6 Success Metrics
 
 - [ ] Can complete ticket via chat
 - [ ] Nightly PRs always green
@@ -1242,12 +1242,12 @@ class Asset:
 
 ---
 
-## Phase 7: Daily Operating System (8-10 weeks) 🌟 **MAJOR MILESTONE**
+## Phase 8: Daily Operating System (8-10 weeks) 🌟 **MAJOR MILESTONE**
 
 **Goal**: Morning brief, rolling feed, auto-prep
 **Why Now**: Foundation complete, ready for daily OS features
 
-### 7.1 Event + Context Bus (2 weeks) 🌟 **FOUNDATIONAL**
+### 8.1 Event + Context Bus (2 weeks) 🌟 **FOUNDATIONAL**
 **Priority**: HIGH - Foundation for Brief and Auto-Prep
 **Complexity**: High
 
@@ -1285,7 +1285,7 @@ class Asset:
 
 ---
 
-### 7.2 5:00 AM Daily Brief (3-4 weeks) 🌟 **CORE FEATURE**
+### 8.2 5:00 AM Daily Brief (3-4 weeks) 🌟 **CORE FEATURE**
 **Priority**: HIGH - Core user experience
 **Complexity**: High
 **Depends on**: Event Bus, TasteProfile
@@ -1322,7 +1322,7 @@ class Asset:
 
 ---
 
-### 7.3 Rolling Feed (1 week)
+### 8.3 Rolling Feed (1 week)
 **Priority**: MEDIUM - Throughout-day context
 **Complexity**: Medium
 **Depends on**: Event Bus, Daily Brief
@@ -1349,7 +1349,7 @@ class Asset:
 
 ---
 
-### 7.4 Policy as Data (1 week) 🌟 **FOUNDATIONAL**
+### 8.4 Policy as Data (1 week) 🌟 **FOUNDATIONAL**
 **Priority**: HIGH - Foundation for all autonomy
 **Complexity**: Medium
 
@@ -1397,7 +1397,7 @@ policies:
 
 ---
 
-### 7.5 Auto-Prep Mode (2-3 weeks)
+### 8.5 Auto-Prep Mode (2-3 weeks)
 **Priority**: MEDIUM - Hands-off preparation
 **Complexity**: High
 **Depends on**: Event Bus, Policy System, TasteProfile
@@ -1431,7 +1431,7 @@ policies:
 
 ---
 
-### 7.6 Auto-Tidy Mode (1 week)
+### 8.6 Auto-Tidy Mode (1 week)
 **Priority**: LOW - Post-session cleanup
 **Complexity**: Medium
 **Depends on**: Event Bus, Policy System
@@ -1465,7 +1465,7 @@ policies:
 
 ---
 
-### Phase 7 Success Metrics 🌟
+### Phase 8 Success Metrics 🌟
 
 - [ ] Brief surfaces 5 cards every morning at 5:00 AM
 - [ ] Card acceptance rate >70%
@@ -1480,12 +1480,12 @@ policies:
 
 ---
 
-## Phase 8: Policy-Bound Autonomy (6-8 weeks)
+## Phase 9: Policy-Bound Autonomy (6-8 weeks)
 
 **Goal**: Propose-first agents with guardrails
 **Why Now**: Infrastructure ready, policies in place
 
-### 8.1 Visual Autopilot (2-3 weeks)
+### 9.1 Visual Autopilot (2-3 weeks)
 **Priority**: MEDIUM - Nightly creative packs
 **Complexity**: High
 **Depends on**: TasteProfile, Policy System, Event Bus
@@ -1520,7 +1520,7 @@ policies:
 
 ---
 
-### 8.2 Dev Autopilot (2-3 weeks)
+### 9.2 Dev Autopilot (2-3 weeks)
 **Priority**: MEDIUM - Docs/tests only
 **Complexity**: High
 **Depends on**: MCP Tools, Policy System
@@ -1557,7 +1557,7 @@ policies:
 
 ---
 
-### 8.3 Policy Enforcement Framework (1 week)
+### 9.3 Policy Enforcement Framework (1 week)
 **Priority**: HIGH - Safety critical
 **Complexity**: Medium
 
@@ -1575,7 +1575,7 @@ policies:
 
 ---
 
-### Phase 8 Success Metrics
+### Phase 9 Success Metrics
 
 - [ ] Visual Autopilot approval rate >80%
 - [ ] Dev Autopilot PR merge rate >90%
@@ -1588,12 +1588,12 @@ policies:
 
 ---
 
-## Phase 9: Board Game Assistant (3-4 weeks)
+## Phase 10: Board Game Assistant (3-4 weeks)
 
 **Goal**: Rules gathering, document RAG, Q&A
 **Why Now**: Can leverage existing infrastructure (database, LLM, embeddings)
 
-### 9.1 Rules Gatherer (1 week)
+### 10.1 Rules Gatherer (1 week)
 **Priority**: MEDIUM - BGG integration
 **Complexity**: Medium
 
@@ -1611,7 +1611,7 @@ policies:
 
 ---
 
-### 9.2 Document RAG Preparer (1-2 weeks)
+### 10.2 Document RAG Preparer (1-2 weeks)
 **Priority**: HIGH - Core functionality
 **Complexity**: High
 
@@ -1629,7 +1629,7 @@ policies:
 
 ---
 
-### 9.3 Document Q&A System (1 week)
+### 10.3 Document Q&A System (1 week)
 **Priority**: HIGH - User-facing feature
 **Complexity**: Medium
 
@@ -1653,7 +1653,7 @@ policies:
 
 ---
 
-### Phase 9 Success Metrics
+### Phase 10 Success Metrics
 
 - [ ] Can download rules from BGG
 - [ ] Document Q&A helpful (>85%)
@@ -1665,12 +1665,12 @@ policies:
 
 ---
 
-## Phase 10: Media Companion (4-5 weeks)
+## Phase 11: Media Companion (4-5 weeks)
 
 **Goal**: Jellyfin integration, cross-modal taste
 **Why Now**: TasteProfile mature, embeddings working
 
-### 10.1 Library Mirror & Embeddings (2 weeks)
+### 11.1 Library Mirror & Embeddings (2 weeks)
 **Priority**: LOW - Nice to have
 **Complexity**: High
 
@@ -1695,7 +1695,7 @@ policies:
 
 ---
 
-### 10.2 Opportunistic Downloads (1 week)
+### 11.2 Opportunistic Downloads (1 week)
 **Priority**: LOW - Read-only awareness
 **Complexity**: Medium
 
@@ -1712,7 +1712,7 @@ policies:
 
 ---
 
-### 10.3 Cross-Modal Taste (1-2 weeks)
+### 11.3 Cross-Modal Taste (1-2 weeks)
 **Priority**: LOW - Advanced feature
 **Complexity**: High
 **Depends on**: TasteProfile, Media Companion
@@ -1729,7 +1729,7 @@ policies:
 
 ---
 
-### Phase 10 Success Metrics
+### Phase 11 Success Metrics
 
 - [ ] Jellyfin library mirrored
 - [ ] Cross-domain taste influences work
@@ -1741,12 +1741,12 @@ policies:
 
 ---
 
-## Phase 11: Cost & Performance Optimizer (2-3 weeks)
+## Phase 12: Cost & Performance Optimizer (2-3 weeks)
 
 **Goal**: Self-improving efficiency
 **Why Now**: System mature, metrics available
 
-### 11.1 Self-Observation to Actionable Deltas (2-3 weeks)
+### 12.1 Self-Observation to Actionable Deltas (2-3 weeks)
 **Priority**: MEDIUM - Cost savings
 **Complexity**: Medium
 
@@ -1776,7 +1776,7 @@ policies:
 
 ---
 
-### Phase 11 Success Metrics
+### Phase 12 Success Metrics
 
 - [ ] Proposes 3 optimizations/week
 - [ ] Savings accurate
@@ -1788,12 +1788,12 @@ policies:
 
 ---
 
-## Phase 12: Capture & Knowledge Mesh (4-5 weeks)
+## Phase 13: Capture & Knowledge Mesh (4-5 weeks)
 
 **Goal**: Everywhere capture, private connectors
 **Why Now**: Daily OS mature, ready for knowledge integration
 
-### 12.1 Everywhere Capture (1-2 weeks)
+### 13.1 Everywhere Capture (1-2 weeks)
 **Priority**: MEDIUM - Ubiquitous capture
 **Complexity**: Medium
 
@@ -1817,7 +1817,7 @@ policies:
 
 ---
 
-### 12.2 Personal Knowledge Connectors (2-3 weeks)
+### 13.2 Personal Knowledge Connectors (2-3 weeks)
 **Priority**: LOW - Privacy-sensitive
 **Complexity**: High
 
@@ -1845,7 +1845,7 @@ policies:
 
 ---
 
-### Phase 12 Success Metrics
+### Phase 13 Success Metrics
 
 - [ ] Can save to LifeOS from any device
 - [ ] Connectors surface relevant context
@@ -1857,7 +1857,7 @@ policies:
 
 ---
 
-## Phase 13: Advanced Features & Polish (Ongoing)
+## Phase 14: Advanced Features & Polish (Ongoing)
 
 **Goal**: Nice-to-have features, experimental tools
 **Why Now**: Core complete, time for exploration
@@ -2028,19 +2028,18 @@ policies:
 **Completed**: Phase 1 (8 weeks) ✅
 
 **Month 1-2**: Phase 2 (UX & Core Features)
-**Month 2-3**: Phase 2.5 (Maintenance & Refactoring)
 **Month 3-5**: Phase 3 (Creative Intelligence)
 **Month 5-6**: Phase 4 (Reproducibility)
-**Month 6-8**: Phase 4.5 (Infrastructure Hardening)
-**Month 8-10**: Phase 5 (Developer Autopilot)
-**Month 10-12**: Phase 6 (Design System Intelligence)
-**Month 12-15**: Phase 7 (Daily Operating System) 🌟 **MAJOR MILESTONE**
-**Month 15-17**: Phase 8 (Policy-Bound Autonomy)
-**Month 17-18**: Phase 9 (Board Game Assistant)
-**Month 18-20**: Phase 10 (Media Companion)
-**Month 20-21**: Phase 11 (Cost Optimizer)
-**Month 21-23**: Phase 12 (Capture & Knowledge)
-**Month 23-24**: Phase 13 (Advanced Features)
+**Month 6-8**: Phase 5 (Infrastructure Hardening)
+**Month 8-10**: Phase 6 (Developer Autopilot)
+**Month 10-12**: Phase 7 (Design System Intelligence)
+**Month 12-15**: Phase 8 (Daily Operating System) 🌟 **MAJOR MILESTONE**
+**Month 15-17**: Phase 9 (Policy-Bound Autonomy)
+**Month 17-18**: Phase 10 (Board Game Assistant)
+**Month 18-20**: Phase 11 (Media Companion)
+**Month 20-21**: Phase 12 (Cost Optimizer)
+**Month 21-23**: Phase 13 (Capture & Knowledge)
+**Month 23-24**: Phase 14 (Advanced Features)
 
 ---
 
@@ -2048,10 +2047,10 @@ policies:
 
 **Month 2** (Phase 2 Complete): All high-value UX features delivered
 **Month 5** (Phase 3 Complete): TasteProfile learning, creative exploration working
-**Month 8** (Phase 4.5 Complete): Infrastructure rock-solid, ready for autonomy
-**Month 12** (Phase 6 Complete): Design system mature, developer tools working
-**Month 15** (Phase 7 Complete): 🌟 **LifeOS becomes daily operating system**
-**Month 17** (Phase 8 Complete): Agents autonomous within policy guardrails
+**Month 8** (Phase 5 Complete): Infrastructure rock-solid, ready for autonomy
+**Month 12** (Phase 7 Complete): Design system mature, developer tools working
+**Month 15** (Phase 8 Complete): 🌟 **LifeOS becomes daily operating system**
+**Month 17** (Phase 9 Complete): Agents autonomous within policy guardrails
 **Month 24**: **LifeOS is comprehensive personal AI assistant**
 
 ---
@@ -2061,15 +2060,15 @@ policies:
 **Phase 2**: Archive 100%, Mobile >8/10, Tagging >60%, Theme working
 **Phase 3**: TasteProfile >100 interactions, "Find Similar" >80%, Recipes >20
 **Phase 4**: Reproduce from 6 months ago, Full cost attribution
-**Phase 4.5**: Monitoring operational, Security scans passing, Backups automated
-**Phase 5**: Complete ticket via chat, Nightly PRs green, Zero prompt regressions
-**Phase 6**: Design tokens auto-sync, Dead components detected
-**Phase 7** 🌟: Brief surfaces daily, Auto-Prep <$5/night, "Indispensable" rating
-**Phase 8**: Autopilot approval >80%, PR merge >90%, Zero policy violations
-**Phase 9**: Document Q&A >85% helpful, Citations accurate
-**Phase 10**: Jellyfin mirrored, Cross-domain taste working
-**Phase 11**: 3 optimizations/week, Savings accurate
-**Phase 12**: Capture from any device, Privacy controls effective
+**Phase 5**: Monitoring operational, Security scans passing, Backups automated
+**Phase 6**: Complete ticket via chat, Nightly PRs green, Zero prompt regressions
+**Phase 7**: Design tokens auto-sync, Dead components detected
+**Phase 8** 🌟: Brief surfaces daily, Auto-Prep <$5/night, "Indispensable" rating
+**Phase 9**: Autopilot approval >80%, PR merge >90%, Zero policy violations
+**Phase 10**: Document Q&A >85% helpful, Citations accurate
+**Phase 11**: Jellyfin mirrored, Cross-domain taste working
+**Phase 12**: 3 optimizations/week, Savings accurate
+**Phase 13**: Capture from any device, Privacy controls effective
 
 ---
 
@@ -2154,9 +2153,9 @@ policies:
 
 **Next 2 Weeks**:
 1. ✅ UI theme system (COMPLETE - Oct 23, 2025)
-2. Database persistence (2-3 days) - Stories and Q&As
-3. Tagging system (3-4 days)
-4. Visualization config linking (1 day)
+2. Database persistence (2-3 days) - Stories and Q&As (Section 2.3)
+3. Tagging system (3-4 days) (Section 2.5)
+4. Visualization config linking (1 day) (Section 2.7)
 
 **Next Month**:
 1. Complete Phase 2 (all UX features)
