@@ -8,11 +8,14 @@
 
 ## ✅ Completion Status
 
-### Phase 0: Image Optimization System - **85% COMPLETE**
-- ✅ **0.3**: Frontend size selection (EntityPreviewImage)
-- ✅ **0.4**: On-demand optimization system (`/entity-previews/optimize`)
-- ✅ Discovery: API endpoint vs filesystem paths limitation
-- ❌ **0.2**: Preview generation jobs don't create optimized versions automatically yet
+### Phase 0: Image Optimization System - **100% COMPLETE** ✅
+- ✅ **0.2**: Preview generation jobs create optimized versions automatically
+  - Clothing items: `api/workers/jobs.py` lines 74-122
+  - Preset entities: `api/routes/tools.py` lines 91-115
+  - Both use ImageOptimizer to create small/medium/large versions
+- ✅ **0.3**: Frontend size selection (EntityPreviewImage with `getSizedImageUrl`)
+- ✅ **0.4**: On-demand optimization system (`/entity-previews/optimize` + job)
+- ✅ Discovery: API endpoint vs filesystem paths limitation documented
 
 ### Phase 1: EntityPreviewImage Rollout - **100% COMPLETE** ✅
 - ✅ **1.1**: Characters Entity (already had EntityPreviewImage)
@@ -22,6 +25,13 @@
 - ✅ **1.5**: Job naming standards enforced (preset preview generation)
 - ✅ Deleted ~300 lines of manual job polling code
 - ✅ All entities now use SSE-based automatic job tracking
+
+### Phase 2: Outfit Previews & LLM Job Audit - **50% COMPLETE**
+- ✅ **2.1**: Outfit preview generation - ALREADY COMPLETE
+  - Discovered during Phase 1: Outfits are a preset entity
+  - Already use `/api/presets/outfits/{id}/preview` endpoint
+  - Preview generation works via `run_preset_preview_generation_job`
+- ⏳ **2.2**: LLM job audit - TODO (next priority)
 
 ### Key Discoveries & Learnings
 
