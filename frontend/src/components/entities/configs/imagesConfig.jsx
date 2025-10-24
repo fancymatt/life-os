@@ -130,10 +130,8 @@ export const imagesConfig = {
 
     return (
       <div style={{ padding: '2rem' }}>
-        <h2 style={{ color: 'white', margin: '0 0 1.5rem 0' }}>{image.filename}</h2>
-
-        {/* Preview Image */}
-        <div style={{ marginBottom: '2rem' }}>
+        {/* Large image at top - max 800px, left aligned */}
+        <div style={{ marginBottom: '2rem', maxWidth: '800px' }}>
           <EntityPreviewImage
             entityType="images"
             entityId={image.imageId}
@@ -144,15 +142,19 @@ export const imagesConfig = {
           />
         </div>
 
-        {/* Image metadata */}
-        {(image.width || image.height) && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>Dimensions</h3>
-            <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
-              {image.width} × {image.height} pixels
-            </p>
-          </div>
-        )}
+        {/* Metadata section - full width */}
+        <div style={{ width: '100%' }}>
+          <h2 style={{ color: 'white', margin: '0 0 1.5rem 0' }}>{image.filename}</h2>
+
+          {/* Image metadata */}
+          {(image.width || image.height) && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', margin: '0 0 0.5rem 0' }}>Dimensions</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
+                {image.width} × {image.height} pixels
+              </p>
+            </div>
+          )}
 
         {/* Entity relationships */}
         {Object.keys(image.entities || {}).length > 0 && (
@@ -187,27 +189,28 @@ export const imagesConfig = {
           </div>
         )}
 
-        {formatDate(image.createdAt) && (
-          <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            <p style={{ margin: 0 }}><strong>Generated:</strong> {formatDate(image.createdAt)}</p>
-          </div>
-        )}
+          {formatDate(image.createdAt) && (
+            <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              <p style={{ margin: 0 }}><strong>Generated:</strong> {formatDate(image.createdAt)}</p>
+            </div>
+          )}
 
-        <a
-          href={image.originalImageUrl || image.imageUrl}
-          download={image.filename}
-          style={{
-            display: 'inline-block',
-            padding: '0.75rem 1.5rem',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '8px',
-            fontWeight: 500
-          }}
-        >
-          ⬇️ Download Full Resolution
-        </a>
+          <a
+            href={image.originalImageUrl || image.imageUrl}
+            download={image.filename}
+            style={{
+              display: 'inline-block',
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: 500
+            }}
+          >
+            ⬇️ Download Full Resolution
+          </a>
+        </div>
       </div>
     )
   },
