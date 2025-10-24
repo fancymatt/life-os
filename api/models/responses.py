@@ -244,3 +244,45 @@ class DocumentProcessResponse(BaseModel):
     chunk_count: Optional[int] = None
     processing_time: Optional[float] = None
     error: Optional[str] = None
+
+
+# ============================================================================
+# Tag Models
+# ============================================================================
+
+class TagInfo(BaseModel):
+    """Tag information"""
+    tag_id: str
+    name: str
+    category: Optional[str] = None
+    color: Optional[str] = None
+    usage_count: int = 0
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class TagListResponse(BaseModel):
+    """List of tags"""
+    count: int
+    tags: List[TagInfo]
+
+
+class EntityTagsResponse(BaseModel):
+    """Tags for an entity"""
+    entity_type: str
+    entity_id: str
+    tags: List[TagInfo]
+
+
+class TagStatisticsResponse(BaseModel):
+    """Tag usage statistics"""
+    total_tags: int
+    total_relationships: int
+    top_tags: List[Dict[str, Any]]  # [{"tag_id": "...", "name": "...", "usage_count": 5}]
+    tags_by_category: Dict[str, int]  # {"style": 10, "material": 5, ...}
+
+
+class TagAutocompleteResponse(BaseModel):
+    """Autocomplete suggestions for tags"""
+    query: str
+    suggestions: List[TagInfo]

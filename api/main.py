@@ -15,7 +15,7 @@ from api.config import settings
 from api.logging_config import setup_logging, get_logger
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, stories, characters, configs, tool_configs, local_models, board_games, documents, qa, clothing_items, outfits, visualization_configs, images, cache, tools
+from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, stories, characters, configs, tool_configs, local_models, board_games, documents, qa, clothing_items, outfits, visualization_configs, images, cache, tools, tags
 from api.middleware.request_id import RequestIDMiddleware
 
 # Initialize logging
@@ -138,6 +138,7 @@ app.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
 app.include_router(story_tools.router, prefix="/story-tools", tags=["story-tools"])
 app.include_router(stories.router, prefix="/stories", tags=["stories"])
 app.include_router(images.router, prefix="/images", tags=["images"])
+app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(cache.router, tags=["cache"])
 
 

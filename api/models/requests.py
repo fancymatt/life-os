@@ -340,3 +340,64 @@ class QAUpdate(BaseModel):
                 "custom_tags": ["setup", "cards"]
             }
         }
+
+
+# ============================================================================
+# Tag Models
+# ============================================================================
+
+class TagCreate(BaseModel):
+    """Request to create a tag"""
+    name: str = Field(..., min_length=1, max_length=100, description="Tag name")
+    category: Optional[str] = Field(None, description="Tag category (material, style, season, genre, etc.)")
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$', description="Hex color code (#RRGGBB)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "casual",
+                "category": "style",
+                "color": "#4A90E2"
+            }
+        }
+
+
+class TagUpdate(BaseModel):
+    """Request to update a tag"""
+    name: Optional[str] = Field(None, min_length=1, max_length=100, description="Tag name")
+    category: Optional[str] = Field(None, description="Tag category")
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$', description="Hex color code")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "smart casual",
+                "color": "#5A9FD4"
+            }
+        }
+
+
+class EntityTagRequest(BaseModel):
+    """Request to tag an entity"""
+    tag_names: List[str] = Field(..., min_length=1, description="List of tag names to apply")
+    auto_create: bool = Field(True, description="Auto-create tags that don't exist")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "tag_names": ["casual", "summer", "favorite"],
+                "auto_create": True
+            }
+        }
+
+
+class SetEntityTagsRequest(BaseModel):
+    """Request to set all tags on an entity (replaces existing)"""
+    tag_names: List[str] = Field(..., description="Complete list of tag names (replaces all existing tags)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "tag_names": ["casual", "summer", "approved"]
+            }
+        }
