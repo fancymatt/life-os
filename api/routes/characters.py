@@ -13,8 +13,9 @@ from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.requests import CharacterCreate, CharacterUpdate, CharacterFromSubject
-from api.models.responses import CharacterInfo, CharacterListResponse, CharacterFromSubjectResponse
+from api.models.responses import CharacterInfo, CharacterListResponse, CharacterFromSubjectResponse, TagInfo
 from api.services.character_service_db import CharacterServiceDB
+from api.services.tag_service import TagService
 from api.database import get_db
 from api.models.auth import User
 from api.dependencies.auth import get_current_active_user
@@ -27,6 +28,39 @@ from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+async def get_entity_tags_info(
+    db: AsyncSession,
+    entity_type: str,
+    entity_id: str
+) -> List[TagInfo]:
+    """
+    Helper function to fetch tags for an entity and convert to TagInfo response objects.
+
+    Args:
+        db: Database session
+        entity_type: Entity type (e.g., "character", "clothing_item")
+        entity_id: Entity ID
+
+    Returns:
+        List of TagInfo objects with tag metadata
+    """
+    tag_service = TagService(db_session=db)
+    tags = await tag_service.get_entity_tags(entity_type, entity_id)
+
+    return [
+        TagInfo(
+            tag_id=tag.tag_id,
+            name=tag.name,
+            category=tag.category,
+            color=tag.color,
+            usage_count=tag.usage_count,
+            created_at=tag.created_at.isoformat() if tag.created_at else None,
+            updated_at=tag.updated_at.isoformat() if tag.updated_at else None
+        )
+        for tag in tags
+    ]
 
 
 @router.get("/", response_model=CharacterListResponse)
@@ -59,6 +93,9 @@ async def list_characters(
         if char.get('reference_image_path'):
             ref_image_url = f"/api/characters/{char['character_id']}/image"
 
+        # Fetch tags from database
+        tags_info = await get_entity_tags_info(db, "character", char['character_id'])
+
         character_infos.append(CharacterInfo(
             character_id=char['character_id'],
             name=char['name'],
@@ -66,7 +103,7 @@ async def list_characters(
             physical_description=char.get('physical_description'),
             personality=char.get('personality'),
             reference_image_url=ref_image_url,
-            tags=char.get('tags', []),
+            tags=tags_info,
             created_at=char.get('created_at'),
             archived=char.get('archived', False),
             archived_at=char.get('archived_at'),
@@ -173,6 +210,9 @@ async def create_character_multipart(
     if character_data.get('reference_image_path'):
         ref_image_url = f"/api/characters/{character_id}/image"
 
+    # Fetch tags from database
+    tags_info = await get_entity_tags_info(db, "character", character_id)
+
     return CharacterInfo(
         character_id=character_data['character_id'],
         name=character_data['name'],
@@ -180,7 +220,7 @@ async def create_character_multipart(
         physical_description=character_data.get('physical_description'),
         personality=character_data.get('personality'),
         reference_image_url=ref_image_url,
-        tags=character_data.get('tags', []),
+        tags=tags_info,
         created_at=character_data.get('created_at'),
         archived=character_data.get('archived', False),
         archived_at=character_data.get('archived_at'),
@@ -261,6 +301,9 @@ async def create_character(
     if character_data.get('reference_image_path'):
         ref_image_url = f"/api/characters/{character_data['character_id']}/image"
 
+    # Fetch tags from database
+    tags_info = await get_entity_tags_info(db, "character", character_data['character_id'])
+
     return CharacterInfo(
         character_id=character_data['character_id'],
         name=character_data['name'],
@@ -268,7 +311,7 @@ async def create_character(
         physical_description=character_data.get('physical_description'),
         personality=character_data.get('personality'),
         reference_image_url=ref_image_url,
-        tags=character_data.get('tags', []),
+        tags=tags_info,
         created_at=character_data.get('created_at'),
         archived=character_data.get('archived', False),
         archived_at=character_data.get('archived_at'),
@@ -366,6 +409,9 @@ async def upload_character_image(
     # Build reference image URL
     ref_image_url = f"/api/characters/{character_id}/image"
 
+    # Fetch tags from database
+    tags_info = await get_entity_tags_info(db, "character", character_id)
+
     return CharacterInfo(
         character_id=character_data['character_id'],
         name=character_data['name'],
@@ -373,7 +419,7 @@ async def upload_character_image(
         physical_description=character_data.get('physical_description'),
         personality=character_data.get('personality'),
         reference_image_url=ref_image_url,
-        tags=character_data.get('tags', []),
+        tags=tags_info,
         created_at=character_data.get('created_at'),
         archived=character_data.get('archived', False),
         archived_at=character_data.get('archived_at'),
@@ -412,6 +458,9 @@ async def get_character(
     if character_data.get('reference_image_path'):
         ref_image_url = f"/api/characters/{character_id}/image"
 
+    # Fetch tags from database
+    tags_info = await get_entity_tags_info(db, "character", character_id)
+
     return CharacterInfo(
         character_id=character_data['character_id'],
         name=character_data['name'],
@@ -419,7 +468,7 @@ async def get_character(
         physical_description=character_data.get('physical_description'),
         personality=character_data.get('personality'),
         reference_image_url=ref_image_url,
-        tags=character_data.get('tags', []),
+        tags=tags_info,
         created_at=character_data.get('created_at'),
         archived=character_data.get('archived', False),
         archived_at=character_data.get('archived_at'),
@@ -477,6 +526,9 @@ async def update_character(
     if character_data.get('reference_image_path'):
         ref_image_url = f"/api/characters/{character_id}/image"
 
+    # Fetch tags from database
+    tags_info = await get_entity_tags_info(db, "character", character_id)
+
     return CharacterInfo(
         character_id=character_data['character_id'],
         name=character_data['name'],
@@ -484,7 +536,7 @@ async def update_character(
         physical_description=character_data.get('physical_description'),
         personality=character_data.get('personality'),
         reference_image_url=ref_image_url,
-        tags=character_data.get('tags', []),
+        tags=tags_info,
         created_at=character_data.get('created_at'),
         archived=character_data.get('archived', False),
         archived_at=character_data.get('archived_at'),
@@ -621,6 +673,9 @@ async def re_analyze_character_appearance(
     # Build reference image URL
     ref_image_url = f"/api/characters/{character_id}/image"
 
+    # Fetch tags from database
+    tags_info = await get_entity_tags_info(db, "character", character_id)
+
     return CharacterInfo(
         character_id=character_data['character_id'],
         name=character_data['name'],
@@ -628,7 +683,7 @@ async def re_analyze_character_appearance(
         physical_description=character_data.get('physical_description'),
         personality=character_data.get('personality'),
         reference_image_url=ref_image_url,
-        tags=character_data.get('tags', []),
+        tags=tags_info,
         created_at=character_data.get('created_at'),
         archived=character_data.get('archived', False),
         archived_at=character_data.get('archived_at'),

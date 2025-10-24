@@ -109,6 +109,17 @@ class HealthResponse(BaseModel):
     }
 
 
+class TagInfo(BaseModel):
+    """Tag information"""
+    tag_id: str
+    name: str
+    category: Optional[str] = None
+    color: Optional[str] = None
+    usage_count: int = 0
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
 class CharacterInfo(BaseModel):
     """Character information"""
     character_id: str
@@ -117,7 +128,7 @@ class CharacterInfo(BaseModel):
     physical_description: Optional[str] = None
     personality: Optional[str] = None
     reference_image_url: Optional[str] = None
-    tags: List[str] = []
+    tags: List["TagInfo"] = []  # Now returns full tag objects instead of strings
     created_at: Optional[str] = None
     archived: bool = False
     archived_at: Optional[str] = None
@@ -249,16 +260,7 @@ class DocumentProcessResponse(BaseModel):
 # ============================================================================
 # Tag Models
 # ============================================================================
-
-class TagInfo(BaseModel):
-    """Tag information"""
-    tag_id: str
-    name: str
-    category: Optional[str] = None
-    color: Optional[str] = None
-    usage_count: int = 0
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+# Note: TagInfo is defined earlier (line 112) before CharacterInfo to support forward reference
 
 
 class TagListResponse(BaseModel):

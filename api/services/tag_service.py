@@ -10,6 +10,7 @@ This service handles:
 """
 
 from typing import List, Optional, Dict, Any
+from sqlalchemy.ext.asyncio import AsyncSession
 from api.repositories.tag_repository import TagRepository
 from api.models.db import Tag, EntityTag
 from api.logging_config import get_logger
@@ -22,8 +23,14 @@ logger = get_logger(__name__)
 class TagService:
     """Service for tag business logic"""
 
-    def __init__(self):
-        self.repository = TagRepository()
+    def __init__(self, db_session: Optional['AsyncSession'] = None):
+        """
+        Initialize TagService with optional database session.
+
+        Args:
+            db_session: Optional database session for transactional consistency
+        """
+        self.repository = TagRepository(db_session=db_session)
 
         # Common tag categories
         self.CATEGORIES = [
