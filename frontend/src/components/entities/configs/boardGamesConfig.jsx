@@ -1,5 +1,6 @@
 import api from '../../../api/client'
 import { formatDate, getPreview } from './helpers'
+import TagManager from '../../tags/TagManager'
 
 /**
  * Board Games Entity Configuration
@@ -37,6 +38,7 @@ export const boardGamesConfig = {
       complexity: game.complexity,
       createdAt: game.created_at,
       metadata: game.metadata || {},
+      tags: game.tags || [],
       archived: game.archived || false,
       archivedAt: game.archived_at,
       // Wrap editable fields in data property for EntityBrowser
@@ -438,6 +440,19 @@ export const boardGamesConfig = {
           }}
         />
       </div>
+
+      {/* Tags */}
+      <TagManager
+        entityType="board_game"
+        entityId={game.gameId}
+        tags={game.tags || []}
+        onTagsChange={(newTags) => {
+          // Trigger entity refresh to show updated tags
+          if (handleEntityUpdate) {
+            handleEntityUpdate()
+          }
+        }}
+      />
     </div>
   ),
 

@@ -714,7 +714,10 @@ export const clothingItemsConfig = {
         entityId={item.itemId}
         tags={item.tags || []}
         onTagsChange={(newTags) => {
-          item.tags = newTags
+          // Trigger entity refresh to show updated tags
+          if (handleEntityUpdate) {
+            handleEntityUpdate()
+          }
         }}
       />
     </div>

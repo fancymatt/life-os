@@ -1,6 +1,7 @@
 import api from '../../../api/client'
 import { formatDate, getWordCount, getPreview } from './helpers'
 import LazyImage from '../LazyImage'
+import TagManager from '../../tags/TagManager'
 
 /**
  * Stories Entity Configuration
@@ -42,6 +43,7 @@ export const storiesConfig = {
         title: story.title,
         story: story.content,
         illustrations: illustrations,
+        tags: story.tags || [],
         metadata: story.metadata || {},
         createdAt: story.created_at,
         completedAt: story.updated_at || story.created_at
@@ -175,6 +177,18 @@ export const storiesConfig = {
             <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Illustrations:</strong> {story.illustrations.length}</p>
             <p style={{ margin: 0 }}><strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Generated:</strong> {formatDate(story.completedAt)}</p>
           </div>
+
+          {/* Tags (readonly) */}
+          {story.tags && story.tags.length > 0 && (
+            <div style={{ marginTop: '1.5rem' }}>
+              <TagManager
+                entityType="story"
+                entityId={story.id}
+                tags={story.tags}
+                readonly={true}
+              />
+            </div>
+          )}
         </div>
       </div>
     )

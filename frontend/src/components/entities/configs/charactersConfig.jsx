@@ -273,8 +273,10 @@ export const charactersConfig = {
         entityId={character.characterId}
         tags={character.tags || []}
         onTagsChange={(newTags) => {
-          // Update character object with new tags
-          character.tags = newTags
+          // Trigger entity refresh to show updated tags
+          if (handleEntityUpdate) {
+            handleEntityUpdate()
+          }
         }}
       />
 
