@@ -2,6 +2,7 @@ import api from '../../../api/client'
 import { formatDate, getPreview } from './helpers'
 import LazyImage from '../LazyImage'
 import ReAnalyzeButton from '../ReAnalyzeButton'
+import TagManager from '../../tags/TagManager'
 
 /**
  * Characters Entity Configuration
@@ -140,6 +141,18 @@ export const charactersConfig = {
         <ReAnalyzeButton character={character} onUpdate={onUpdate} variant="compact" />
       </div>
 
+      {/* Tags (readonly) */}
+      {character.tags && character.tags.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <TagManager
+            entityType="character"
+            entityId={character.characterId}
+            tags={character.tags}
+            readonly={true}
+          />
+        </div>
+      )}
+
         {/* Overall Description */}
         {character.physicalDescription && (
         <div style={{ marginBottom: '1.5rem' }}>
@@ -253,6 +266,17 @@ export const charactersConfig = {
           }}
         />
       </div>
+
+      {/* Tags */}
+      <TagManager
+        entityType="character"
+        entityId={character.characterId}
+        tags={character.tags || []}
+        onTagsChange={(newTags) => {
+          // Update character object with new tags
+          character.tags = newTags
+        }}
+      />
 
       {/* Appearance Details Section */}
       <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
