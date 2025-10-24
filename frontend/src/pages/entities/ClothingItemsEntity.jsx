@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import EntityBrowser from '../../components/entities/EntityBrowser'
 import { clothingItemsConfig } from '../../components/entities/configs/clothingItemsConfig'
+import EntitySelectorModal from '../../components/entities/EntitySelectorModal'
+import EntityMergeModal from '../../components/entities/EntityMergeModal'
 import api from '../../api/client'
 
 function ClothingItemsEntity() {
@@ -8,23 +10,91 @@ function ClothingItemsEntity() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categorySummary, setCategorySummary] = useState(null)
 
-  // Fetch category summary
+  // Merge state
+  const [showEntitySelector, setShowEntitySelector] = useState(false)
+  const [showMergeModal, setShowMergeModal] = useState(false)
+  const [mergeSource, setMergeSource] = useState(null)
+  const [mergeTarget, setMergeTarget] = useState(null)
+  const [allClothingItems, setAllClothingItems] = useState([])
+
+  // Load all clothing items for merge selector
   useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        const response = await api.get('/clothing-items/categories')
-        setCategorySummary(response.data)
-      } catch (error) {
-        console.error('Failed to fetch category summary:', error)
-      }
-    }
+    loadClothingItems()
     fetchSummary()
   }, [refreshTrigger])
 
-  // Create a modified config with category filtering
+  const loadClothingItems = async () => {
+    try {
+      const response = await api.get('/clothing-items/')
+      const items = (response.data.clothing_items || []).map(item => ({
+        id: item.clothing_item_id,
+        clothingItemId: item.clothing_item_id,
+        title: item.name,
+        name: item.name,
+        archived: item.archived || false,
+        data: {
+          category: item.category,
+          color: item.color,
+          pattern: item.pattern,
+          material: item.material,
+          description: item.description
+        }
+      }))
+      setAllClothingItems(items)
+    } catch (err) {
+      console.error('Failed to load clothing items:', err)
+    }
+  }
+
+  const fetchSummary = async () => {
+    try {
+      const response = await api.get('/clothing-items/categories')
+      setCategorySummary(response.data)
+    } catch (error) {
+      console.error('Failed to fetch category summary:', error)
+    }
+  }
+
+  const handleMergeClick = (item) => {
+    setMergeSource(item)
+    setShowEntitySelector(true)
+  }
+
+  const handleTargetSelected = (target) => {
+    setMergeTarget(target)
+    setShowEntitySelector(false)
+    setShowMergeModal(true)
+  }
+
+  const handleMergeComplete = () => {
+    setShowMergeModal(false)
+    setMergeSource(null)
+    setMergeTarget(null)
+    setRefreshTrigger(prev => prev + 1)
+  }
+
+  const handleMergeModalClose = () => {
+    setShowMergeModal(false)
+    setMergeSource(null)
+    setMergeTarget(null)
+  }
+
+  // Create a modified config with category filtering and merge action
   const config = useMemo(() => ({
     ...clothingItemsConfig,
-    fetchEntities: () => clothingItemsConfig.fetchEntities(selectedCategory)
+    fetchEntities: () => clothingItemsConfig.fetchEntities(selectedCategory),
+    actions: [
+      ...(clothingItemsConfig.actions || []),
+      {
+        label: 'Merge with...',
+        icon: '🔀',
+        primary: false,
+        handler: async (item) => {
+          handleMergeClick(item)
+          return { success: true }
+        }
+      }
+    ]
   }), [selectedCategory])
 
   // Categories for filtering
@@ -122,6 +192,32 @@ function ClothingItemsEntity() {
 
       {/* Entity Browser */}
       <EntityBrowser key={refreshTrigger} config={config} />
+
+      {/* Entity Selector for Merge */}
+      {showEntitySelector && mergeSource && (
+        <EntitySelectorModal
+          entities={allClothingItems}
+          currentEntity={mergeSource}
+          entityType="clothing item"
+          title="Select Clothing Item to Merge"
+          onSelect={handleTargetSelected}
+          onClose={() => {
+            setShowEntitySelector(false)
+            setMergeSource(null)
+          }}
+        />
+      )}
+
+      {/* Merge Modal */}
+      {showMergeModal && mergeSource && mergeTarget && (
+        <EntityMergeModal
+          entityType="clothing_item"
+          sourceEntity={mergeSource}
+          targetEntity={mergeTarget}
+          onClose={handleMergeModalClose}
+          onMergeComplete={handleMergeComplete}
+        />
+      )}
     </div>
   )
 }
