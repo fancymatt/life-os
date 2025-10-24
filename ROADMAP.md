@@ -911,7 +911,195 @@ Character Arc: Luna
 
 ---
 
-### 3.11 Retroactive Story Illustration (1 week)
+### 3.11 Tag-based Discovery & Entity Selection (1-2 weeks)
+**Priority**: HIGH - Organizational multiplier
+**Complexity**: Medium
+**Depends on**: Tagging System (Section 2.5)
+
+**Problem**: Users have tags on entities but can't effectively browse or filter by them. Entity selection in workflows (story generation, image composition) doesn't leverage tags for smart discovery.
+
+**Tag-based Browsing Features**:
+- [ ] Tag filter bar in EntityBrowser (all entity types)
+  - Shows all tags in use across current entity type
+  - Click tag to filter entities (toggle on/off)
+  - Tag count badges (e.g., "summer (12)")
+  - Multiple tag selection with AND/OR toggle
+  - "Show untagged only" quick filter
+  - Persistent filter state (URL + localStorage)
+- [ ] Tag category grouping in filter UI
+  - Group tags by category (themes, moods, locations, etc.)
+  - Collapsible category sections
+  - Color-coded categories from tagging system
+- [ ] Search within tags (autocomplete)
+  - Quick search bar for finding tags
+  - Fuzzy matching for tag names
+- [ ] Saved tag queries
+  - Save common filter combinations (e.g., "summer AND casual")
+  - Name and reuse saved queries
+  - Share saved queries across devices
+
+**Entity Selection in Workflows**:
+- [ ] Tag filters in entity selection modals
+  - When selecting outfits for story generation
+  - When selecting characters for scenes
+  - When selecting visual styles for images
+- [ ] Context-aware tag suggestions
+  - Story theme "beach" → suggest "beach", "summer", "ocean" tagged entities
+  - Auto-suggest relevant tags based on workflow context
+  - Recent tags quick access
+- [ ] Tag hierarchy in selection UI
+  - Tree view for hierarchical tags
+  - Drill down from broad to specific
+- [ ] Smart collections based on tags
+  - Auto-populate collections from tag queries
+  - Dynamic collections that update as entities tagged
+  - "All summer outfits" collection auto-includes entities with "summer" tag
+
+**Backend Enhancements**:
+- [ ] Tag-filtered entity list endpoints
+  - `GET /api/{entity_type}/?tags=summer,casual&tag_logic=AND`
+  - Support for AND/OR tag logic
+  - Efficient SQL queries with tag joins
+  - Cache tag-filtered results (invalidate on tag changes)
+- [ ] Tag statistics endpoints
+  - `GET /api/tags/statistics/entity-counts` - entities per tag
+  - `GET /api/tags/statistics/trending` - most recently used tags
+  - `GET /api/tags/statistics/orphaned` - tags with no entities
+- [ ] Cross-entity tag search
+  - `GET /api/tags/search-across-entities?tag=summer`
+  - Returns all entities across all types with matching tag
+  - Useful for "show me everything tagged summer"
+
+**Frontend Components**:
+- [ ] TagFilterBar component (reusable across all entity browsers)
+  - Tag chips with click-to-toggle
+  - AND/OR logic selector
+  - Clear all filters button
+  - Collapsible/expandable by category
+- [ ] TagSelectionModal component
+  - For entity selection in workflows
+  - Tag filters + entity list
+  - Preview selected entities
+  - Batch selection support
+- [ ] SmartCollectionManager component
+  - Create/edit dynamic collections based on tag queries
+  - Preview matching entities before saving
+  - Notification when collection changes (new matches)
+
+**Database Schema**:
+```sql
+-- Saved tag queries (optional future enhancement)
+CREATE TABLE tag_queries (
+  query_id UUID PRIMARY KEY,
+  name VARCHAR(255),
+  tag_ids UUID[],
+  logic VARCHAR(10), -- 'AND' or 'OR'
+  entity_type VARCHAR(50),
+  user_id INTEGER,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+-- Smart collections based on tags (optional future enhancement)
+CREATE TABLE smart_collections (
+  collection_id UUID PRIMARY KEY,
+  name VARCHAR(255),
+  description TEXT,
+  tag_query_id UUID REFERENCES tag_queries(query_id),
+  auto_update BOOLEAN DEFAULT TRUE,
+  user_id INTEGER,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+**UI Examples**:
+
+**Entity Browser with Tag Filters**:
+```
+┌────────────────────────────────────────────────────┐
+│ Characters (243)          [Search] [Filter] [Sort] │
+├────────────────────────────────────────────────────┤
+│ 🏷️ Filter by Tags: [AND ▼]                         │
+│   🎨 Themes: [fantasy(45)] [sci-fi(23)] [modern(98)]│
+│   😊 Moods: [cheerful(34)] [serious(56)] [playful(12)]│
+│   📍 Locations: [urban(67)] [forest(23)] [ocean(15)]│
+│   [Clear all] [Save query...]                       │
+├────────────────────────────────────────────────────┤
+│ Showing 12 characters tagged "fantasy" AND "forest" │
+│                                                      │
+│ [Character Card] [Character Card] [Character Card]  │
+│ ...                                                  │
+└────────────────────────────────────────────────────┘
+```
+
+**Entity Selection Modal in Workflow**:
+```
+┌─────────────────────────────────────────────────────┐
+│ Select Outfit for Beach Scene                       │
+├─────────────────────────────────────────────────────┤
+│ 💡 Suggested tags: [beach] [summer] [casual]        │
+│                                                      │
+│ 🏷️ Filter by Tags:                                  │
+│   Active: [summer ✕] [casual ✕]                     │
+│   Suggestions: [swimwear] [shorts] [sandals]        │
+│                                                      │
+│ 🎯 Showing 18 outfits matching your tags             │
+│                                                      │
+│ ☐ [Outfit Preview] ☐ [Outfit Preview]               │
+│ ☑ [Outfit Preview] ☐ [Outfit Preview]               │
+│                                                      │
+│ [Cancel] [Select 1 outfit]                          │
+└─────────────────────────────────────────────────────┘
+```
+
+**Analytics Dashboard**:
+```
+┌─────────────────────────────────────────────────────┐
+│ Tag Analytics                                        │
+├─────────────────────────────────────────────────────┤
+│ Most Used Tags:                                      │
+│ 1. fantasy (145 entities)                            │
+│ 2. summer (98 entities)                              │
+│ 3. casual (87 entities)                              │
+│                                                      │
+│ Trending Tags (last 7 days):                         │
+│ ↑ cyberpunk (+15 entities)                           │
+│ ↑ neon (+12 entities)                                │
+│                                                      │
+│ Orphaned Tags (no entities):                         │
+│ - winter-formal (removed from all entities)          │
+│ - retro-futurism (never applied)                     │
+│                                                      │
+│ [Cleanup orphaned tags]                              │
+└─────────────────────────────────────────────────────┘
+```
+
+**Success Criteria**:
+- Tag filtering works across all entity types
+- Filter performance <200ms even with 1000+ entities
+- Context-aware suggestions >70% relevant
+- Users adopt tag filtering (>40% of entity browsing sessions use tags)
+- Tag-based entity selection speeds up workflow composition by >30%
+- Smart collections auto-update reliably
+- AND/OR logic works intuitively
+
+**Why This Matters**:
+- **Discovery Multiplier**: Tags transform from metadata to primary navigation
+- **Workflow Efficiency**: Quickly find relevant entities for story/image generation
+- **Context Awareness**: System suggests tags based on what you're doing
+- **Organization**: Large entity libraries (500+ items) become manageable
+- **Cross-pollination**: Discover connections between entities via shared tags
+
+**Impact on Future Features**:
+- **Auto-Prep Mode (Phase 8.5)**: Use tags to auto-suggest entities for creative packs
+- **TasteProfile (3.4)**: Learn user preferences from frequently-used tag combinations
+- **Smart Collections**: Foundation for automated content organization
+- **Brief Cards**: "You haven't used [beach-tagged outfits] in 3 weeks" suggestions
+
+---
+
+### 3.12 Retroactive Story Illustration (1 week)
 **Priority**: MEDIUM - Enhance existing stories
 **Complexity**: Medium
 **Depends on**: Stories saved to database (Section 2.3)

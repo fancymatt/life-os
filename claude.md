@@ -1,6 +1,5 @@
-# lifeOS - Claude AI Assistant Context
+# lifeOS v2.5.1 (110) - Claude AI Assistant Context
 
-**Version**: 2.5.1
 **Last Updated**: 2025-10-23
 **Current Phase**: Phase 2 - User Experience & Core Features (see ROADMAP.md)
 
@@ -8,39 +7,53 @@
 
 ## Versioning Rules
 
-**Format**: `Major.Minor.Patch` (e.g., 2.5.1)
+**Format**: `vMajor.Minor.Patch (Build)` (e.g., v2.5.1 (100))
 
 **Version Components**:
 - **Major**: Phase number (e.g., 2 for Phase 2)
 - **Minor**: Section within phase (e.g., 2.5 for Phase 2.5 Tagging System)
-- **Patch**: Increments with each commit/update
+- **Patch**: Increments with significant updates (features, major fixes)
+- **Build**: Increments with EVERY commit/push (tracks all changes)
 
 **Versioning Rules**:
-1. **On Phase Section Completion**: Version becomes `Phase.Section.0`
-   - Example: Complete Phase 2.3 → version becomes `2.3.0`
+1. **On Phase Section Completion**: Version becomes `vPhase.Section.0 (Build+1)`
+   - Example: Complete Phase 2.6 → version becomes `v2.6.0 (105)`
+   - Build number always increments
 
-2. **On Update/Commit**: Patch version increments
-   - Example: Make documentation update → `2.3.0` → `2.3.1`
-   - Any commit and push counts as an update
+2. **On Significant Update**: Patch version increments, build increments
+   - Example: Major bug fix → `v2.5.1 (100)` → `v2.5.2 (101)`
+   - Significant: Features, major fixes, important refactors
 
-3. **During Development**: Version stays at `X.Y.0` until feature is complete and pushed
-   - Example: Working on Phase 2.6 → version is `2.6.0` even if you commit
-   - Once complete and pushed → version becomes `2.6.0` (ready for next update)
+3. **On Any Commit**: Build number increments (even if version stays same)
+   - Example: Documentation update → `v2.5.1 (100)` → `v2.5.1 (101)`
+   - Minor fixes, docs, config changes
+   - Build tracks ALL changes
 
-4. **Update Definition**: Any reason to make a commit and push changes
-   - Bug fixes, documentation updates, minor improvements
-   - Each pushed commit increments the patch version
+4. **During Development**: Version stays at `vX.Y.0` until feature complete
+   - Example: Working on Phase 2.6 → version is `v2.6.0` but build increments
+   - Each commit: `v2.6.0 (102)`, `v2.6.0 (103)`, etc.
+   - Once complete and pushed → becomes `v2.6.0 (final_build)`
 
-**Current Version**: 2.5.1
-- Base: 2.5.0 (Phase 2 progress after completing sections 2.1-2.4)
-- Update: 2.5.1 (ROADMAP.md update documenting Phase 2.3 completion)
+**Current Version**: v2.5.1 (110)
+- Phase: 2.5 (Tagging System) - IN DEVELOPMENT
+- Build 110: Create tag API routes and Pydantic models
 
 **Version History**:
-- 2.5.1 - ROADMAP.md update for Phase 2.3 completion documentation
-- 2.5.0 - Phase 2.4 (UI Theme System) complete
-- 2.4.0 - Phase 2.3 (Database Persistence) complete
-- 2.3.0 - Phase 2.2 (Mobile Responsiveness) complete
-- 2.2.0 - Phase 2.1 (Complete Archive System) complete
+- v2.5.1 (110) - Create tag API routes (11 endpoints) and Pydantic request/response models
+- v2.5.1 (109) - Fix version downgrade error, commit TagService for tag business logic
+- v2.5.1 (108) - Create TagRepository for tag database operations
+- v2.5.1 (107) - Create Alembic migration for tags and entity_tags tables
+- v2.5.1 (106) - Run Alembic migration to create tags tables
+- v2.5.1 (105) - Add Tag and EntityTag SQLAlchemy models
+- v2.5.1 (104) - Start Phase 2.5 Tagging System implementation
+- v2.5.1 (103) - Made version number smaller in UI header
+- v2.5.1 (102) - Version number moved to document headers
+- v2.5.1 (101) - Build number tracking added to versioning system
+- v2.5.1 (100) - Add versioning system with build numbers
+- v2.5.0 - Phase 2.4 (UI Theme System) complete
+- v2.4.0 - Phase 2.3 (Database Persistence) complete
+- v2.3.0 - Phase 2.2 (Mobile Responsiveness) complete
+- v2.2.0 - Phase 2.1 (Complete Archive System) complete
 
 ---
 
