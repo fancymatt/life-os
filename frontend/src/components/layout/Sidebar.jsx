@@ -48,7 +48,7 @@ function Sidebar({ isOpen, onClose }) {
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h2>🎨 lifeOS <span className="version-number">v2.5.0 (106)</span></h2>
+          <h2>🎨 lifeOS <span className="version-number">v2.5.0 (107)</span></h2>
           <button className="sidebar-close" onClick={onClose}>×</button>
         </div>
 
