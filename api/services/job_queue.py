@@ -33,6 +33,13 @@ class JobQueueManager:
         self.active_jobs: Set[str] = set()
         self._subscribers: List[asyncio.Queue] = []  # SSE subscribers
         self._job_cache: Dict[str, Job] = {}  # In-memory cache for performance
+        self._redis_listener_task: Optional[asyncio.Task] = None
+
+        # Start Redis pub/sub listener if using RedisBackend
+        from api.services.storage_backend import RedisBackend
+        if isinstance(self.storage, RedisBackend):
+            # Start listener in background when event loop is running
+            logger.info("Redis pub/sub will be started when event loop is available")
 
     def _save_job(self, job: Job):
         """Save job to storage backend"""
@@ -316,6 +323,15 @@ class JobQueueManager:
 
     def _schedule_notification(self, job: Job):
         """Schedule notification to subscribers (safe from sync/async contexts)"""
+        # Publish to Redis pub/sub for cross-process notifications (workers → API)
+        from api.services.storage_backend import RedisBackend
+        if isinstance(self.storage, RedisBackend):
+            try:
+                self.storage.publish_job_update(job.model_dump())
+            except Exception as e:
+                logger.error(f"Failed to publish job update via Redis: {e}")
+
+        # Also notify local subscribers (for API process SSE)
         try:
             # Try to get the running event loop
             loop = asyncio.get_running_loop()
@@ -348,6 +364,77 @@ class JobQueueManager:
                 await queue.put(job)
             except:
                 pass  # Ignore errors for dead subscribers
+
+    def _start_redis_listener(self):
+        """Start Redis pub/sub listener to forward worker updates to SSE subscribers"""
+        from api.services.storage_backend import RedisBackend
+
+        if not isinstance(self.storage, RedisBackend):
+            return
+
+        # Only start if not already running
+        if self._redis_listener_task and not self._redis_listener_task.done():
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+            self._redis_listener_task = loop.create_task(self._redis_listener_loop())
+            logger.info("Started Redis pub/sub listener for job updates")
+        except RuntimeError:
+            logger.warning("No event loop available to start Redis listener")
+
+    async def _redis_listener_loop(self):
+        """Background task that listens to Redis pub/sub and forwards to local subscribers"""
+        from api.services.storage_backend import RedisBackend
+        import json
+
+        if not isinstance(self.storage, RedisBackend):
+            return
+
+        logger.info("Redis listener starting...")
+        pubsub = self.storage.subscribe_to_updates()
+
+        if not pubsub:
+            logger.error("Failed to subscribe to Redis updates")
+            return
+
+        try:
+            # Run in executor to avoid blocking async loop
+            loop = asyncio.get_running_loop()
+
+            while True:
+                # Listen for messages (this blocks, so run in thread)
+                message = await loop.run_in_executor(None, pubsub.get_message, 1.0)
+
+                if message and message['type'] == 'message':
+                    try:
+                        # Deserialize job data
+                        job_data = json.loads(message['data'])
+                        job_data = self.storage._deserialize_datetimes(job_data)
+                        job = Job(**job_data)
+
+                        # Update cache
+                        self._job_cache[job.job_id] = job
+
+                        # Notify local SSE subscribers
+                        await self._notify_subscribers(job)
+
+                        logger.debug(f"Forwarded job update to {len(self._subscribers)} SSE subscribers: {job.job_id}")
+
+                    except Exception as e:
+                        logger.error(f"Error processing Redis pub/sub message: {e}")
+
+                # Small delay to prevent tight loop
+                await asyncio.sleep(0.01)
+
+        except asyncio.CancelledError:
+            logger.info("Redis listener cancelled")
+        except Exception as e:
+            logger.error(f"Redis listener error: {e}", exc_info=True)
+        finally:
+            if pubsub:
+                pubsub.close()
+            logger.info("Redis listener stopped")
 
     # Private helpers
 

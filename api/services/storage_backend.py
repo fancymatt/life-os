@@ -89,6 +89,7 @@ class RedisBackend(StorageBackend):
             import redis
             self.redis = redis.from_url(redis_url, decode_responses=True)
             self.prefix = prefix
+            self.pubsub_channel = "job_updates"
             # Test connection
             self.redis.ping()
             logger.info(f"Connected to Redis: {redis_url}")
@@ -171,3 +172,41 @@ class RedisBackend(StorageBackend):
         elif isinstance(obj, list):
             return [self._deserialize_datetimes(v) for v in obj]
         return obj
+
+    # Pub/Sub for cross-process job notifications
+
+    def publish_job_update(self, job_data: dict):
+        """
+        Publish job update to Redis pub/sub channel
+
+        Workers call this when job status changes to notify the API server.
+        """
+        try:
+            serialized = self._serialize_datetimes(job_data)
+            message = json.dumps(serialized)
+            self.redis.publish(self.pubsub_channel, message)
+            logger.debug(f"Published job update: {job_data.get('job_id', 'unknown')}")
+        except Exception as e:
+            logger.error(f"Failed to publish job update: {e}")
+
+    def subscribe_to_updates(self):
+        """
+        Subscribe to job updates from Redis pub/sub
+
+        Returns a Redis PubSub object. Use in API server to receive updates from workers.
+
+        Example:
+            pubsub = backend.subscribe_to_updates()
+            for message in pubsub.listen():
+                if message['type'] == 'message':
+                    job_data = json.loads(message['data'])
+                    # Handle job update
+        """
+        try:
+            pubsub = self.redis.pubsub()
+            pubsub.subscribe(self.pubsub_channel)
+            logger.info(f"Subscribed to job updates on channel: {self.pubsub_channel}")
+            return pubsub
+        except Exception as e:
+            logger.error(f"Failed to subscribe to job updates: {e}")
+            return None

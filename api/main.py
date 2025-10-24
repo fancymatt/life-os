@@ -35,10 +35,17 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     from api.database import init_db
+    from api.services.job_queue import get_job_queue_manager
 
     logger.info("Initializing database...")
     await init_db()
     logger.info("Database initialized")
+
+    # Start Redis pub/sub listener for job updates (if using Redis backend)
+    logger.info("Starting job queue Redis listener...")
+    job_manager = get_job_queue_manager()
+    job_manager._start_redis_listener()
+    logger.info("Job queue initialized")
 
     yield
 

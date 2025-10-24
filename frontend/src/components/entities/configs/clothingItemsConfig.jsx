@@ -9,36 +9,69 @@ import TagManager from '../../tags/TagManager'
 function ClothingItemPreview({ item, onUpdate }) {
   const [generatingJobId, setGeneratingJobId] = useState(null)
   const [jobProgress, setJobProgress] = useState(null)
+  const [previewImageUrl, setPreviewImageUrl] = useState(item.previewImage)
 
-  // Poll for job status if we're tracking a job
+  // Always listen to SSE job updates (even if job triggered externally)
   useEffect(() => {
-    if (!generatingJobId) return
+    const eventSource = new EventSource('/api/jobs/stream')
 
-    const pollInterval = setInterval(async () => {
+    eventSource.onmessage = (event) => {
       try {
-        const response = await api.get(`/jobs/${generatingJobId}`)
-        const job = response.data
+        const job = JSON.parse(event.data)
+
+        // Check if this job is for OUR item
+        const isOurJob = generatingJobId && job.job_id === generatingJobId
+        const isOurItem = job.result && job.result.item_id === item.itemId
+
+        if (!isOurJob && !isOurItem) return
+
+        // If we weren't tracking this job, start tracking it
+        if (!generatingJobId && isOurItem && job.status === 'running') {
+          console.log('🎨 Detected preview generation for this item:', item.itemId)
+          setGeneratingJobId(job.job_id)
+        }
 
         setJobProgress(job.progress)
 
         if (job.status === 'completed') {
-          console.log('✅ Preview generation completed, refreshing item data...')
+          console.log('✅ Preview generation completed, updating image...')
+
+          // Update the preview image immediately from job result
+          if (job.result && job.result.preview_image_path) {
+            const imageUrl = `${job.result.preview_image_path}?t=${Date.now()}`
+            setPreviewImageUrl(imageUrl)
+            console.log('Updated preview image:', imageUrl)
+          }
+
           setGeneratingJobId(null)
           setJobProgress(null)
-          // Refresh the item to get the new preview image
+
+          // Also trigger entity refresh for consistency
           if (onUpdate) onUpdate()
         } else if (job.status === 'failed') {
-          console.error('❌ Preview generation failed')
+          console.error('❌ Preview generation failed:', job.error)
           setGeneratingJobId(null)
           setJobProgress(null)
         }
       } catch (error) {
-        console.error('Failed to poll job status:', error)
+        console.error('Error processing SSE message:', error)
       }
-    }, 1000) // Poll every second
+    }
 
-    return () => clearInterval(pollInterval)
-  }, [generatingJobId, onUpdate])
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error)
+      eventSource.close()
+    }
+
+    return () => {
+      eventSource.close()
+    }
+  }, [generatingJobId, item.itemId, onUpdate])
+
+  // Update preview image when item prop changes
+  useEffect(() => {
+    setPreviewImageUrl(item.previewImage)
+  }, [item.previewImage])
 
   const handleGeneratePreview = async (e) => {
     const button = e.currentTarget
@@ -103,14 +136,14 @@ function ClothingItemPreview({ item, onUpdate }) {
     <div style={{ padding: '1rem' }}>
       {/* Preview Image with loading overlay */}
       <div style={{ position: 'relative', marginBottom: '1rem' }}>
-        {item.previewImage ? (
+        {previewImageUrl ? (
           <div style={{
             borderRadius: '8px',
             overflow: 'hidden',
             background: 'rgba(0, 0, 0, 0.3)'
           }}>
             <img
-              src={item.previewImage}
+              src={previewImageUrl}
               alt={item.item}
               style={{
                 width: '100%',
@@ -242,36 +275,69 @@ function ClothingItemPreview({ item, onUpdate }) {
 function ClothingItemDetail({ item, onUpdate }) {
   const [generatingJobId, setGeneratingJobId] = useState(null)
   const [jobProgress, setJobProgress] = useState(null)
+  const [previewImageUrl, setPreviewImageUrl] = useState(item.previewImage)
 
-  // Poll for job status if we're tracking a job
+  // Always listen to SSE job updates (even if job triggered externally)
   useEffect(() => {
-    if (!generatingJobId) return
+    const eventSource = new EventSource('/api/jobs/stream')
 
-    const pollInterval = setInterval(async () => {
+    eventSource.onmessage = (event) => {
       try {
-        const response = await api.get(`/jobs/${generatingJobId}`)
-        const job = response.data
+        const job = JSON.parse(event.data)
+
+        // Check if this job is for OUR item
+        const isOurJob = generatingJobId && job.job_id === generatingJobId
+        const isOurItem = job.result && job.result.item_id === item.itemId
+
+        if (!isOurJob && !isOurItem) return
+
+        // If we weren't tracking this job, start tracking it
+        if (!generatingJobId && isOurItem && job.status === 'running') {
+          console.log('🎨 Detected preview generation for this item:', item.itemId)
+          setGeneratingJobId(job.job_id)
+        }
 
         setJobProgress(job.progress)
 
         if (job.status === 'completed') {
-          console.log('✅ Preview generation completed, refreshing item data...')
+          console.log('✅ Preview generation completed, updating image...')
+
+          // Update the preview image immediately from job result
+          if (job.result && job.result.preview_image_path) {
+            const imageUrl = `${job.result.preview_image_path}?t=${Date.now()}`
+            setPreviewImageUrl(imageUrl)
+            console.log('Updated preview image:', imageUrl)
+          }
+
           setGeneratingJobId(null)
           setJobProgress(null)
-          // Refresh the item to get the new preview image
+
+          // Also trigger entity refresh for consistency
           if (onUpdate) onUpdate()
         } else if (job.status === 'failed') {
-          console.error('❌ Preview generation failed')
+          console.error('❌ Preview generation failed:', job.error)
           setGeneratingJobId(null)
           setJobProgress(null)
         }
       } catch (error) {
-        console.error('Failed to poll job status:', error)
+        console.error('Error processing SSE message:', error)
       }
-    }, 1000) // Poll every second
+    }
 
-    return () => clearInterval(pollInterval)
-  }, [generatingJobId, onUpdate])
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error)
+      eventSource.close()
+    }
+
+    return () => {
+      eventSource.close()
+    }
+  }, [generatingJobId, item.itemId, onUpdate])
+
+  // Update preview image when item prop changes
+  useEffect(() => {
+    setPreviewImageUrl(item.previewImage)
+  }, [item.previewImage])
 
   const handleGeneratePreview = async (e) => {
     const button = e.currentTarget
@@ -335,7 +401,7 @@ function ClothingItemDetail({ item, onUpdate }) {
   return (
     <div style={{ padding: '2rem' }}>
       {/* Preview Image with loading overlay */}
-      {item.previewImage && (
+      {previewImageUrl && (
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
           <div style={{
             borderRadius: '8px',
@@ -343,7 +409,7 @@ function ClothingItemDetail({ item, onUpdate }) {
             maxWidth: '400px'
           }}>
             <img
-              src={item.previewImage}
+              src={previewImageUrl}
               alt={item.item}
               style={{
                 width: '100%',
@@ -475,7 +541,69 @@ export const clothingItemsConfig = {
   defaultSort: 'newest',
   searchFields: ['item', 'category', 'fabric', 'color', 'details'],
 
-  actions: [],
+  actions: [
+    {
+      label: '✏️ Modify Item',
+      handler: async (item, onUpdate) => {
+        const instruction = prompt('How would you like to modify this item?\n\nExamples:\n• "Make these shoulder-length"\n• "Change the color to red"\n• "Add lace trim"\n• "Make this more formal"')
+
+        if (!instruction || !instruction.trim()) {
+          return // User cancelled
+        }
+
+        try {
+          console.log(`Modifying item ${item.itemId} with instruction: ${instruction}`)
+          const response = await api.post(`/clothing-items/${item.itemId}/modify`, {
+            instruction: instruction.trim()
+          })
+
+          const modifiedItem = response.data
+          console.log('✅ Item modified successfully:', modifiedItem)
+
+          // Show what changed
+          alert(`✅ Item modified successfully!\n\n📝 Changes:\n• Color: ${modifiedItem.color}\n• Fabric: ${modifiedItem.fabric}\n• Details: ${modifiedItem.details.substring(0, 100)}...\n\n🔄 Close and reopen this item to see all changes.`)
+
+          // Trigger refresh
+          if (onUpdate) onUpdate()
+        } catch (error) {
+          console.error('Failed to modify item:', error)
+          alert(`❌ Failed to modify item: ${error.response?.data?.detail || error.message}`)
+        }
+      },
+      color: 'rgba(99, 102, 241, 1)',
+      background: 'rgba(99, 102, 241, 0.2)',
+      hoverBackground: 'rgba(99, 102, 241, 0.3)'
+    },
+    {
+      label: '🔀 Create Variant',
+      handler: async (item, onUpdate) => {
+        const instruction = prompt('How should the variant differ from the original?\n\nExamples:\n• "What would this look like in red?"\n• "Summer version with lighter fabric"\n• "More formal version"\n• "Ankle-length version"')
+
+        if (!instruction || !instruction.trim()) {
+          return // User cancelled
+        }
+
+        try {
+          console.log(`Creating variant of ${item.itemId} with instruction: ${instruction}`)
+          const response = await api.post(`/clothing-items/${item.itemId}/create-variant`, {
+            instruction: instruction.trim()
+          })
+
+          console.log('✅ Variant created successfully:', response.data.item_id)
+          alert(`✅ Variant created successfully! New item: "${response.data.item}"`)
+
+          // Trigger refresh to show new variant in list
+          if (onUpdate) onUpdate()
+        } catch (error) {
+          console.error('Failed to create variant:', error)
+          alert(`❌ Failed to create variant: ${error.response?.data?.detail || error.message}`)
+        }
+      },
+      color: 'rgba(168, 85, 247, 1)',
+      background: 'rgba(168, 85, 247, 0.2)',
+      hoverBackground: 'rgba(168, 85, 247, 0.3)'
+    }
+  ],
 
   fetchEntities: async (filterCategory = null) => {
     const url = filterCategory ? `/clothing-items/?category=${filterCategory}` : '/clothing-items/'
