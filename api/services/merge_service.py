@@ -257,16 +257,19 @@ Return ONLY valid JSON matching the {entity_type} schema."""
 
             logger.info(f"Updated {total_updated} references from {target_id} to {source_id}")
 
-            # 3. Archive target entity with merged_into metadata
+            # 3. Archive target entity
+            # Note: Some entities (Character, BoardGame) have 'meta' field,
+            # but others (ClothingItem) do not. Set merged_into if supported.
             target_entity_obj = await repo.get_by_id(target_id)
             if target_entity_obj:
-                # Set metadata before archiving
-                if hasattr(target_entity_obj, 'metadata'):
-                    if target_entity_obj.metadata is None:
-                        target_entity_obj.metadata = {}
-                    target_entity_obj.metadata['merged_into'] = source_id
+                # Set metadata if the entity supports it
+                if hasattr(target_entity_obj, 'meta'):
+                    if target_entity_obj.meta is None:
+                        target_entity_obj.meta = {}
+                    target_entity_obj.meta['merged_into'] = source_id
+                    logger.info(f"Set merged_into metadata for {entity_type} {target_id}")
                 await repo.archive(target_id)
-                logger.info(f"Archived {entity_type} {target_id} with merged_into: {source_id}")
+                logger.info(f"Archived {entity_type} {target_id}")
 
             await self.db.commit()
 
