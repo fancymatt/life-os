@@ -1,7 +1,7 @@
 import api from '../../../api/client'
 import { formatDate } from './helpers'
 import LazyImage from '../LazyImage'
-import { Link } from 'react-router-dom'
+import RelatedEntityChip from '../RelatedEntityChip'
 
 /**
  * Images Entity Configuration
@@ -171,35 +171,6 @@ export const imagesConfig = {
       return labels[type] || type
     }
 
-    const getEntityRoute = (type, entity) => {
-      // For presets, use the preset_category to determine the route
-      if ((type === 'preset' || type === 'visual_style') && entity.preset_category) {
-        const categoryRoutes = {
-          'visual_styles': '/entities/visual-styles',
-          'expressions': '/entities/expressions',
-          'accessories': '/entities/accessories',
-          'art_styles': '/entities/art-styles',
-          'hair_colors': '/entities/hair-colors',
-          'hair_styles': '/entities/hair-styles',
-          'makeup': '/entities/makeup',
-          'story_themes': '/entities/story-themes',
-          'story_prose_styles': '/entities/story-prose-styles',
-          'story_audiences': '/entities/story-audiences'
-        }
-        return categoryRoutes[entity.preset_category] || '/entities/visual-styles'
-      }
-
-      // Default routes for non-preset entities
-      const routes = {
-        'character': '/entities/characters',
-        'clothing_item': '/entities/clothing-items',
-        'visual_style': '/entities/visual-styles',
-        'preset': '/entities/visual-styles',
-        'story_theme': '/entities/story-themes'
-      }
-      return routes[type] || '/entities'
-    }
-
     return (
       <div style={{ padding: '2rem' }}>
         <h2 style={{ color: 'white', margin: '0 0 1.5rem 0' }}>{image.filename}</h2>
@@ -233,36 +204,13 @@ export const imagesConfig = {
                 </h4>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {image.entities[entityType].map((entity, idx) => (
-                    <Link
+                    <RelatedEntityChip
                       key={idx}
-                      to={`${getEntityRoute(entityType, entity)}/${entity.entity_id}`}
-                      style={{
-                        padding: '0.5rem 0.75rem',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '6px',
-                        fontSize: '0.85rem',
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        textDecoration: 'none',
-                        transition: 'all 0.2s',
-                        display: 'inline-block'
+                      entity={{
+                        ...entity,
+                        entity_type: entityType
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
-                        e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-                      }}
-                    >
-                      {entity.entity_name || entity.entity_id}
-                      {entity.role && (
-                        <span style={{ color: 'rgba(255, 255, 255, 0.5)', marginLeft: '0.5rem' }}>
-                          ({entity.role})
-                        </span>
-                      )}
-                    </Link>
+                    />
                   ))}
                 </div>
               </div>
