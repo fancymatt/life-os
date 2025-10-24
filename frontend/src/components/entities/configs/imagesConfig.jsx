@@ -15,6 +15,7 @@ export const imagesConfig = {
   enableSort: true,
   defaultSort: 'newest',
   searchFields: ['filename', 'title'],
+  fullWidthDetail: true, // Use single-column layout for detail view
 
   actions: [
     {
