@@ -1,4 +1,4 @@
-# lifeOS v2.6.0 (111) - Claude AI Assistant Context
+# lifeOS v2.6.0 (114) - Claude AI Assistant Context
 
 **Last Updated**: 2025-10-24
 **Current Phase**: Phase 2 - User Experience & Core Features (see ROADMAP.md)
@@ -34,11 +34,14 @@
    - Each commit: `v2.6.0 (102)`, `v2.6.0 (103)`, etc.
    - Once complete and pushed → becomes `v2.6.0 (final_build)`
 
-**Current Version**: v2.6.0 (111)
+**Current Version**: v2.6.0 (114)
 - Phase: 2.6 (Entity Merger Tool & Fixes) - COMPLETE
-- Build 111: Tag refresh fix, entity merger as AI tool, category count accuracy
+- Build 114: Document RQ worker rebuild requirement in CLAUDE.md
 
 **Version History**:
+- v2.6.0 (114) - Document critical RQ worker code update issue in CLAUDE.md (Issue 5: RQ Worker Code Not Updating)
+- v2.6.0 (113) - Add entity_previews static file serving and update preview path
+- v2.6.0 (112) - Remove authentication requirement from preview generation endpoint
 - v2.6.0 (111) - Fix tag refresh error, convert entity merger to AI tool, fix category counts (clothing items & visualization configs)
 - v2.5.1 (110) - Create tag API routes (11 endpoints) and Pydantic request/response models
 - v2.5.1 (109) - Fix version downgrade error, commit TagService for tag business logic
@@ -670,6 +673,86 @@ IMPORTANT: CRITICAL REQUIREMENTS override any styling details in subject descrip
 
 ---
 
+### Issue 5: RQ Worker Code Not Updating (CRITICAL)
+
+**Problem**: RQ worker containers run stale code after API changes.
+- Workers load Python code into memory at startup
+- Code changes don't auto-reload in running workers
+- Jobs appear to complete successfully but don't execute properly
+- Results in silent failures - jobs marked "finished" but no actual work done
+
+**Real-world example**:
+1. Remove authentication requirement from API endpoint
+2. Rebuild API container: `docker-compose up -d --build api` ✅
+3. API picks up new code and works correctly ✅
+4. **BUT: RQ workers still have old code** ❌
+5. Workers fail silently when trying to access removed `current_user` parameter
+6. RQ marks job as "finished" but no actual work happened
+7. Preview image doesn't update despite job showing "completed"
+
+**Solution**: ALWAYS rebuild worker containers after backend code changes:
+```bash
+# ✅ CORRECT - Rebuild both API and workers
+docker-compose up -d --build api
+docker-compose up -d --build rq-worker
+docker-compose up -d --scale rq-worker=4  # Restore worker count if needed
+
+# ❌ WRONG - Only rebuild API
+docker-compose up -d --build api  # Workers still have old code!
+```
+
+**When to rebuild workers**:
+- After ANY change to `api/` or `ai_tools/` directories
+- After modifying worker job functions in `api/workers/jobs.py`
+- After changing function signatures or parameters
+- After removing dependencies or imports
+- **Rule of thumb**: If you rebuild API, rebuild workers too
+
+**Verification**:
+```bash
+# 1. Trigger a job (e.g., preview generation)
+curl -X POST http://localhost:8000/clothing-items/{id}/generate-preview
+
+# 2. Check worker logs for actual execution
+docker logs life-os-rq-worker-1 --tail 50
+
+# 3. Look for your job's log messages (not just RQ framework logs)
+# Should see: Application logs from logger.info/debug calls
+# NOT just: "Successfully completed job" from RQ
+
+# 4. Verify file was actually updated
+ls -lh entity_previews/clothing_items/{id}_preview.png
+# Check timestamp is recent
+```
+
+**Error symptoms**:
+- Jobs show "completed" but no files updated
+- Job completes in 0 seconds (suspiciously fast)
+- No application logs from job function (only RQ framework logs)
+- Database updated but files unchanged
+- Works when called directly via API but not via RQ workers
+- "Silent failures" - no errors but no results
+
+**Prevention**:
+- Add rebuild step to development workflow documentation
+- Create shell script that rebuilds both API and workers together
+- Add smoke test that verifies worker execution (not just RQ completion)
+- Use explicit logging in worker functions to detect silent failures
+
+```bash
+# Example: rebuild_backend.sh helper script
+#!/bin/bash
+echo "Rebuilding API and workers..."
+docker-compose up -d --build api
+docker-compose up -d --build rq-worker
+docker-compose up -d --scale rq-worker=4
+echo "✅ Backend rebuild complete"
+```
+
+**Key takeaway**: RQ workers are separate processes that don't automatically reload code. Treat them as part of the backend deployment pipeline, not as fire-and-forget daemons.
+
+---
+
 ### Prevention Strategies
 
 **1. Add Validation at Boundaries**
@@ -1052,10 +1135,17 @@ POST /api/compositions/save         # Save composition
 # 1. Edit files in api/ or ai_tools/
 # 2. Rebuild API container
 docker-compose up -d --build api
-# 3. Check logs for errors
+# 3. 🚨 CRITICAL: Also rebuild RQ workers! (they don't auto-reload code)
+docker-compose up -d --build rq-worker
+docker-compose up -d --scale rq-worker=4
+# 4. Check logs for errors
 docker logs ai-studio-api --tail 50
-# 4. Changes are IMMEDIATELY live (no browser refresh needed for API)
+docker logs life-os-rq-worker-1 --tail 20
+# 5. Changes are IMMEDIATELY live (no browser refresh needed for API)
 ```
+
+**⚠️ CRITICAL**: If you forget to rebuild workers, background jobs will fail silently!
+See "Issue 5: RQ Worker Code Not Updating" in Common Pitfalls section.
 
 **Frontend Changes (React/JavaScript)**:
 ```bash
