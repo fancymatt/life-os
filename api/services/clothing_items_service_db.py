@@ -586,19 +586,20 @@ class ClothingItemServiceDB:
                 logger.debug("Using default visualization settings (no config found)")
 
             # Generate preview using ItemVisualizer
-            # Save to output directory so nginx can serve it
+            # Save to entity_previews directory (organized by entity type)
             # Use consistent filename (cache busting handled by query param ?t=timestamp)
+            preview_dir = settings.base_dir / "entity_previews" / "clothing_items"
             preview_path = self.visualizer.visualize(
                 entity=item_entity,
                 entity_type="clothing_item",
                 config=config,
-                output_dir=settings.output_dir / "clothing_items",
+                output_dir=preview_dir,
                 filename=f"{item_id}_preview"
             )
 
             # Convert to web-accessible URL path
-            # /app/output/clothing_items/xyz.png -> /output/clothing_items/xyz.png
-            web_path = f"/output/clothing_items/{preview_path.name}"
+            # /app/entity_previews/clothing_items/xyz.png -> /entity_previews/clothing_items/xyz.png
+            web_path = f"/entity_previews/clothing_items/{preview_path.name}"
 
             # No need to delete old preview - we're overwriting the same file
 

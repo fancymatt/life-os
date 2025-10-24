@@ -116,6 +116,9 @@ try:
     app.mount("/output", CachedStaticFiles(directory=str(settings.output_dir), max_age=3600), name="output")
     # Uploads: 30 minute cache (temporary files)
     app.mount("/uploads", CachedStaticFiles(directory=str(settings.upload_dir), max_age=1800), name="uploads")
+    # Entity previews: 1 hour cache (preview images for UI cards)
+    entity_previews_dir = settings.base_dir / "entity_previews"
+    app.mount("/entity_previews", CachedStaticFiles(directory=str(entity_previews_dir), max_age=3600), name="entity_previews")
     logger.info("Static file caching enabled (Cache-Control headers)")
 except RuntimeError as e:
     # Directories might not exist yet

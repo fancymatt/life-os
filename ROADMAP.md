@@ -526,6 +526,56 @@ CREATE TABLE story_collections (
 
 ---
 
+### 2.14 Complete Preset-to-Entity Migration (2-3 weeks)
+**Priority**: MEDIUM - Data consistency
+**Complexity**: Medium
+
+**Problem**: Partial migration complete. Some entity types in database (clothing_items, outfits, visualization_configs, characters), but legacy presets still using JSON files (hair_styles, hair_colors, expressions, makeup, accessories, visual_styles, art_styles, story themes/prose/audiences).
+
+**Legacy JSON Presets to Migrate**:
+- ❌ `hair_styles/` (24 files) - Still in presets/, NOT in database
+- ❌ `hair_colors/` (18 files) - Still in presets/, NOT in database
+- ❌ `expressions/` (16 files) - Still in presets/, NOT in database
+- ❌ `makeup/` (12 files) - Still in presets/, NOT in database
+- ❌ `accessories/` (12 files) - Still in presets/, NOT in database
+- ❌ `visual_styles/` (64 files) - Still in presets/, NOT in database
+- ❌ `art_styles/` (12 files) - Still in presets/, NOT in database
+- ❌ `story_themes/`, `story_prose_styles/`, `story_audiences/` - Still in presets/, NOT in database
+
+**Already Migrated** ✅:
+- ✅ `clothing_items` - Database table exists
+- ✅ `outfits` - Database table exists
+- ✅ `visualization_configs` - Database table exists
+- ✅ `characters` - Database table exists
+
+**Implementation Plan**:
+1. Create database tables for remaining entity types
+2. Create Alembic migrations
+3. Create repository classes (data access layer)
+4. Create service classes (business logic layer)
+5. Create API routes for CRUD operations
+6. Update frontend entity configs
+7. Migrate JSON data to database (one-time migration script)
+8. Update Image Composer to use database entities
+9. Deprecate JSON preset files
+10. Update entity preview system for new entity types
+
+**Success Criteria**:
+- All 93 JSON presets migrated to database
+- Image Composer works with database entities
+- Preview generation works for all entity types
+- JSON preset files deprecated (not deleted, just unused)
+- Consistent entity management across all types
+
+**Why This Matters**:
+- **Data Consistency**: Single source of truth (database, not scattered JSON files)
+- **Entity Features**: Archive, tagging, search work for ALL entity types
+- **Preview System**: Unified preview generation in `entity_previews/` directory
+- **Scalability**: Database queries faster than file I/O for large datasets
+- **Future-Proof**: Foundation for TasteProfile, recommendations, and cross-entity features
+
+---
+
 ### Phase 2 Success Metrics
 
 - ✅ Archive system 100% complete
