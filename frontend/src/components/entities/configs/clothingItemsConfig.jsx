@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../../api/client'
 import { formatDate, getPreview } from './helpers'
+import TagManager from '../../tags/TagManager'
 
 /**
  * Preview component with job tracking
@@ -78,7 +79,7 @@ function ClothingItemPreview({ item, onUpdate }) {
       button.textContent = '⏳ Queueing...'
 
       const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
-        character_id: 'jenny',
+        character_id: 'e1f4fe53',  // Jenny's character ID
         visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'
       })
 
@@ -311,7 +312,7 @@ function ClothingItemDetail({ item, onUpdate }) {
       button.textContent = '⏳ Queueing...'
 
       const response = await api.post(`/clothing-items/${item.itemId}/generate-test-image`, {
-        character_id: 'jenny',
+        character_id: 'e1f4fe53',  // Jenny's character ID
         visual_style: 'b1ed9953-a91d-4257-98de-bf8b2f256293'
       })
 
@@ -490,6 +491,7 @@ export const clothingItemsConfig = {
       details: item.details,
       sourceImage: item.source_image,
       previewImage: item.preview_image_path,  // Add preview image path
+      tags: item.tags || [],
       createdAt: item.created_at,
       archived: item.archived || false,
       archivedAt: item.archived_at,
@@ -705,6 +707,16 @@ export const clothingItemsConfig = {
           }}
         />
       </div>
+
+      {/* Tags */}
+      <TagManager
+        entityType="clothing_item"
+        entityId={item.itemId}
+        tags={item.tags || []}
+        onTagsChange={(newTags) => {
+          item.tags = newTags
+        }}
+      />
     </div>
   ),
 
