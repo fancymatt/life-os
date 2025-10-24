@@ -37,6 +37,7 @@ function EntityPreviewImage({
   const [jobProgress, setJobProgress] = useState(null)
   const [currentImageUrl, setCurrentImageUrl] = useState(previewImageUrl)
   const [imageKey, setImageKey] = useState(0) // Force re-mount of img tag
+  const [imageLoaded, setImageLoaded] = useState(false) // Track if image has loaded
   const { subscribe } = useJobStream()
 
   // Use ref for retry count to avoid triggering re-renders
@@ -218,6 +219,7 @@ function EntityPreviewImage({
   useEffect(() => {
     if (!previewImageUrl) {
       setCurrentImageUrl(null)
+      setImageLoaded(false)
       return
     }
 
@@ -229,6 +231,7 @@ function EntityPreviewImage({
 
     console.log(`📸 Loading ${size} preview:`, urlWithTimestamp)
     setCurrentImageUrl(urlWithTimestamp)
+    setImageLoaded(false) // Reset load state for new image
   }, [previewImageUrl, size])
 
   // Handle image load errors with on-demand optimization
@@ -306,6 +309,7 @@ function EntityPreviewImage({
   useEffect(() => {
     retryCountRef.current = 0
     optimizationTriggeredRef.current = false
+    setImageLoaded(false) // Reset load state when entity changes
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current)
     }
@@ -320,18 +324,27 @@ function EntityPreviewImage({
     }
   }, [])
 
-  // Container styles based on shape
-  const containerStyle = shape === 'preserve' ? {
-    // Preserve aspect ratio - let image determine height
-    position: 'relative',
-    width: '100%',
-    borderRadius: '8px',
-    overflow: 'hidden',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  } : {
-    // Square or circle - force square aspect ratio
+  // Container styles based on shape and load state
+  const containerStyle = shape === 'preserve' ? (
+    imageLoaded ? {
+      // Image loaded - preserve natural aspect ratio
+      position: 'relative',
+      width: '100%',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center'
+    } : {
+      // Image loading - use square aspect ratio as placeholder
+      position: 'relative',
+      width: '100%',
+      paddingBottom: '100%', // Square aspect ratio
+      borderRadius: '8px',
+      overflow: 'hidden'
+    }
+  ) : {
+    // Square or circle - always force square aspect ratio
     position: 'relative',
     width: '100%',
     paddingBottom: '100%', // Square aspect ratio
@@ -339,12 +352,24 @@ function EntityPreviewImage({
     overflow: 'hidden'
   }
 
-  // Image styles based on shape
-  const imageStyle = shape === 'preserve' ? {
-    width: '100%',
-    height: 'auto',
-    display: 'block'
-  } : {
+  // Image styles based on shape and load state
+  const imageStyle = shape === 'preserve' ? (
+    imageLoaded ? {
+      // Image loaded - use natural dimensions
+      width: '100%',
+      height: 'auto',
+      display: 'block'
+    } : {
+      // Image loading - position absolutely within square container
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain' // Don't crop during loading
+    }
+  ) : {
+    // Square/circle - always fill container
     position: 'absolute',
     top: 0,
     left: 0,
@@ -361,22 +386,14 @@ function EntityPreviewImage({
           key={imageKey}
           src={currentImageUrl}
           alt="Preview"
+          onLoad={() => setImageLoaded(true)}
           onError={handleImageError}
           style={imageStyle}
         />
       ) : (
         // Show stand-in icon
-        <div style={shape === 'preserve' ? {
-          // For preserved aspect - show minimal stand-in
-          width: '100%',
-          aspectRatio: '16/9', // Default aspect ratio for stand-in
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: sizeStyles[size].fontSize
-        } : {
-          // For square/circle - fill the container
+        <div style={{
+          // Always fill the container (square for all modes when no image)
           position: 'absolute',
           top: 0,
           left: 0,

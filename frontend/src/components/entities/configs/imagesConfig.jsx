@@ -63,11 +63,7 @@ export const imagesConfig = {
       <div className="entity-card">
         <div className="entity-card-image entity-card-image-preserve-aspect" style={{
           position: 'relative',
-          opacity: image.archived ? 0.6 : 1,
-          borderRadius: '8px',
-          overflow: 'hidden',
-          height: 'auto', // Override fixed height from CSS
-          minHeight: '200px' // Prevent zero-height while loading, expands to fit image once loaded
+          opacity: image.archived ? 0.6 : 1
         }}>
           {image.archived && (
             <div style={{
