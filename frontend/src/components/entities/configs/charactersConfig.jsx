@@ -1,6 +1,6 @@
 import api from '../../../api/client'
 import { formatDate, getPreview } from './helpers'
-import LazyImage from '../LazyImage'
+import EntityPreviewImage from '../EntityPreviewImage'
 import ReAnalyzeButton from '../ReAnalyzeButton'
 import TagManager from '../../tags/TagManager'
 
@@ -82,18 +82,14 @@ export const charactersConfig = {
         </div>
       )}
       <div className="entity-card-image" style={{ height: '280px', opacity: character.archived ? 0.6 : 1 }}>
-        {character.referenceImageUrl ? (
-          <LazyImage
-            src={character.referenceImageUrl}
-            alt={character.name}
-            onError={(e) => {
-              e.target.style.display = 'none'
-              e.target.parentElement.innerHTML = '<div class="entity-card-placeholder">👤</div>'
-            }}
-          />
-        ) : (
-          <div className="entity-card-placeholder">👤</div>
-        )}
+        <EntityPreviewImage
+          entityType="characters"
+          entityId={character.characterId}
+          previewImageUrl={character.referenceImageUrl}
+          standInIcon="👤"
+          size="small"
+          shape="square"
+        />
       </div>
       <div className="entity-card-content">
         <h3 className="entity-card-title">{character.name}</h3>
@@ -108,30 +104,14 @@ export const charactersConfig = {
   ),
 
   renderPreview: (character) => (
-    <>
-      {character.referenceImageUrl ? (
-        <img
-          src={character.referenceImageUrl}
-          alt={character.name}
-          style={{ width: '100%', height: 'auto', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)' }}
-          onError={(e) => e.target.style.display = 'none'}
-        />
-      ) : (
-        <div style={{
-          width: '100%',
-          aspectRatio: '3/4',
-          background: 'rgba(255, 255, 255, 0.05)',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '8rem',
-          opacity: 0.3
-        }}>
-          👤
-        </div>
-      )}
-    </>
+    <EntityPreviewImage
+      entityType="characters"
+      entityId={character.characterId}
+      previewImageUrl={character.referenceImageUrl}
+      standInIcon="👤"
+      size="medium"
+      shape="square"
+    />
   ),
 
   renderDetail: (character, handleBackToList, onUpdate) => (
@@ -139,6 +119,18 @@ export const charactersConfig = {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <h2 style={{ color: 'white', margin: 0 }}>{character.name}</h2>
         <ReAnalyzeButton character={character} onUpdate={onUpdate} variant="compact" />
+      </div>
+
+      {/* Preview Image */}
+      <div style={{ marginBottom: '2rem' }}>
+        <EntityPreviewImage
+          entityType="characters"
+          entityId={character.characterId}
+          previewImageUrl={character.referenceImageUrl}
+          standInIcon="👤"
+          size="large"
+          shape="square"
+        />
       </div>
 
       {/* Tags (readonly) */}

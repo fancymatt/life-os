@@ -1,6 +1,6 @@
 import api from '../../../api/client'
 import { formatDate } from './helpers'
-import LazyImage from '../LazyImage'
+import EntityPreviewImage from '../EntityPreviewImage'
 import RelatedEntityChip from '../RelatedEntityChip'
 
 /**
@@ -81,10 +81,13 @@ export const imagesConfig = {
               📦 ARCHIVED
             </div>
           )}
-          <LazyImage
-            src={image.imageUrl}
-            alt={image.title}
-            onError={(e) => e.target.style.display = 'none'}
+          <EntityPreviewImage
+            entityType="images"
+            entityId={image.imageId}
+            previewImageUrl={image.imageUrl}
+            standInIcon="🖼️"
+            size="small"
+            shape="square"
           />
         </div>
         <div className="entity-card-content">
@@ -141,10 +144,13 @@ export const imagesConfig = {
   },
 
   renderPreview: (image) => (
-    <img
-      src={image.imageUrl}
-      alt={image.filename}
-      style={{ width: '100%', height: 'auto', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)' }}
+    <EntityPreviewImage
+      entityType="images"
+      entityId={image.imageId}
+      previewImageUrl={image.imageUrl}
+      standInIcon="🖼️"
+      size="medium"
+      shape="square"
     />
   ),
 
@@ -174,6 +180,18 @@ export const imagesConfig = {
     return (
       <div style={{ padding: '2rem' }}>
         <h2 style={{ color: 'white', margin: '0 0 1.5rem 0' }}>{image.filename}</h2>
+
+        {/* Preview Image */}
+        <div style={{ marginBottom: '2rem' }}>
+          <EntityPreviewImage
+            entityType="images"
+            entityId={image.imageId}
+            previewImageUrl={image.imageUrl}
+            standInIcon="🖼️"
+            size="large"
+            shape="square"
+          />
+        </div>
 
         {/* Image metadata */}
         {(image.width || image.height) && (

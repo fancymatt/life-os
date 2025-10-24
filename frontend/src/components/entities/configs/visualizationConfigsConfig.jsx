@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../../api/client'
 import { formatDate } from './helpers'
-import LazyImage from '../LazyImage'
+import EntityPreviewImage from '../EntityPreviewImage'
 
 /**
  * Visualization Configs Entity Configuration
@@ -346,18 +346,14 @@ export const visualizationConfigsConfig = {
             📦 ARCHIVED
           </div>
         )}
-        {entity.data.reference_image_path ? (
-          <LazyImage
-            src={entity.data.reference_image_path}
-            alt={entity.title}
-            onError={(e) => {
-              e.target.style.display = 'none'
-              e.target.parentElement.innerHTML = `<div class="entity-card-placeholder">🎨</div>`
-            }}
-          />
-        ) : (
-          <div className="entity-card-placeholder">🎨</div>
-        )}
+        <EntityPreviewImage
+          entityType="visualization_configs"
+          entityId={entity.config_id}
+          previewImageUrl={entity.data.reference_image_path}
+          standInIcon="🎨"
+          size="small"
+          shape="square"
+        />
       </div>
       <div className="entity-card-content">
         <h3 className="entity-card-title">{entity.title}</h3>
@@ -421,26 +417,16 @@ export const visualizationConfigsConfig = {
 
       return (
         <div>
-          {entity.data.reference_image_path ? (
-            <img
-              src={entity.data.reference_image_path}
-              alt={entity.title}
-              style={{ width: '100%', height: 'auto', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)', marginBottom: '1rem' }}
-              onError={(e) => e.target.style.display = 'none'}
+          <div style={{ marginBottom: '1rem' }}>
+            <EntityPreviewImage
+              entityType="visualization_configs"
+              entityId={entity.config_id}
+              previewImageUrl={entity.data.reference_image_path}
+              standInIcon="🎨"
+              size="medium"
+              shape="square"
             />
-          ) : (
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: '12px',
-              padding: '4rem',
-              textAlign: 'center',
-              color: 'rgba(255, 255, 255, 0.3)',
-              fontSize: '4rem',
-              marginBottom: '1rem'
-            }}>
-              🎨
-            </div>
-          )}
+          </div>
 
           {/* Upload Button */}
           <div style={{ marginTop: '1rem' }}>
