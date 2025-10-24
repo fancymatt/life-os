@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useJobStream } from '../../contexts/JobStreamContext'
+import api from '../../api/client'
 
 /**
  * EntityPreviewImage - Universal preview image component with job tracking
@@ -42,6 +43,33 @@ function EntityPreviewImage({
     medium: { fontSize: '4rem', padding: '3rem' },
     large: { fontSize: '6rem', padding: '4rem' }
   }
+
+  // Check for active jobs on mount
+  useEffect(() => {
+    const checkForActiveJobs = async () => {
+      try {
+        const response = await api.get('/jobs?limit=50')
+
+        // Look for any active job for this entity
+        const activeJob = response.data.jobs?.find(job => {
+          const isActive = job.status === 'queued' || job.status === 'pending' || job.status === 'running'
+          const isOurEntity = job.metadata?.entity_type === entityType &&
+                             job.metadata?.entity_id === entityId
+          return isActive && isOurEntity
+        })
+
+        if (activeJob) {
+          console.log(`🎨 Found active job on mount for ${entityType}:`, entityId)
+          setGeneratingJobId(activeJob.job_id)
+          setJobProgress(activeJob.progress || 0)
+        }
+      } catch (error) {
+        console.error('Error checking for active jobs:', error)
+      }
+    }
+
+    checkForActiveJobs()
+  }, [entityType, entityId])
 
   // Listen to shared SSE connection
   useEffect(() => {
@@ -105,10 +133,25 @@ function EntityPreviewImage({
     }
   }, [generatingJobId, entityType, entityId, onUpdate, subscribe])
 
-  // Update image when prop changes
+  // Update image when prop changes (but preserve cache-busting timestamp)
   useEffect(() => {
-    setCurrentImageUrl(previewImageUrl)
-  }, [previewImageUrl])
+    if (!previewImageUrl) {
+      // No preview URL - clear current image
+      setCurrentImageUrl(null)
+      return
+    }
+
+    // Strip query parameters to compare base URLs
+    const stripQuery = (url) => url?.split('?')[0]
+    const newBaseUrl = stripQuery(previewImageUrl)
+    const currentBaseUrl = stripQuery(currentImageUrl)
+
+    // Only update if the base URL actually changed
+    // (preserve cache-busting timestamp if same base URL)
+    if (newBaseUrl !== currentBaseUrl) {
+      setCurrentImageUrl(previewImageUrl)
+    }
+  }, [previewImageUrl, currentImageUrl])
 
   return (
     <div style={{

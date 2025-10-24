@@ -1,17 +1,18 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef } from 'react'
 
 /**
  * JobStreamContext - Provides a single shared SSE connection for job updates
  *
  * Instead of each component creating its own SSE connection (which fails with many components),
  * this context provides one shared connection that all components can listen to.
+ *
+ * Performance: Uses useRef for listeners to avoid re-renders when components subscribe/unsubscribe
  */
 
 const JobStreamContext = createContext(null)
 
 export function JobStreamProvider({ children }) {
-  const [eventSource, setEventSource] = useState(null)
-  const [listeners, setListeners] = useState([])
+  const listenersRef = useRef([])
 
   // Create single SSE connection
   useEffect(() => {
@@ -24,8 +25,8 @@ export function JobStreamProvider({ children }) {
     es.onmessage = (event) => {
       try {
         const job = JSON.parse(event.data)
-        // Notify all registered listeners
-        listeners.forEach(listener => listener(job))
+        // Notify all registered listeners (access current listeners via ref)
+        listenersRef.current.forEach(listener => listener(job))
       } catch (error) {
         console.error('Error processing SSE message:', error)
       }
@@ -36,39 +37,19 @@ export function JobStreamProvider({ children }) {
       es.close()
     }
 
-    setEventSource(es)
-
     return () => {
       console.log('📡 Closing SSE connection')
       es.close()
     }
   }, []) // Empty deps - only create once
 
-  // Re-notify listeners when job updates come in
-  useEffect(() => {
-    if (!eventSource) return
-
-    const handler = (event) => {
-      try {
-        const job = JSON.parse(event.data)
-        listeners.forEach(listener => listener(job))
-      } catch (error) {
-        console.error('Error processing SSE message:', error)
-      }
-    }
-
-    eventSource.addEventListener('message', handler)
-
-    return () => {
-      eventSource.removeEventListener('message', handler)
-    }
-  }, [eventSource, listeners])
-
   const subscribe = (listener) => {
-    setListeners(prev => [...prev, listener])
+    // Add listener to ref (no re-render)
+    listenersRef.current = [...listenersRef.current, listener]
+
     // Return unsubscribe function
     return () => {
-      setListeners(prev => prev.filter(l => l !== listener))
+      listenersRef.current = listenersRef.current.filter(l => l !== listener)
     }
   }
 
