@@ -33,8 +33,8 @@ class AnalyzeMergeRequest(BaseModel):
     entity_type: str
     source_entity: dict
     target_entity: dict
-    source_id: str  # Source entity ID (will keep this one)
-    target_id: str  # Target entity ID (will be archived)
+    source_id: Optional[str] = None  # Source entity ID (will keep this one) - extracted from source_entity if not provided
+    target_id: Optional[str] = None  # Target entity ID (will be archived) - extracted from target_entity if not provided
     auto_approve: bool = False  # If True, skip Brief card and execute merge immediately
 
 
@@ -250,10 +250,20 @@ async def analyze_merge(
         job_id for tracking progress
     """
     try:
+        # Extract entity IDs if not provided
+        source_id = request.source_id or request.source_entity.get('id') or request.source_entity.get('item_id')
+        target_id = request.target_id or request.target_entity.get('id') or request.target_entity.get('item_id')
+
+        if not source_id or not target_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not determine entity IDs. Please provide source_id and target_id."
+            )
+
         # Create job immediately
         job_manager = get_job_queue_manager()
 
-        entity_name = request.source_entity.get('name') or request.source_entity.get('title') or request.source_id
+        entity_name = request.source_entity.get('name') or request.source_entity.get('title') or request.source_entity.get('item', 'Entity')
 
         job_id = job_manager.create_job(
             job_type=JobType.ANALYZE,
@@ -261,8 +271,8 @@ async def analyze_merge(
             description=f"Analyzing {entity_name}",
             metadata={
                 'entity_type': request.entity_type,
-                'source_id': request.source_id,
-                'target_id': request.target_id,
+                'source_id': source_id,
+                'target_id': target_id,
                 'auto_approve': request.auto_approve
             }
         )
@@ -274,13 +284,13 @@ async def analyze_merge(
             request.entity_type,
             request.source_entity,
             request.target_entity,
-            request.source_id,
-            request.target_id,
+            source_id,
+            target_id,
             request.auto_approve,
             current_user.id if current_user else None
         )
 
-        logger.info(f"Merge analysis queued: {job_id} (auto_approve={request.auto_approve})")
+        logger.info(f"Merge analysis queued: {job_id} (source={source_id}, target={target_id}, auto_approve={request.auto_approve})")
 
         return {
             "job_id": job_id,
@@ -289,6 +299,8 @@ async def analyze_merge(
             "auto_approve": request.auto_approve
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error queueing merge analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
