@@ -359,14 +359,46 @@ async def generate_preset_preview(
     """
     from api.services.job_queue import get_job_queue_manager
     from api.models.jobs import JobType
+    from api.services.visualization_config_service_db import VisualizationConfigServiceDB
+    from api.database import get_session
 
     logger.info(f"🎨 Generate preview endpoint called: {category}/{preset_id}")
 
-    # Create job immediately
+    # Load preset data to get display name
+    try:
+        preset_data = preset_service.get_preset(category, preset_id)
+        display_name = preset_data.get('display_name') or preset_data.get('suggested_name') or preset_id
+    except Exception as e:
+        logger.warning(f"Failed to load preset name: {e}")
+        display_name = preset_id
+
+    # Convert category to entity_type (strip trailing 's')
+    entity_type = category.rstrip('s') if category.endswith('s') else category
+
+    # Get visualization config to determine model
+    model_name = "gemini-2.5-flash-image"  # default
+    try:
+        async with get_session() as session:
+            viz_service = VisualizationConfigServiceDB(session, user_id=None)
+            viz_config = await viz_service.get_default_config(entity_type)
+
+            if viz_config and 'model' in viz_config:
+                model_name = viz_config['model']
+                # Strip "gemini/" prefix if present for cleaner display
+                if model_name.startswith("gemini/"):
+                    model_name = model_name[len("gemini/"):]
+    except Exception as e:
+        logger.warning(f"Failed to load viz config, using default model: {e}")
+
+    # Create job with descriptive title and description (following best practices)
     job_id = get_job_queue_manager().create_job(
         job_type=JobType.GENERATE_IMAGE,
-        title=f"Generating {category} preview",
-        description=f"Preset ID: {preset_id}"
+        title=f"Create Preview Image ({model_name})",
+        description=f"{entity_type.replace('_', ' ').title()}: {display_name}",
+        metadata={
+            'entity_type': entity_type,
+            'entity_id': preset_id
+        }
     )
     logger.info(f"Created job {job_id} for preview generation")
 
