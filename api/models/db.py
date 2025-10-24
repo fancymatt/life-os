@@ -192,7 +192,7 @@ class BoardGame(Base):
 
 
 # ============================================================================
-# Outfit Entity (Placeholder for future implementation)
+# Outfit Entity
 # ============================================================================
 
 class Outfit(Base):
@@ -237,7 +237,7 @@ class Outfit(Base):
 
 
 # ============================================================================
-# Story Entities (Future implementation for persistent stories)
+# Story Entities
 # ============================================================================
 
 class Story(Base):
@@ -537,3 +537,88 @@ class VisualizationConfig(Base):
 
     def __repr__(self):
         return f"<VisualizationConfig(id='{self.config_id}', entity_type='{self.entity_type}', name='{self.display_name}')>"
+
+
+# ============================================================================
+# Tagging System (Phase 2.5)
+# ============================================================================
+
+class Tag(Base):
+    """Tag for categorizing and organizing entities"""
+    __tablename__ = "tags"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tag_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+
+    # Tag details
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)  # material, style, season, genre, etc.
+    color: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # hex color for UI display
+
+    # Usage tracking
+    usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # User relationship (nullable - tags can be system-wide)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+
+    # Indexes for common queries
+    __table_args__ = (
+        Index("ix_tag_name_lower", "name"),  # Case-insensitive search
+        Index("ix_tag_category", "category"),
+        Index("ix_tag_usage", "usage_count"),
+    )
+
+    def __repr__(self):
+        return f"<Tag(id='{self.tag_id}', name='{self.name}', category='{self.category}')>"
+
+
+class EntityTag(Base):
+    """
+    Many-to-many relationship table linking tags to entities
+
+    This allows any entity type to be tagged with multiple tags.
+    Unlike the old JSON array approach, this enables:
+    - Tag autocomplete and suggestions
+    - Filtering entities by tags
+    - Tag usage statistics
+    - Multi-tag filtering with AND/OR logic
+
+    Example: A character 'Luna' tagged with 'fantasy', 'protagonist', 'young-adult'
+    would have 3 rows:
+    - (entity_type='character', entity_id='luna-uuid', tag_id='fantasy-uuid')
+    - (entity_type='character', entity_id='luna-uuid', tag_id='protagonist-uuid')
+    - (entity_type='character', entity_id='luna-uuid', tag_id='young-adult-uuid')
+    """
+    __tablename__ = "entity_tags"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # Polymorphic entity reference
+    entity_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    # Tag reference
+    tag_id: Mapped[str] = mapped_column(String(50), ForeignKey("tags.tag_id"), nullable=False, index=True)
+
+    # Timestamp
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    tag = relationship("Tag")
+
+    # Indexes for common queries
+    __table_args__ = (
+        # Find all tags for an entity
+        Index("ix_entity_tag_entity", "entity_type", "entity_id"),
+        # Find all entities with a specific tag
+        Index("ix_entity_tag_tag", "tag_id"),
+        # Unique constraint: one tag per entity
+        Index("ix_entity_tag_unique", "entity_type", "entity_id", "tag_id", unique=True),
+    )
+
+    def __repr__(self):
+        return f"<EntityTag(entity_type='{self.entity_type}', entity_id='{self.entity_id}', tag_id='{self.tag_id}')>"
