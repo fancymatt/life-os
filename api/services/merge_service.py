@@ -110,8 +110,17 @@ Return ONLY valid JSON matching the {entity_type} schema."""
                 max_tokens=2000
             )
 
-            # Parse AI response
-            merged_data = json.loads(response)
+            # Parse AI response (strip markdown code blocks if present)
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]  # Remove ```json
+            if response_text.startswith("```"):
+                response_text = response_text[3:]  # Remove ```
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]  # Remove trailing ```
+            response_text = response_text.strip()
+
+            merged_data = json.loads(response_text)
 
             logger.info(f"AI generated merged {entity_type} combining {len(source_entity)} and {len(target_entity)} fields")
 
@@ -189,7 +198,18 @@ Return ONLY valid JSON matching the {entity_type} schema."""
                 raise ValueError(f"Unsupported entity type for merging: {entity_type}")
 
             # 1. Update source entity with merged data
-            await repo.update(source_id, merged_data)
+            # Fetch the source entity ORM object
+            source_entity_obj = await repo.get_by_id(source_id)
+            if not source_entity_obj:
+                raise ValueError(f"Source {entity_type} {source_id} not found")
+
+            # Update fields from merged_data
+            for key, value in merged_data.items():
+                if hasattr(source_entity_obj, key) and key not in ['id', 'created_at', 'item_id', 'character_id', 'game_id']:
+                    setattr(source_entity_obj, key, value)
+
+            # Save updated entity
+            await repo.update(source_entity_obj)
             logger.info(f"Updated {entity_type} {source_id} with merged data")
 
             # 2. Update references (find and update all references from target to source)
@@ -238,9 +258,15 @@ Return ONLY valid JSON matching the {entity_type} schema."""
             logger.info(f"Updated {total_updated} references from {target_id} to {source_id}")
 
             # 3. Archive target entity with merged_into metadata
-            archive_metadata = {"merged_into": source_id}
-            await repo.archive(target_id, metadata=archive_metadata)
-            logger.info(f"Archived {entity_type} {target_id} with merged_into: {source_id}")
+            target_entity_obj = await repo.get_by_id(target_id)
+            if target_entity_obj:
+                # Set metadata before archiving
+                if hasattr(target_entity_obj, 'metadata'):
+                    if target_entity_obj.metadata is None:
+                        target_entity_obj.metadata = {}
+                    target_entity_obj.metadata['merged_into'] = source_id
+                await repo.archive(target_id)
+                logger.info(f"Archived {entity_type} {target_id} with merged_into: {source_id}")
 
             await self.db.commit()
 
