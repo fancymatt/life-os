@@ -34,7 +34,9 @@ export const imagesConfig = {
       imageId: img.image_id,
       title: img.filename,
       filename: img.filename,
-      imageUrl: img.file_path,
+      // Use entity_previews path for optimized preview images
+      imageUrl: `/entity_previews/images/${img.image_id}_preview.png`,
+      originalImageUrl: img.file_path, // Keep original for download
       width: img.width,
       height: img.height,
       entities: img.entities || {},
@@ -243,7 +245,7 @@ export const imagesConfig = {
         )}
 
         <a
-          href={image.imageUrl}
+          href={image.originalImageUrl || image.imageUrl}
           download={image.filename}
           style={{
             display: 'inline-block',
@@ -255,7 +257,7 @@ export const imagesConfig = {
             fontWeight: 500
           }}
         >
-          ⬇️ Download
+          ⬇️ Download Full Resolution
         </a>
       </div>
     )
