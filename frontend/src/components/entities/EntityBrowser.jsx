@@ -272,6 +272,12 @@ function EntityBrowser({ config }) {
   }
 
   const handleEntityClick = async (entity) => {
+    // If in selection mode, handle selection instead of navigation
+    if (config.selectionMode && config.onItemSelect) {
+      config.onItemSelect(entity)
+      return
+    }
+
     setSelectedEntity(entity)
     setView('detail')
     setDetailTab('data') // Reset to data tab when opening entity
@@ -622,11 +628,46 @@ function EntityBrowser({ config }) {
               gap: config.gridConfig?.gap || '1.5rem'
             }}
           >
-            {displayedEntities.map((entity, idx) => (
-              <div key={entity.id || idx} onClick={() => handleEntityClick(entity)}>
-                {config.renderCard(entity)}
-              </div>
-            ))}
+            {displayedEntities.map((entity, idx) => {
+              const isSelected = config.selectionMode && config.selectedItems?.some(item => item.id === entity.id)
+
+              return (
+                <div
+                  key={entity.id || idx}
+                  onClick={() => handleEntityClick(entity)}
+                  style={{
+                    position: 'relative',
+                    cursor: config.selectionMode ? 'pointer' : 'default',
+                    outline: isSelected ? '3px solid rgba(139, 92, 246, 0.6)' : 'none',
+                    outlineOffset: isSelected ? '2px' : '0',
+                    borderRadius: '12px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {config.selectionMode && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '0.5rem',
+                      right: '0.5rem',
+                      zIndex: 10,
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: isSelected ? 'rgba(139, 92, 246, 1)' : 'rgba(0, 0, 0, 0.6)',
+                      border: isSelected ? 'none' : '2px solid rgba(255, 255, 255, 0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      pointerEvents: 'none'
+                    }}>
+                      {isSelected && '✓'}
+                    </div>
+                  )}
+                  {config.renderCard(entity)}
+                </div>
+              )
+            })}
           </div>
 
           {/* Load More Button */}
