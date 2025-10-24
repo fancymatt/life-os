@@ -27,7 +27,7 @@ export const imagesConfig = {
 
   fetchEntities: async () => {
     // Note: images router is mounted without /api prefix
-    const response = await api.get('/images/?limit=100')
+    const response = await api.get('/images/?limit=1000')
 
     return (response.data.images || []).map(img => ({
       id: img.image_id,
