@@ -67,8 +67,7 @@ export const imagesConfig = {
           borderRadius: '8px',
           overflow: 'hidden',
           height: 'auto', // Override fixed height from CSS
-          aspectRatio: '1', // Start as square, will resize when image loads
-          minHeight: '200px' // Minimum height while loading
+          minHeight: '200px' // Prevent zero-height while loading, expands to fit image once loaded
         }}>
           {image.archived && (
             <div style={{
