@@ -1,4 +1,4 @@
-# lifeOS v2.5.0 (107) - Development Roadmap
+# lifeOS v2.5.1 (109) - Development Roadmap
 
 **Last Updated**: 2025-10-23
 **Current Phase**: Phase 2 - User Experience & Core Features
@@ -430,6 +430,50 @@ Amplify all unique features by {intensity}:
 
 ---
 
+### 2.13 Story Collections & Series (2-3 days)
+**Priority**: MEDIUM - Content organization
+**Complexity**: Low
+**Depends on**: Stories saved to database (Section 2.3)
+
+**Problem**: Users will create related stories. Need organization.
+
+**Database Schema**:
+```sql
+CREATE TABLE story_collections (
+  collection_id UUID PRIMARY KEY,
+  name VARCHAR(255),
+  description TEXT,
+  display_order INTEGER[], -- Array of story IDs in order
+  user_id INTEGER,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP,
+  archived BOOLEAN DEFAULT FALSE,
+  archived_at TIMESTAMP
+);
+```
+
+**Features**:
+- [ ] Group stories into collections/series
+- [ ] Set collection order (Book 1, Book 2, etc.)
+- [ ] Collection-level metadata (series description, genre)
+- [ ] "Next in series" suggestions in Brief
+- [ ] Export entire collection as epub anthology
+
+**UI**:
+- [ ] "Create Collection" button in Stories browser
+- [ ] Drag-and-drop to reorder stories in collection
+- [ ] Collection detail page with all stories listed
+- [ ] Badge on story cards showing collection membership
+- [ ] Filter stories by collection
+
+**Success Criteria**:
+- Easy to create and organize collections
+- Collections useful for multi-book series
+- Export works seamlessly
+- "Next in series" suggestions helpful
+
+---
+
 ### Phase 2 Success Metrics
 
 - ✅ Archive system 100% complete
@@ -637,7 +681,182 @@ Amplify all unique features by {intensity}:
 
 ---
 
-### 3.8 Retroactive Story Illustration (1 week)
+### 3.8 Story Editing & Revision Workflow (1-2 weeks)
+**Priority**: HIGH - Iterative creative process
+**Complexity**: Medium
+**Depends on**: Stories saved to database (Section 2.3)
+
+**Problem**: Users can only generate stories, not edit them. Need AI-assisted editing.
+
+**Features**:
+- [ ] Edit story content in-place with AI assistance
+- [ ] "Rewrite this scene to be more suspenseful"
+- [ ] "Expand this character introduction"
+- [ ] "Change the tone to be lighter"
+- [ ] Track revision history (provenance for edits)
+- [ ] A/B comparison view (original vs revised)
+- [ ] Apply TasteProfile to suggest improvements
+- [ ] Undo/redo revisions
+
+**Revision Agent**:
+- [ ] Takes instruction + story section
+- [ ] Generates revised version preserving context
+- [ ] Maintains character consistency
+- [ ] Preserves story arc and timeline
+- [ ] Suggests improvements based on TasteProfile
+
+**UI**:
+- [ ] "Edit Story" mode in story detail page
+- [ ] Click any scene to edit
+- [ ] Text input for revision instructions
+- [ ] Side-by-side comparison (before/after)
+- [ ] Accept/reject changes
+- [ ] Revision history timeline
+- [ ] Quick actions: "Make it longer", "Add more detail", "Change tone"
+
+**Database**:
+```sql
+CREATE TABLE story_revisions (
+  revision_id UUID PRIMARY KEY,
+  story_id UUID,
+  scene_id UUID,
+  original_content TEXT,
+  revised_content TEXT,
+  revision_instruction TEXT,
+  created_at TIMESTAMP,
+  user_id INTEGER
+);
+```
+
+**Success Criteria**:
+- Can edit any story scene with AI help
+- Revision history navigable
+- Integration with TasteProfile for style consistency
+- Undo/redo works reliably
+- Preserves narrative continuity
+
+---
+
+### 3.9 Character Relationship Graph (1 week)
+**Priority**: MEDIUM - Depth for storytelling
+**Complexity**: Medium
+
+**Problem**: Characters exist in isolation. Relationships add depth to storytelling.
+
+**Database Schema**:
+```sql
+CREATE TABLE character_relationships (
+  relationship_id UUID PRIMARY KEY,
+  character_a_id UUID,
+  character_b_id UUID,
+  relationship_type VARCHAR(50), -- family, friends, rivals, romantic, mentor_student
+  strength INTEGER, -- 1-10 closeness indicator
+  description TEXT,
+  timeline_start DATE,
+  timeline_end DATE,
+  user_id INTEGER,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+**Features**:
+- [ ] Visual graph of character relationships (D3.js)
+- [ ] Relationship types: family, friends, rivals, romantic, mentor/student
+- [ ] Strength/closeness indicators (1-10 scale)
+- [ ] Timeline of relationship changes
+- [ ] Auto-suggest relationships from stories (AI reads story, detects interactions)
+- [ ] Filter stories by relationship ("Show all stories with X and Y")
+- [ ] Bidirectional relationships (A→B and B→A)
+
+**Auto-Detection Agent**:
+- [ ] Reads story content
+- [ ] Identifies character interactions
+- [ ] Infers relationship type and strength
+- [ ] Suggests relationships for user approval
+- [ ] Updates existing relationships based on story events
+
+**UI**:
+- [ ] D3.js graph visualization
+- [ ] Drag-to-create relationships
+- [ ] Click relationship to edit details
+- [ ] Filter by relationship type
+- [ ] Timeline view of relationship evolution
+- [ ] "Suggest Relationships" button (runs AI analysis)
+
+**Success Criteria**:
+- Relationship graph helps with story planning
+- Auto-detection >70% accurate
+- Easy to navigate and understand
+- Graph performant with 50+ characters
+- Useful for tracking character arcs
+
+---
+
+### 3.10 Character Development Tracker (1 week)
+**Priority**: MEDIUM - Character arc visualization
+**Complexity**: Medium
+**Depends on**: Stories saved to database (Section 2.3)
+
+**Problem**: Characters evolve across stories. Need to track their arcs.
+
+**Features**:
+- [ ] Timeline view of character across stories
+- [ ] Track changes: personality traits, relationships, appearance, skills
+- [ ] Visual arc visualization (character growth over time)
+- [ ] Consistency warnings ("Character died in Story 3 but appears in Story 5")
+- [ ] Trait evolution tracking ("Brave in Story 1 → Cautious in Story 3")
+- [ ] Milestone detection (first appearance, major events, final appearance)
+
+**Analysis Engine**:
+- [ ] Reads all stories featuring character
+- [ ] Extracts character traits per story
+- [ ] Detects changes over time
+- [ ] Identifies inconsistencies
+- [ ] Generates development summary
+
+**Database**:
+```sql
+CREATE TABLE character_snapshots (
+  snapshot_id UUID PRIMARY KEY,
+  character_id UUID,
+  story_id UUID,
+  traits JSONB, -- {"brave": 8, "cautious": 3, "compassionate": 7}
+  relationships JSONB,
+  major_events TEXT[],
+  created_at TIMESTAMP
+);
+```
+
+**UI**:
+- [ ] Timeline visualization (horizontal axis = time/stories)
+- [ ] Trait evolution chart (line graph)
+- [ ] Milestone markers on timeline
+- [ ] Consistency warning badges
+- [ ] "Character in Story X" snapshot cards
+- [ ] Export character arc summary
+
+**Example Output**:
+```
+Character Arc: Luna
+- Story 1 (Origin): Timid, inexperienced, eager to prove herself
+- Story 2 (Growth): More confident, learns magic, befriends mentor
+- Story 3 (Trial): Faces fear, overcomes challenge, becomes leader
+- Story 4 (Mastery): Confident, skilled, mentors others
+
+⚠️ Consistency Warning: Luna uses fire magic in Story 2 but can't in Story 4
+```
+
+**Success Criteria**:
+- Can see character evolution at a glance
+- Consistency warnings prevent plot holes
+- Useful for series/multi-story arcs
+- Timeline visualization clear and intuitive
+- Helps writers maintain character consistency
+
+---
+
+### 3.11 Retroactive Story Illustration (1 week)
 **Priority**: MEDIUM - Enhance existing stories
 **Complexity**: Medium
 **Depends on**: Stories saved to database (Section 2.3)
