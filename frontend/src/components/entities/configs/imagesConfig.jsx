@@ -53,12 +53,6 @@ export const imagesConfig = {
   },
 
   renderCard: (image) => {
-    // Count entities
-    const entityCounts = {}
-    Object.keys(image.entities || {}).forEach(type => {
-      entityCounts[type] = image.entities[type].length
-    })
-
     return (
       <div className="entity-card">
         <div className="entity-card-image entity-card-image-preserve-aspect" style={{
@@ -92,48 +86,6 @@ export const imagesConfig = {
           />
         </div>
         <div className="entity-card-content">
-          {/* Entity badges */}
-          {Object.keys(entityCounts).length > 0 && (
-            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-              {entityCounts.character > 0 && (
-                <span style={{
-                  padding: '0.25rem 0.5rem',
-                  background: 'rgba(99, 102, 241, 0.2)',
-                  border: '1px solid rgba(99, 102, 241, 0.3)',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  color: 'rgba(99, 102, 241, 1)'
-                }}>
-                  👤 {entityCounts.character}
-                </span>
-              )}
-              {entityCounts.clothing_item > 0 && (
-                <span style={{
-                  padding: '0.25rem 0.5rem',
-                  background: 'rgba(168, 85, 247, 0.2)',
-                  border: '1px solid rgba(168, 85, 247, 0.3)',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  color: 'rgba(168, 85, 247, 1)'
-                }}>
-                  👕 {entityCounts.clothing_item}
-                </span>
-              )}
-              {entityCounts.visual_style > 0 && (
-                <span style={{
-                  padding: '0.25rem 0.5rem',
-                  background: 'rgba(245, 158, 11, 0.2)',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  color: 'rgba(245, 158, 11, 1)'
-                }}>
-                  🎨 {entityCounts.visual_style}
-                </span>
-              )}
-            </div>
-          )}
-
           {formatDate(image.createdAt) && (
             <p className="entity-card-date">{formatDate(image.createdAt)}</p>
           )}
