@@ -187,6 +187,16 @@
   object-fit: cover;
 }
 
+/* Override for aspect-ratio-preserved images (like images entity) */
+.entity-card-image-preserve-aspect {
+  height: auto !important;
+}
+
+.entity-card-image-preserve-aspect img {
+  height: auto !important;
+  object-fit: contain !important;
+}
+
 .entity-card-placeholder {
   width: 100%;
   height: 100%;
