@@ -66,7 +66,9 @@ export const imagesConfig = {
           opacity: image.archived ? 0.6 : 1,
           borderRadius: '8px',
           overflow: 'hidden',
-          height: 'auto' // Override fixed height from CSS
+          height: 'auto', // Override fixed height from CSS
+          aspectRatio: '1', // Start as square, will resize when image loads
+          minHeight: '200px' // Minimum height while loading
         }}>
           {image.archived && (
             <div style={{
