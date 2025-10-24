@@ -1,8 +1,8 @@
-# Life-OS Development Roadmap (Consolidated)
+# lifeOS v2.5.1 - Development Roadmap
 
 **Last Updated**: 2025-10-23
-**Current Phase**: Phase 1 ✅ COMPLETE → Starting Phase 2.0
-**Version**: 5.0 - Comprehensive Personal AI Assistant
+**Current Phase**: Phase 2 - User Experience & Core Features
+**Next**: Phase 2.5 - Tagging System
 
 ---
 
