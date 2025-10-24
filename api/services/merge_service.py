@@ -203,9 +203,26 @@ Return ONLY valid JSON matching the {entity_type} schema."""
             if not source_entity_obj:
                 raise ValueError(f"Source {entity_type} {source_id} not found")
 
+            # Field length limits (from database schema)
+            # These prevent StringDataRightTruncationError
+            field_limits = {
+                'item': 500,
+                'color': 255,
+                'name': 255,
+                'visual_description': None,  # Text field
+                'fabric': None,  # Text field
+                'details': None,  # Text field
+            }
+
             # Update fields from merged_data
             for key, value in merged_data.items():
                 if hasattr(source_entity_obj, key) and key not in ['id', 'created_at', 'item_id', 'character_id', 'game_id']:
+                    # Truncate string fields that exceed schema limits
+                    if isinstance(value, str) and key in field_limits and field_limits[key] is not None:
+                        max_len = field_limits[key]
+                        if len(value) > max_len:
+                            logger.warning(f"Truncating {key} from {len(value)} to {max_len} chars")
+                            value = value[:max_len]
                     setattr(source_entity_obj, key, value)
 
             # Save updated entity
