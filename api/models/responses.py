@@ -173,6 +173,7 @@ class BoardGameInfo(BaseModel):
     playtime_min: Optional[int] = None
     playtime_max: Optional[int] = None
     complexity: Optional[float] = None
+    tags: List["TagInfo"] = []
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     metadata: Dict[str, Any] = {}

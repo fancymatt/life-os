@@ -5,7 +5,7 @@ Endpoints for managing board game entities and integrating with BoardGameGeek.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query, Request
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.requests import BoardGameCreate, BoardGameUpdate
@@ -15,9 +15,11 @@ from api.models.responses import (
     BGGSearchResponse,
     BGGSearchResult,
     DocumentInfo,
-    DocumentListResponse
+    DocumentListResponse,
+    TagInfo
 )
 from api.services.board_game_service_db import BoardGameServiceDB
+from api.services.tag_service import TagService
 from api.database import get_db
 from api.services.document_service import DocumentService
 from api.services.qa_service import QAService
@@ -27,6 +29,32 @@ from ai_tools.board_game_rules_gatherer.tool import BoardGameRulesGatherer
 from api.middleware.cache import cached, invalidates_cache
 
 router = APIRouter()
+
+
+# Helper Functions
+async def get_entity_tags_info(
+    db: AsyncSession,
+    entity_type: str,
+    entity_id: str
+) -> List[TagInfo]:
+    """
+    Helper function to fetch tags for an entity and convert to TagInfo response objects.
+    """
+    tag_service = TagService(db_session=db)
+    tags = await tag_service.get_entity_tags(entity_type, entity_id)
+
+    return [
+        TagInfo(
+            tag_id=tag.tag_id,
+            name=tag.name,
+            category=tag.category,
+            color=tag.color,
+            usage_count=tag.usage_count,
+            created_at=tag.created_at.isoformat() if tag.created_at else None,
+            updated_at=tag.updated_at.isoformat() if tag.updated_at else None
+        )
+        for tag in tags
+    ]
 
 
 @router.get("/", response_model=BoardGameListResponse)
@@ -52,26 +80,30 @@ async def list_board_games(
     games = await service.list_board_games(limit=limit, offset=offset)
     total_count = await service.count_board_games()
 
-    game_infos = [
-        BoardGameInfo(
-            game_id=game['game_id'],
-            name=game['name'],
-            bgg_id=game.get('bgg_id'),
-            designer=game.get('designer'),
-            publisher=game.get('publisher'),
-            year=game.get('year'),
-            description=game.get('description'),
-            player_count_min=game.get('player_count_min'),
-            player_count_max=game.get('player_count_max'),
-            playtime_min=game.get('playtime_min'),
-            playtime_max=game.get('playtime_max'),
-            complexity=game.get('complexity'),
-            created_at=game.get('created_at'),
-            updated_at=game.get('updated_at'),
-            metadata=game.get('metadata', {})
+    # Fetch tags for each game
+    game_infos = []
+    for game in games:
+        tags_info = await get_entity_tags_info(db, "board_game", game['game_id'])
+        game_infos.append(
+            BoardGameInfo(
+                game_id=game['game_id'],
+                name=game['name'],
+                bgg_id=game.get('bgg_id'),
+                designer=game.get('designer'),
+                publisher=game.get('publisher'),
+                year=game.get('year'),
+                description=game.get('description'),
+                player_count_min=game.get('player_count_min'),
+                player_count_max=game.get('player_count_max'),
+                playtime_min=game.get('playtime_min'),
+                playtime_max=game.get('playtime_max'),
+                complexity=game.get('complexity'),
+                tags=tags_info,
+                created_at=game.get('created_at'),
+                updated_at=game.get('updated_at'),
+                metadata=game.get('metadata', {})
+            )
         )
-        for game in games
-    ]
 
     return BoardGameListResponse(
         count=total_count,  # Total count, not page count
@@ -110,6 +142,9 @@ async def create_board_game(
         complexity=request.complexity
     )
 
+    # Fetch tags (will be empty for new games)
+    tags_info = await get_entity_tags_info(db, "board_game", game_data['game_id'])
+
     return BoardGameInfo(
         game_id=game_data['game_id'],
         name=game_data['name'],
@@ -123,6 +158,7 @@ async def create_board_game(
         playtime_min=game_data.get('playtime_min'),
         playtime_max=game_data.get('playtime_max'),
         complexity=game_data.get('complexity'),
+        tags=tags_info,
         created_at=game_data.get('created_at'),
         updated_at=game_data.get('updated_at'),
         metadata=game_data.get('metadata', {})
@@ -150,6 +186,8 @@ async def get_board_game(
     if not game_data:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
 
+    tags_info = await get_entity_tags_info(db, "board_game", game_id)
+
     return BoardGameInfo(
         game_id=game_data['game_id'],
         name=game_data['name'],
@@ -163,6 +201,7 @@ async def get_board_game(
         playtime_min=game_data.get('playtime_min'),
         playtime_max=game_data.get('playtime_max'),
         complexity=game_data.get('complexity'),
+        tags=tags_info,
         created_at=game_data.get('created_at'),
         updated_at=game_data.get('updated_at'),
         metadata=game_data.get('metadata', {})
@@ -203,6 +242,8 @@ async def update_board_game(
     if not game_data:
         raise HTTPException(status_code=404, detail=f"Board game {game_id} not found")
 
+    tags_info = await get_entity_tags_info(db, "board_game", game_id)
+
     return BoardGameInfo(
         game_id=game_data['game_id'],
         name=game_data['name'],
@@ -216,6 +257,7 @@ async def update_board_game(
         playtime_min=game_data.get('playtime_min'),
         playtime_max=game_data.get('playtime_max'),
         complexity=game_data.get('complexity'),
+        tags=tags_info,
         created_at=game_data.get('created_at'),
         updated_at=game_data.get('updated_at'),
         metadata=game_data.get('metadata', {})

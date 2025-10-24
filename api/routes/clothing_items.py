@@ -11,8 +11,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.services.clothing_items_service_db import ClothingItemServiceDB
+from api.services.tag_service import TagService
 from api.database import get_db
 from api.models.auth import User
+from api.models.responses import TagInfo
 from api.dependencies.auth import get_current_active_user
 from api.middleware.cache import cached, invalidates_cache
 
@@ -50,6 +52,7 @@ class ClothingItemInfo(BaseModel):
     details: str
     source_image: Optional[str] = None
     preview_image_path: Optional[str] = None
+    tags: List[TagInfo] = []
     created_at: str
 
 
@@ -64,6 +67,32 @@ class CategoriesSummaryResponse(BaseModel):
     """Summary of items per category"""
     categories: dict  # {category: count}
     total_items: int
+
+
+# Helper Functions
+async def get_entity_tags_info(
+    db: AsyncSession,
+    entity_type: str,
+    entity_id: str
+) -> List[TagInfo]:
+    """
+    Helper function to fetch tags for an entity and convert to TagInfo response objects.
+    """
+    tag_service = TagService(db_session=db)
+    tags = await tag_service.get_entity_tags(entity_type, entity_id)
+
+    return [
+        TagInfo(
+            tag_id=tag.tag_id,
+            name=tag.name,
+            category=tag.category,
+            color=tag.color,
+            usage_count=tag.usage_count,
+            created_at=tag.created_at.isoformat() if tag.created_at else None,
+            updated_at=tag.updated_at.isoformat() if tag.updated_at else None
+        )
+        for tag in tags
+    ]
 
 
 # Routes
@@ -91,20 +120,24 @@ async def list_clothing_items(
     items = await service.list_clothing_items(category=category, limit=limit, offset=offset)
     total_count = await service.count_clothing_items(category=category)
 
-    item_infos = [
-        ClothingItemInfo(
-            item_id=item['item_id'],
-            category=item['category'],
-            item=item['item'],
-            fabric=item['fabric'],
-            color=item['color'],
-            details=item['details'],
-            source_image=item.get('source_image'),
-            preview_image_path=item.get('preview_image_path'),
-            created_at=item.get('created_at', '')
+    # Fetch tags for each item
+    item_infos = []
+    for item in items:
+        tags_info = await get_entity_tags_info(db, "clothing_item", item['item_id'])
+        item_infos.append(
+            ClothingItemInfo(
+                item_id=item['item_id'],
+                category=item['category'],
+                item=item['item'],
+                fabric=item['fabric'],
+                color=item['color'],
+                details=item['details'],
+                source_image=item.get('source_image'),
+                preview_image_path=item.get('preview_image_path'),
+                tags=tags_info,
+                created_at=item.get('created_at', '')
+            )
         )
-        for item in items
-    ]
 
     return ClothingItemListResponse(
         count=total_count,
@@ -158,6 +191,8 @@ async def get_clothing_item(
     if not item:
         raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
 
+    tags_info = await get_entity_tags_info(db, "clothing_item", item_id)
+
     return ClothingItemInfo(
         item_id=item['item_id'],
         category=item['category'],
@@ -167,6 +202,7 @@ async def get_clothing_item(
         details=item['details'],
         source_image=item.get('source_image'),
         preview_image_path=item.get('preview_image_path'),
+        tags=tags_info,
         created_at=item.get('created_at', '')
     )
 
@@ -204,6 +240,9 @@ async def create_clothing_item(
         background_tasks=background_tasks if generate_preview else None
     )
 
+    # Fetch tags (will be empty for new items)
+    tags_info = await get_entity_tags_info(db, "clothing_item", item['item_id'])
+
     return ClothingItemInfo(
         item_id=item['item_id'],
         category=item['category'],
@@ -213,6 +252,7 @@ async def create_clothing_item(
         details=item['details'],
         source_image=item.get('source_image'),
         preview_image_path=item.get('preview_image_path'),
+        tags=tags_info,
         created_at=item.get('created_at', '')
     )
 
@@ -247,6 +287,8 @@ async def update_clothing_item(
     if not item:
         raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
 
+    tags_info = await get_entity_tags_info(db, "clothing_item", item_id)
+
     return ClothingItemInfo(
         item_id=item['item_id'],
         category=item['category'],
@@ -256,6 +298,7 @@ async def update_clothing_item(
         details=item['details'],
         source_image=item.get('source_image'),
         preview_image_path=item.get('preview_image_path'),
+        tags=tags_info,
         created_at=item.get('created_at', '')
     )
 
@@ -623,6 +666,8 @@ async def generate_clothing_item_preview(
             if not item:
                 raise HTTPException(status_code=404, detail=f"Clothing item {item_id} not found")
 
+            tags_info = await get_entity_tags_info(db, "clothing_item", item_id)
+
             return ClothingItemInfo(
                 item_id=item['item_id'],
                 category=item['category'],
@@ -632,6 +677,7 @@ async def generate_clothing_item_preview(
                 details=item['details'],
                 source_image=item.get('source_image'),
                 preview_image_path=item.get('preview_image_path'),
+                tags=tags_info,
                 created_at=item.get('created_at', '')
             )
         except Exception as e:
@@ -667,9 +713,9 @@ async def run_test_image_generation_job(job_id: str, item_id: str, character_id:
                 job_manager.fail_job(job_id, f"Clothing item {item_id} not found")
                 return
 
-            # Load character by name (case-insensitive)
+            # Load character by ID
             character_service = CharacterServiceDB(session, user_id=None)
-            character = await character_service.get_character_by_name(character_id)
+            character = await character_service.get_character(character_id)
 
             if not character:
                 job_manager.fail_job(job_id, f"Character '{character_id}' not found")
@@ -756,8 +802,8 @@ async def generate_test_image(
     shown in its actual appearance.
 
     Request Body:
-    - character_id: ID of character to use (e.g., 'jenny')
-    - visual_style: Visual style preset to use (e.g., 'White Studio')
+    - character_id: UUID of character to use (e.g., 'e1f4fe53')
+    - visual_style: UUID of visual style preset to use (e.g., 'b1ed9953-a91d-4257-98de-bf8b2f256293')
 
     Returns job ID for tracking generation progress.
     """
