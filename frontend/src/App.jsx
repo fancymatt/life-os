@@ -171,6 +171,9 @@ function App() {
           <Route path="bgg-rulebook-fetcher" element={<BGGRulebookFetcher />} />
           <Route path="document-processor" element={<DocumentProcessor />} />
           <Route path="document-question-asker" element={<DocumentQuestionAsker />} />
+
+          {/* Entity Management Tools */}
+          <Route path="entity-merger" element={<ToolConfigPage />} />
         </Route>
 
         {/* Workflows */}

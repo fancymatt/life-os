@@ -761,7 +761,8 @@ function EntityBrowser({ config }) {
                     <>
                       {config.renderEdit(selectedEntity, editedData, editedTitle, {
                         updateField,
-                        setEditedTitle
+                        setEditedTitle,
+                        handleEntityUpdate
                       })}
 
                       <div className="entity-detail-actions">
@@ -821,7 +822,8 @@ function EntityBrowser({ config }) {
                       <>
                         {config.renderEdit(selectedEntity, editedData, editedTitle, {
                           updateField,
-                          setEditedTitle
+                          setEditedTitle,
+                          handleEntityUpdate
                         })}
 
                         <div className="entity-detail-actions">

@@ -244,6 +244,10 @@ function Sidebar({ isOpen, onClose }) {
                   <span className="nav-icon">📄</span>
                   <span className="nav-label">Document Processor</span>
                 </NavLink>
+                <NavLink to="/tools/entity-merger" className="nav-link nav-link-sibling" onClick={onClose}>
+                  <span className="nav-icon">🔀</span>
+                  <span className="nav-label">Entity Merger</span>
+                </NavLink>
                 <NavLink to="/tools/document-question-asker" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">💬</span>
                   <span className="nav-label">Document Question Asker</span>

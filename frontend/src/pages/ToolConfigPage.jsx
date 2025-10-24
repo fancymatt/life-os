@@ -17,17 +17,26 @@ function ToolConfigPage() {
   const navigate = useNavigate()
   const location = window.location
 
-  // Convert URL param to tool name (e.g., "character-appearance" -> "character_appearance_analyzer")
-  // If no type param, extract from pathname
+  // Convert URL param to tool name
+  // For analyzers: "character-appearance" -> "character_appearance_analyzer"
+  // For other tools: "entity-merger" -> "entity_merger"
   let toolType = type
   if (!toolType) {
-    const pathMatch = location.pathname.match(/\/analyzers\/([^/]+)/)
-    if (pathMatch) {
-      toolType = pathMatch[1]
+    // Extract from pathname
+    const analyzerMatch = location.pathname.match(/\/analyzers\/([^/]+)/)
+    const toolMatch = location.pathname.match(/\/tools\/([^/]+)/)
+    if (analyzerMatch) {
+      toolType = analyzerMatch[1]
+    } else if (toolMatch) {
+      toolType = toolMatch[1]
     }
   }
 
-  const toolName = toolType ? `${toolType.replace(/-/g, '_')}_analyzer` : null
+  // Determine if this is an analyzer tool (from /tools/analyzers/) or other tool
+  const isAnalyzer = location.pathname.includes('/analyzers/')
+  const toolName = toolType
+    ? (isAnalyzer ? `${toolType.replace(/-/g, '_')}_analyzer` : toolType.replace(/-/g, '_'))
+    : null
 
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)

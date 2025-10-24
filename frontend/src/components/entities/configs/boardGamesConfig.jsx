@@ -448,8 +448,8 @@ export const boardGamesConfig = {
         tags={game.tags || []}
         onTagsChange={(newTags) => {
           // Trigger entity refresh to show updated tags
-          if (handleEntityUpdate) {
-            handleEntityUpdate()
+          if (handlers.handleEntityUpdate) {
+            handlers.handleEntityUpdate()
           }
         }}
       />

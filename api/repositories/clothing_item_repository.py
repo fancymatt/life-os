@@ -192,10 +192,12 @@ class ClothingItemRepository:
         return result.scalar_one()
 
     async def get_categories(self, user_id: Optional[int] = None) -> List[tuple[str, int]]:
-        """Get all categories with item counts"""
+        """Get all categories with item counts (excluding archived items)"""
         query = select(
             ClothingItem.category,
             func.count(ClothingItem.id)
+        ).where(
+            ClothingItem.archived == False
         ).group_by(ClothingItem.category)
 
         if user_id is not None:

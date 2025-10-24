@@ -18,6 +18,9 @@ defaults:
   style_guide_analyzer: "gemini/gemini-2.0-flash-exp"
   character_appearance_analyzer: "ollama/gpt-oss:120b"  # Local 120B model (FREE!)
 
+  # Entity Management Tools
+  entity_merger: "gemini/gemini-2.0-flash-exp"  # Fast model for merging entities
+
   # Image Generation Tools (using Gemini 2.5 Flash Image - dedicated image generation model)
   outfit_generator: "gemini-2.5-flash-image"
   style_transfer_generator: "gemini-2.5-flash-image"

@@ -192,12 +192,14 @@ class VisualizationConfigRepository:
         return result.scalar_one()
 
     async def get_entity_types_summary(self) -> dict:
-        """Get count of configs per entity type"""
+        """Get count of configs per entity type (excluding archived)"""
         from sqlalchemy import func
 
         query = select(
             VisualizationConfig.entity_type,
             func.count(VisualizationConfig.id).label('count')
+        ).where(
+            VisualizationConfig.archived == False
         ).group_by(VisualizationConfig.entity_type)
 
         result = await self.session.execute(query)

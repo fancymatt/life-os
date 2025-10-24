@@ -16,7 +16,7 @@ from uuid import UUID
 import json
 
 from api.logging_config import get_logger
-from ai_tools.shared.router import LLMRouter
+from ai_tools.entity_merger.tool import EntityMerger
 
 logger = get_logger(__name__)
 
@@ -27,7 +27,7 @@ class MergeService:
     def __init__(self, db_session: AsyncSession, user_id: Optional[int] = None):
         self.db = db_session
         self.user_id = user_id
-        self.router = LLMRouter()
+        self.merger = EntityMerger()  # Uses model from config
 
     async def find_references(
         self,
@@ -87,6 +87,9 @@ class MergeService:
         """
         Use AI to analyze two entities and generate an intelligent merged version.
 
+        Uses the entity_merger tool with template-based prompting.
+        Template can be customized in data/tool_configs/entity_merger_template.md
+
         Args:
             entity_type: Type of entity (character, clothing_item, etc.)
             source_entity: Entity to keep (this ID will remain)
@@ -95,92 +98,14 @@ class MergeService:
         Returns:
             Merged entity data with combined information
         """
-        # Build prompt for AI analysis
-        system_prompt = f"""You are an expert at merging duplicate {entity_type} entities.
+        # Use EntityMerger tool (supports template override and model config)
+        merged_data = self.merger.merge(
+            entity_type=entity_type,
+            source_entity=source_entity,
+            target_entity=target_entity
+        )
 
-Your task is to analyze two {entity_type} entities and create a merged version that:
-1. Preserves ALL unique information from both entities
-2. Combines descriptions intelligently (don't just concatenate)
-3. Merges tags (union of both tag sets)
-4. Combines metadata fields
-5. Keeps the most complete/detailed version of each field
-
-Return a JSON object with the merged entity data.
-Include ALL fields from the entity type, using the better version from either source."""
-
-        user_prompt = f"""Merge these two {entity_type} entities:
-
-SOURCE ENTITY (ID will be kept):
-{json.dumps(source_entity, indent=2)}
-
-TARGET ENTITY (will be archived):
-{json.dumps(target_entity, indent=2)}
-
-Generate a merged {entity_type} that combines the best information from both.
-Return ONLY valid JSON matching the {entity_type} schema."""
-
-        try:
-            # Use router to call AI with structured output
-            response = self.router.call(
-                prompt=user_prompt,
-                system=system_prompt,
-                model="gemini/gemini-2.0-flash-exp",  # Fast model for analysis
-                temperature=0.3,  # Lower temperature for consistent merging
-                max_tokens=2000
-            )
-
-            # Parse AI response (strip markdown code blocks if present)
-            response_text = response.strip()
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]  # Remove ```json
-            if response_text.startswith("```"):
-                response_text = response_text[3:]  # Remove ```
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]  # Remove trailing ```
-            response_text = response_text.strip()
-
-            merged_data = json.loads(response_text)
-
-            logger.info(f"AI generated merged {entity_type} combining {len(source_entity)} and {len(target_entity)} fields")
-
-            return merged_data
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse AI merge response: {e}")
-            # Fallback: simple merge logic
-            return self._simple_merge(source_entity, target_entity)
-        except Exception as e:
-            logger.error(f"Error in AI merge analysis: {e}")
-            raise
-
-    def _simple_merge(
-        self,
-        source: Dict[str, Any],
-        target: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        Fallback simple merge if AI fails.
-        Takes the non-empty value from either entity, preferring source.
-        """
-        merged = source.copy()
-
-        for key, value in target.items():
-            # Skip IDs and timestamps
-            if key.endswith('_id') or key.endswith('_at'):
-                continue
-
-            # If source doesn't have this field or it's empty, use target's
-            if key not in merged or not merged[key]:
-                merged[key] = value
-            # Special handling for lists (merge)
-            elif isinstance(value, list) and isinstance(merged[key], list):
-                # Merge lists, remove duplicates
-                merged[key] = list(set(merged[key] + value))
-            # Special handling for dicts (merge)
-            elif isinstance(value, dict) and isinstance(merged[key], dict):
-                merged[key].update(value)
-
-        return merged
+        return merged_data
 
     async def execute_merge(
         self,
