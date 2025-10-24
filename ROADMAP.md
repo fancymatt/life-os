@@ -1,8 +1,8 @@
-# lifeOS v2.5.1 (110) - Development Roadmap
+# lifeOS v2.6.0 (111) - Development Roadmap
 
 **Last Updated**: 2025-10-24
 **Current Phase**: Phase 2 - User Experience & Core Features
-**Next**: Phase 2.6 - Entity Merge Tool
+**Next**: Phase 2.7 - Visualization Config Linking
 
 ---
 

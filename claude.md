@@ -1,6 +1,6 @@
-# lifeOS v2.5.1 (110) - Claude AI Assistant Context
+# lifeOS v2.6.0 (111) - Claude AI Assistant Context
 
-**Last Updated**: 2025-10-23
+**Last Updated**: 2025-10-24
 **Current Phase**: Phase 2 - User Experience & Core Features (see ROADMAP.md)
 
 ---
@@ -34,11 +34,12 @@
    - Each commit: `v2.6.0 (102)`, `v2.6.0 (103)`, etc.
    - Once complete and pushed → becomes `v2.6.0 (final_build)`
 
-**Current Version**: v2.5.1 (110)
-- Phase: 2.5 (Tagging System) - IN DEVELOPMENT
-- Build 110: Create tag API routes and Pydantic models
+**Current Version**: v2.6.0 (111)
+- Phase: 2.6 (Entity Merger Tool & Fixes) - COMPLETE
+- Build 111: Tag refresh fix, entity merger as AI tool, category count accuracy
 
 **Version History**:
+- v2.6.0 (111) - Fix tag refresh error, convert entity merger to AI tool, fix category counts (clothing items & visualization configs)
 - v2.5.1 (110) - Create tag API routes (11 endpoints) and Pydantic request/response models
 - v2.5.1 (109) - Fix version downgrade error, commit TagService for tag business logic
 - v2.5.1 (108) - Create TagRepository for tag database operations
