@@ -92,11 +92,9 @@ export const imagesConfig = {
           />
         </div>
         <div className="entity-card-content">
-          <h3 className="entity-card-title" style={{ fontSize: '1rem' }}>{image.filename}</h3>
-
           {/* Entity badges */}
           {Object.keys(entityCounts).length > 0 && (
-            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
               {entityCounts.character > 0 && (
                 <span style={{
                   padding: '0.25rem 0.5rem',
