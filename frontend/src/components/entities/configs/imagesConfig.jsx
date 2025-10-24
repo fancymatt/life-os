@@ -62,9 +62,10 @@ export const imagesConfig = {
     return (
       <div className="entity-card">
         <div className="entity-card-image" style={{
-          height: '280px',
           position: 'relative',
-          opacity: image.archived ? 0.6 : 1
+          opacity: image.archived ? 0.6 : 1,
+          borderRadius: '8px',
+          overflow: 'hidden'
         }}>
           {image.archived && (
             <div style={{
@@ -88,7 +89,7 @@ export const imagesConfig = {
             entityId={image.imageId}
             previewImageUrl={image.imageUrl}
             standInIcon="🖼️"
-            size="small"
+            size="medium"
             shape="preserve"
           />
         </div>
