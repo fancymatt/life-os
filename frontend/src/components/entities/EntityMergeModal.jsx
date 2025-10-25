@@ -61,58 +61,21 @@ function EntityMergeModal({
         auto_approve: autoApprove  // Default: false (pause for review)
       })
 
-      // Response now contains job_id - poll for completion
+      // Job created successfully - close modal immediately
       const jobId = response.data.job_id
 
-      // Poll job status until completed or awaiting input
-      const pollInterval = setInterval(async () => {
-        try {
-          const jobResponse = await api.get(`/jobs/${jobId}`)
-          const job = jobResponse.data
+      setLoading(false)
+      onClose()
 
-          if (job.status === 'completed') {
-            clearInterval(pollInterval)
-
-            // Extract merged_data from job result
-            if (job.result?.merged_data) {
-              setMergedData(job.result.merged_data)
-              setChangesSummary(job.result.changes_summary)
-              setStep('confirm')
-            } else if (job.result?.merge_result) {
-              // If auto_approve completed the merge, show success
-              setLoading(false)
-              onMergeComplete()
-              return
-            }
-
-            setLoading(false)
-          } else if (job.status === 'awaiting_input') {
-            // Job paused for user review - extract merged_data from awaiting_data
-            clearInterval(pollInterval)
-
-            if (job.awaiting_data?.merged_data) {
-              setMergedData(job.awaiting_data.merged_data)
-              setChangesSummary(job.awaiting_data.changes_summary)
-              setStep('confirm')
-            }
-
-            setLoading(false)
-          } else if (job.status === 'failed') {
-            clearInterval(pollInterval)
-            setError(job.error || 'Analysis failed')
-            setLoading(false)
-          }
-        } catch (pollErr) {
-          clearInterval(pollInterval)
-          console.error('Error polling job:', pollErr)
-          setError('Failed to check job status')
-          setLoading(false)
-        }
-      }, 1000) // Poll every second
+      // Show success notification
+      alert(autoApprove
+        ? `Merge job started (${jobId.slice(0, 8)}). Check the Jobs page to monitor progress.`
+        : `Merge analysis job started (${jobId.slice(0, 8)}). You'll be able to review the merged data when analysis completes. Check the Jobs page for progress.`
+      )
 
     } catch (err) {
       console.error('Error analyzing merge:', err)
-      setError(err.response?.data?.detail || 'Failed to analyze merge')
+      setError(err.response?.data?.detail || 'Failed to start merge job')
       setLoading(false)
     }
   }
