@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# NAS Sync Script Template
+# Syncs backups to Network Attached Storage
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file to sync_to_nas.sh
+# 2. Edit configuration section below with your NAS details
+# 3. Make executable: chmod +x sync_to_nas.sh
+# 4. Test: ./sync_to_nas.sh
+#
+# Usage: ./sync_to_nas.sh
+
+set -euo pipefail
+
+# ========================================
+# CONFIGURATION - EDIT THIS SECTION
+# ========================================
+
+# Option 1: Network share (SMB/NFS)
+NAS_HOST="your-nas-hostname-or-ip"         # e.g., "192.168.1.100" or "nas.local"
+NAS_USER="your-username"                    # e.g., "admin"
+NAS_PATH="/volume1/backups/life-os"         # Synology example
+# Alternative: "/mnt/backups/life-os"       # Generic NAS
+
+# Option 2: macOS Time Machine
+# NAS_PATH="/Volumes/TimeMachine/Backups.backupdb/$(hostname)/life-os"
+
+# Option 3: External hard drive
+# NAS_PATH="/Volumes/ExternalDrive/backups/life-os"
+
+# Local backup directory
+LOCAL_BACKUP_DIR="/Users/fancymatt/docker/life-os/backups"
+
+# ========================================
+# END CONFIGURATION
+# ========================================
+
+echo "📡 Syncing backups to NAS..."
+echo "   Source: $LOCAL_BACKUP_DIR"
+echo "   Destination: ${NAS_USER}@${NAS_HOST}:${NAS_PATH}"
+echo ""
+
+# Check if NAS is reachable
+echo "Testing NAS connectivity..."
+if ! ping -c 1 -t 2 "$NAS_HOST" > /dev/null 2>&1; then
+    echo "⚠️  NAS not reachable: $NAS_HOST"
+    echo "   - Check if NAS is powered on"
+    echo "   - Check network connection"
+    echo "   - Verify hostname/IP address"
+    exit 1
+fi
+echo "✓ NAS is reachable"
+echo ""
+
+# Test SSH connection (for rsync over SSH)
+echo "Testing SSH connection..."
+if ssh -o ConnectTimeout=5 -o BatchMode=yes "${NAS_USER}@${NAS_HOST}" "echo SSH OK" 2>/dev/null; then
+    echo "✓ SSH connection successful"
+else
+    echo "⚠️  SSH connection failed"
+    echo "   You may need to set up SSH keys:"
+    echo "   ssh-copy-id ${NAS_USER}@${NAS_HOST}"
+    exit 1
+fi
+echo ""
+
+# Rsync to NAS (preserves timestamps, compression during transfer)
+echo "Starting rsync..."
+rsync -avz --progress \
+    --exclude="*.log" \
+    --exclude="*.tmp" \
+    "$LOCAL_BACKUP_DIR/" \
+    "${NAS_USER}@${NAS_HOST}:${NAS_PATH}/" || {
+    echo "❌ Rsync failed"
+    exit 1
+}
+
+# Verify sync
+REMOTE_COUNT=$(ssh "${NAS_USER}@${NAS_HOST}" "find ${NAS_PATH} -type f | wc -l" 2>/dev/null)
+LOCAL_COUNT=$(find "$LOCAL_BACKUP_DIR" -type f | wc -l)
+
+echo ""
+echo "========================================="
+echo "✅ NAS sync complete"
+echo "========================================="
+echo "  Local files:  $LOCAL_COUNT"
+echo "  Remote files: $REMOTE_COUNT"
+echo ""
