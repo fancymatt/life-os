@@ -576,6 +576,85 @@ CREATE TABLE story_collections (
 
 ---
 
+### 2.15 Local ComfyUI Infrastructure Setup (1-2 weeks) 🌟 **FOUNDATIONAL**
+**Priority**: HIGH - Enables advanced generation + cost savings
+**Complexity**: High
+
+**Goal**: Set up RTX 4090 PC with ComfyUI for local image generation, replacing cloud APIs for specific workflows. Immediate cost savings ($0/image vs $0.04-0.08 cloud) and quality improvements (IP-Adapter-FaceID for identity preservation).
+
+**Hardware Setup**:
+- [ ] RTX 4090 PC assembly and network configuration (192.168.1.100)
+- [ ] Ubuntu 24.04 or Windows 11 + WSL2 installation
+- [ ] Static IP configuration for reliable API access
+- [ ] Network testing (Mac Studio → RTX 4090 PC)
+
+**ComfyUI Deployment**:
+- [ ] Deploy ComfyUI Docker container with NVIDIA Container Toolkit
+- [ ] Download essential models (~50GB):
+  - SDXL Base 1.0 (base model)
+  - Flux.1-dev (advanced model)
+  - IP-Adapter-FaceID Plus v2 (identity preservation) ← **CRITICAL**
+  - ControlNet models (pose/composition control)
+  - InsightFace models (face recognition)
+  - CLIP Vision encoders
+- [ ] Install custom nodes:
+  - IP-Adapter Plus (identity preservation)
+  - ControlNet Aux (preprocessors)
+  - ComfyUI Manager (model management)
+
+**Workflow Development**:
+- [ ] Create basic IP-Adapter-FaceID workflow (JSON format for API)
+- [ ] Test with sample images:
+  - Face preservation accuracy test
+  - Multiple reference photos test
+  - Transformation intensity test
+- [ ] Benchmark performance (target: <60 seconds/generation)
+- [ ] Document workflow templates for future use
+
+**Life-OS Integration**:
+- [ ] Create `ComfyUIService` in `api/services/comfyui_service.py`:
+  - HTTP client for ComfyUI API
+  - Workflow template loader
+  - Parameter injection system
+  - Queue management and polling
+  - Result download and storage
+- [ ] Add health check endpoint (`/health/comfyui`)
+- [ ] Add routing logic to LLMRouter:
+  - If local model requested → route to ComfyUI
+  - If `model="flux.1"` → route to ComfyUI
+  - Fallback to cloud if ComfyUI unavailable
+- [ ] Environment variables:
+  ```bash
+  COMFYUI_URL=http://192.168.1.100:8188
+  COMFYUI_ENABLED=true
+  COMFYUI_TIMEOUT=300
+  COMFYUI_FALLBACK_TO_CLOUD=true
+  ```
+
+**Initial Use Cases**:
+- [ ] Test with existing image generation tools
+- [ ] Compare quality: local (SDXL) vs cloud (Gemini/DALL-E)
+- [ ] Measure cost savings (track generations)
+- [ ] Document performance benchmarks
+
+**Success Criteria**:
+- ✅ ComfyUI responds to API calls from Mac Studio over network
+- ✅ IP-Adapter-FaceID preserves identity in test images (>80% similarity)
+- ✅ Generation time <60 seconds for standard workflow
+- ✅ Health check working and integrated into system monitoring
+- ✅ Cost: $0/image (local) vs $0.04-0.08 (cloud)
+- ✅ Routing logic correctly switches between local and cloud
+
+**Why Now**:
+- Immediate cost savings on image generation
+- Enables Phase 3 fantasy race transformations
+- Foundation for all future local generation features
+- RTX 4090 investment pays for itself in 2-4 months
+
+**Reference**: See `CHARACTER_CREATION_PLATFORM.md` Section 4 for complete infrastructure details
+
+---
+
 ### Phase 2 Success Metrics
 
 - ✅ Archive system 100% complete
@@ -591,11 +670,13 @@ CREATE TABLE story_collections (
 - ✅ Tagging System 100% complete (database + backend + frontend)
 - ✅ Tag autocomplete and category-based color coding working
 - ⏳ Tagging adoption >60% of entities (in progress - character entity implemented)
-- ⏳ All high-value UX features delivered (5/9 complete: Archive, Mobile, Theme, Database Persistence, Tagging)
+- ⏳ ComfyUI infrastructure operational and integrated
+- ⏳ Local generation working with cost savings measured
+- ⏳ All high-value UX features delivered (5/10 complete: Archive, Mobile, Theme, Database Persistence, Tagging)
 
 **Total Duration**: 4-6 weeks
-**Total Features**: 9 major features
-**Progress**: 5/9 complete (56%)
+**Total Features**: 10 major features (9 UX + 1 infrastructure)
+**Progress**: 5/10 complete (50%)
 
 ---
 
@@ -1197,6 +1278,188 @@ CREATE TABLE smart_collections (
 
 ---
 
+### 3.13 Fantasy Race Transformer (2-3 weeks) 🌟 **CREATIVE FEATURE**
+**Priority**: HIGH - Leverages ComfyUI infrastructure from Phase 2
+**Complexity**: High
+**Depends on**: ComfyUI Infrastructure (Section 2.15)
+
+**Goal**: Transform photos into D&D fantasy races (Elf, Orc, Dwarf, Tiefling) while maintaining personal identity. Uses IP-Adapter-FaceID for 85% identity preservation vs 60% with cloud APIs.
+
+**Race Template System**:
+- [ ] Create race templates (markdown format):
+  ```
+  data/tool_configs/fantasy_races/
+  ├── elf.md           # Core elf features
+  ├── elf_high.md      # High Elf subrace
+  ├── elf_wood.md      # Wood Elf subrace
+  ├── elf_drow.md      # Drow (Dark Elf)
+  ├── orc.md           # Full Orc
+  ├── orc_half.md      # Half-Orc
+  ├── dwarf.md         # Core dwarf features
+  └── tiefling.md      # Tiefling variants
+  ```
+- [ ] Template structure with:
+  - Transformation features (pointed ears, skin tone, etc.)
+  - Identity preservation priorities (bone structure, eyes, nose, mouth)
+  - Intensity guidelines (0-20% subtle, 30-50% moderate, 60-80% strong)
+  - Prompt templates for ComfyUI workflows
+
+**API Endpoints**:
+- [ ] `POST /api/tools/fantasy-race-transform`
+  - Accepts: subject_image, race, subrace, intensity (0.0-1.0)
+  - Routes to ComfyUIService
+  - Fallback to Gemini if ComfyUI unavailable (with quality warning)
+- [ ] `GET /api/fantasy-races/` - List all supported races
+- [ ] `GET /api/fantasy-races/{race}` - Get race template details
+
+**ComfyUI Workflow Implementation**:
+- [ ] IP-Adapter-FaceID workflow template (JSON format)
+- [ ] Parameter injection system:
+  - Load race template
+  - Replace placeholders with race/intensity values
+  - Inject subject image path
+  - Set IP-Adapter weight based on intensity (higher = more identity preservation)
+- [ ] Test workflows for each race (Elf, Orc, Dwarf, Tiefling)
+
+**Frontend UI**:
+- [ ] Race selector component:
+  - Dropdown with race icons/previews
+  - Conditional subrace selector
+  - Preview images for each race/subrace
+- [ ] Intensity slider (0-100%):
+  - Visual preview of transformation strength
+  - Labeled markers: Subtle (20%), Moderate (50%), Strong (70%), Extreme (90%)
+  - Default: 50% (moderate)
+- [ ] Preview comparison:
+  - Side-by-side (original vs transformed)
+  - Slider overlay to compare
+  - Identity preservation indicator
+
+**Character Integration**:
+- [ ] Extend `characters` table:
+  ```sql
+  ALTER TABLE characters ADD COLUMN fantasy_race VARCHAR(50);
+  ALTER TABLE characters ADD COLUMN fantasy_subrace VARCHAR(50);
+  ALTER TABLE characters ADD COLUMN race_transformation_image_id VARCHAR(50);
+  ALTER TABLE characters ADD COLUMN transformation_intensity DECIMAL(3,2);
+  ```
+- [ ] Save transformation data with character:
+  - Original photo + transformed result
+  - Race/subrace selection
+  - Intensity used
+- [ ] Character detail page:
+  - Original vs transformed comparison
+  - "Regenerate with new settings" button
+
+**Success Criteria**:
+- ✅ Can transform to 4 core races (Elf, Orc, Dwarf, Tiefling)
+- ✅ Identity preservation >80% recognizable as original person
+- ✅ Intensity slider controls transformation strength smoothly
+- ✅ Subraces produce distinct results (High Elf ≠ Wood Elf ≠ Drow)
+- ✅ Characters save race transformation data
+- ✅ Fallback to Gemini works when ComfyUI unavailable
+- ✅ Generation time <60 seconds per transformation
+
+**Why This Matters**:
+- Leverages Phase 2 ComfyUI infrastructure immediately
+- Creates unique value proposition (competitors can't match local quality)
+- Foundation for complete character creation platform (Phase 15)
+- Demonstrates ROI on RTX 4090 investment
+
+**Reference**: See `CHARACTER_CREATION_PLATFORM.md` Section 2 for complete race system details
+
+---
+
+### 3.14 Game Equipment Import System (2-3 weeks) 🌟 **CONTENT EXPANSION**
+**Priority**: HIGH - Rich database content for character creation
+**Complexity**: High
+
+**Goal**: Import 100-500 equipment items from Baldur's Gate 3 using wiki APIs and AI vision analysis. Builds database of authentic game equipment searchable by natural language.
+
+**Database Schema**:
+- [ ] Extend `clothing_items` table:
+  ```sql
+  ALTER TABLE clothing_items ADD COLUMN game_source VARCHAR(100);
+  ALTER TABLE clothing_items ADD COLUMN rarity VARCHAR(50);
+  ALTER TABLE clothing_items ADD COLUMN weight_value DECIMAL(10,2);
+  ALTER TABLE clothing_items ADD COLUMN game_metadata JSONB;
+  ALTER TABLE clothing_items ADD COLUMN description_embedding vector(768);
+  ```
+- [ ] Create `clothing_item_images` table (multi-angle support):
+  - Supports front, back, side views
+  - Links to clothing items (one-to-many)
+  - Tracks image type (icon, screenshot, concept art)
+- [ ] Create `equipment_sets` table:
+  - Set bonuses (2-piece, 4-piece)
+  - Complete sets from games (e.g., "Drow Studded Leather Set")
+- [ ] Install pgvector extension for semantic search
+
+**BG3 Equipment Importer** (Priority 1):
+- [ ] Create `BG3CargoAdapter` (MediaWiki Cargo API client):
+  - Query endpoint: `https://bg3.wiki/w/api.php?action=cargoquery&tables=equipment`
+  - Fields: name, type, rarity, stats, description, icon URL
+  - Handle pagination (50 items/request)
+- [ ] Download equipment icons and screenshots
+- [ ] Vision analysis pipeline (Gemini 2.0 Flash Exp):
+  ```python
+  async def analyze_equipment(images: List[str]) -> dict:
+      # Extract: materials, colors, construction, design elements,
+      # coverage, silhouette, style theme, condition
+      # Output: Structured JSON with visual details
+  ```
+- [ ] Tag auto-generation:
+  - Game source tag (e.g., `baldurs-gate-3`)
+  - Rarity tag (e.g., `legendary`, `rare`)
+  - Type tag (e.g., `light-armor`, `heavy-armor`)
+  - Material tag (e.g., `leather`, `plate`)
+  - Cultural tag (e.g., `drow-style`, `elven`)
+- [ ] Embedding generation (OpenAI ada-002 or SentenceTransformers)
+- [ ] Test import with 50 items first, then scale to 100-400
+
+**Semantic Search Implementation**:
+- [ ] Vector similarity search endpoint:
+  ```python
+  @router.get("/equipment/search")
+  async def search_equipment_semantic(
+      query: str,
+      race_filter: Optional[str] = None,
+      game_filter: Optional[str] = None,
+      limit: int = 10
+  )
+  ```
+- [ ] Test natural language queries:
+  - "Tough regal warrior outfit for an elf"
+  - "Stealth archer leather armor, forest theme"
+  - "Drow assassin gear, dark aesthetic"
+- [ ] Optimize query performance (<300ms)
+
+**Admin UI**:
+- [ ] Import control panel (`/admin/equipment-import`)
+- [ ] Game source selector (BG3 to start)
+- [ ] Progress tracking (items imported, errors, duplicates)
+- [ ] Conflict resolution (duplicate item names)
+- [ ] Preview before import
+- [ ] Batch operations (import set, delete set)
+
+**Success Criteria**:
+- ✅ 100+ BG3 items imported with rich visual descriptions
+- ✅ Tags auto-created correctly (>90% accuracy)
+- ✅ Semantic search returns relevant results (>80% user satisfaction)
+- ✅ Vision analysis extracts accurate material/color details
+- ✅ Multi-angle images stored and linked correctly
+- ✅ Equipment sets tracked (e.g., "Drow Studded Leather Set")
+- ✅ Import performance <1 second/item (with vision analysis)
+
+**Why This Matters**:
+- Creates unique database of professional game equipment (competitors don't have)
+- Natural language search enables "outfit from description" workflows
+- Combines with fantasy race transformer (Phase 3.13) for complete character creation
+- Foundation for multi-game expansion (Phase 15)
+
+**Reference**: See `CHARACTER_CREATION_PLATFORM.md` Section 3 for complete import system details
+
+---
+
 ### Phase 3 Success Metrics
 
 - [ ] No component over 500 lines
@@ -1208,10 +1471,14 @@ CREATE TABLE smart_collections (
 - [ ] Recipe library has 20+ saved recipes
 - [ ] Variant Orchards used weekly
 - [ ] Inspiration Inbox captures 50+ items
+- [ ] **Fantasy race transformations working (4 core races)**
+- [ ] **Identity preservation >80% with IP-Adapter-FaceID**
+- [ ] **100+ BG3 equipment items imported**
+- [ ] **Semantic equipment search functional (<300ms)**
 - [ ] All creative exploration and maintenance tasks complete
 
-**Total Duration**: 7-9 weeks
-**Total Features**: 7 major features (3 maintenance + 4 creative intelligence)
+**Total Duration**: 11-14 weeks (extended from 7-9 weeks)
+**Total Features**: 9 major features (3 maintenance + 4 creative intelligence + 2 character creation)
 
 ---
 
@@ -2550,12 +2817,268 @@ policies:
 
 ---
 
-## Timeline Overview (18-24 Months)
+## Phase 15: Character Creation Platform - Integration & Expansion (4-6 weeks) 🌟 **MAJOR CREATIVE MILESTONE**
+
+**Goal**: Complete character creation platform by integrating fantasy races (Phase 3.13) + game equipment (Phase 3.14) into unified workflows, plus multi-game expansion
+
+**Why Now**: Phase 2.15 (ComfyUI) and Phase 3.13-3.14 (races + BG3 equipment) provide the foundation. Now we integrate and expand.
+
+**Vision**: The most advanced D&D character portrait generator - transform users into fantasy races while wearing authentic game equipment from multiple games, with style harmonization.
+
+```
+Your Photo (from Phase 2)
+    ↓
+Transform to Fantasy Race (Phase 3.13: High Elf)
+    ↓
+Select Equipment (Phase 3.14: BG3 Elven Armor + Skyrim accessories)
+    ↓
+Apply Art Style + Style Harmonization (Phase 15: BG3 Cinematic)
+    ↓
+= "You as a High Elf Ranger" - Photorealistic, Recognizable, Multi-Game Equipment
+```
+
+**Built On**:
+- **Phase 2.15**: ComfyUI infrastructure (RTX 4090, IP-Adapter-FaceID) ✅
+- **Phase 3.13**: Fantasy Race Transformer (4 core races) ✅
+- **Phase 3.14**: Game Equipment Import (100+ BG3 items) ✅
+
+**Phase 15 Focus**: Integration + Expansion + Polish
+
+**Reference Document**: See `CHARACTER_CREATION_PLATFORM.md` for complete design
+
+---
+
+### 15.1 Complete Integration & Unified Workflows (1-2 weeks)
+**Priority**: HIGH - Combines all Phase 2-3 character creation features
+**Complexity**: High
+
+**Unified Character Portrait Generator**:
+- [ ] Extend Modular Image Generator:
+  ```
+  Components:
+  1. Subject Image        → User's photo
+  2. Fantasy Race         → "High Elf" (from Phase 3.13)
+  3. Outfit               → BG3 equipment (from Phase 3.14)
+  4. Expression           → "Confident warrior"
+  5. Visual Style         → "BG3 cinematic" (game art style)
+  6. Background           → "Forest clearing"
+  ```
+- [ ] API endpoint: `POST /api/generate/character-portrait`
+  - Accepts all components
+  - Orchestrates workflow:
+    1. Transform to fantasy race (Phase 3.13)
+    2. Search/select equipment (Phase 3.14)
+    3. Apply art style
+    4. Add expression/pose
+    5. Set background
+  - Returns complete D&D character portrait
+
+**Style Harmonization ("Coat of Paint")**:
+- [ ] Implement cross-game equipment mixing:
+  - User selects items from different games (BG3 + Skyrim)
+  - System detects style conflicts
+  - Offers "Harmonize Styles" option
+- [ ] Harmonization algorithm:
+  - Preserve silhouettes (keep outfit structure)
+  - Unify color palette (adjust hues to match)
+  - Apply consistent material rendering
+  - Add decorative theme overlay
+- [ ] UI toggle: "Style Unification" checkbox
+  - Shows before/after preview
+  - Allows manual style override
+
+**Art Style System**:
+- [ ] Create game-specific art style templates:
+  ```
+  data/tool_configs/art_styles/
+  ├── bg3_cinematic.md          # BG3 official art style
+  ├── skyrim_nordic.md          # Skyrim's Nordic aesthetic
+  ├── dnd_official_art.md       # D&D official character art
+  └── realistic_portrait.md     # Photorealistic style
+  ```
+- [ ] Frontend art style selector:
+  - Visual gallery of style examples
+  - Auto-suggest based on equipment source game
+  - Custom style option (advanced users)
+
+**Equipment Set Tracking**:
+- [ ] Import famous equipment sets:
+  - BG3 "Drow Studded Leather Set" (4 pieces)
+  - Skyrim sets (when Skyrim import added)
+- [ ] UI features:
+  - "Complete Sets" filter in equipment browser
+  - Set completion indicator (3/4 pieces equipped)
+  - One-click "Equip Full Set" button
+
+**Success Criteria**:
+- ✅ Can create complete D&D character (race + outfit + style) in one workflow
+- ✅ Style harmonization makes cross-game outfits visually cohesive
+- ✅ Art styles apply correctly
+- ✅ End-to-end generation time <2 minutes
+
+---
+
+### 15.2 Multi-Game Equipment Expansion (2-3 weeks)
+**Priority**: MEDIUM - Database growth
+**Complexity**: Medium
+**Depends on**: Phase 3.14 (BG3 import system already built)
+
+**Additional Game Adapters**:
+- [ ] **Skyrim** (UESP Cargo API):
+  - 200-300 armor/clothing items
+  - Nordic aesthetic (furs, horned helmets, leather)
+  - Cultural tags: `nordic`, `skyrim`, `dragonborn`
+- [ ] **Cyberpunk 2077** (Fandom wiki scraper):
+  - 500+ clothing items
+  - Modern/futuristic aesthetic
+  - Categories: corpo, streetwear, netrunner, nomad
+- [ ] **The Sims 4** (Fandom wiki):
+  - 1000+ everyday clothing items
+  - Modern casual/formal wear
+  - Useful for non-fantasy character portraits
+
+**Cross-Genre Support**:
+- [ ] Create sci-fi race templates:
+  - Star Trek: Vulcans (pointed ears, arched eyebrows)
+  - Cyberpunk: Augmented humans (cyberware implants)
+- [ ] Test modern clothing with fantasy races:
+  - Elf in business suit
+  - Orc in streetwear
+  - Tiefling in Sims casual wear
+
+**Performance Optimization**:
+- [ ] Cache Cargo API responses (24 hour TTL)
+- [ ] Implement batch import:
+  - Queue 100+ items for import
+  - Process in background (RQ workers)
+  - Progress tracking in admin UI
+
+**Success Criteria**:
+- ✅ 500+ equipment items from 3+ additional games
+- ✅ Multiple genres represented (fantasy, sci-fi, modern)
+- ✅ Cross-game semantic search works across all sources
+
+---
+
+### 15.3 Advanced Features & Polish (1-2 weeks)
+**Priority**: LOW - Polish and future expansion
+**Complexity**: Medium
+
+**Multi-Shot Reference Photos**:
+- [ ] Accept 1-5 reference photos per transformation
+- [ ] Auto-detect view angles:
+  - Front-facing (primary)
+  - 45-degree angle
+  - Profile view
+  - Expression variety
+- [ ] Combine references in IP-Adapter workflow
+- [ ] Benefit: 17-18% improvement in identity preservation
+
+**Character Build Templates**:
+- [ ] Create `character_builds` table:
+  ```sql
+  CREATE TABLE character_builds (
+    build_id VARCHAR(50) PRIMARY KEY,
+    game_source VARCHAR(100),
+    build_name VARCHAR(200),
+    character_class VARCHAR(100),  -- "Stealth Archer", "Paladin"
+    description TEXT,
+    playstyle TEXT
+  );
+
+  CREATE TABLE build_equipment (
+    id SERIAL PRIMARY KEY,
+    build_id VARCHAR(50) REFERENCES character_builds(build_id),
+    clothing_item_id INT REFERENCES clothing_items(id),
+    slot VARCHAR(50),
+    importance VARCHAR(20)  -- "required", "recommended", "optional"
+  );
+  ```
+- [ ] Import famous builds:
+  - "Skyrim Stealth Archer" (leather armor, bow, hood)
+  - "BG3 Paladin" (plate armor, holy symbol)
+  - "Cyberpunk Netrunner" (tech jacket, neural interface)
+- [ ] UI: "Build Templates" browser
+  - Search by class/playstyle
+  - One-click "Apply Build" (equips all items)
+
+**Extended Applications**:
+- [ ] **3D Model Generation** (TripoSR integration):
+  - Generate 3D model from character portrait
+  - Export as OBJ/STL for 3D printing
+  - Use case: Custom D&D miniatures
+- [ ] **Cosplay Guide Generation**:
+  - AI analyzes equipment worn
+  - Generates material list (fabrics, foam, paint)
+  - Step-by-step construction guide
+  - Pattern suggestions (simplified for cosplay)
+- [ ] **Modding Support**:
+  - Export character as game mod texture
+  - BG3 custom character import
+  - Skyrim follower mod creation
+
+**Future Expansion Hooks**:
+- [ ] Video generation preparation:
+  - Character turnaround (360-degree rotation)
+  - Animated portrait (breathing, blinking)
+  - Action sequences (combat, spell-casting)
+- [ ] Personal LoRA training:
+  - Fine-tune on 10-20 user photos
+  - 95%+ identity preservation
+  - Faster generation (pre-trained on user's face)
+- [ ] Age progression/regression:
+  - De-age by 10-30 years
+  - Age up by 20-50 years
+  - Combine with fantasy race transformation
+
+**Success Criteria**:
+- ✅ Multi-shot references improve identity preservation measurably
+- ✅ Character build templates speed up workflow
+- ✅ At least one extended application (3D/cosplay/modding) working
+- ✅ Foundation laid for video generation (Phase 16+)
+
+---
+
+### Phase 15 Success Metrics 🌟
+
+**Prerequisites (Completed in Earlier Phases)**:
+- ✅ RTX 4090 ComfyUI infrastructure operational (Phase 2.15)
+- ✅ IP-Adapter-FaceID preserves identity >80% (Phase 2.15)
+- ✅ 100+ BG3 equipment items imported (Phase 3.14)
+- ✅ 4 core fantasy races working (Phase 3.13)
+- ✅ Generation cost $0/image vs $0.04-0.08 cloud (Phase 2.15)
+
+**Phase 15 Integration Goals**:
+- [ ] Unified character portrait workflow (race + equipment + style) working
+- [ ] Style harmonization makes cross-game outfits visually cohesive
+- [ ] 500+ equipment items from 3+ additional games (Skyrim, Cyberpunk, Sims)
+- [ ] Art style system with 4+ game-specific templates
+- [ ] Equipment sets tracked and usable
+
+**User Experience**:
+- [ ] Complete workflow (photo → race → outfit → generate) <5 minutes
+- [ ] User reports characters "look like me" >85% of time
+- [ ] Equipment search finds desired items >80% of time across all games
+- [ ] Character creation platform becomes primary use case
+
+**Platform Impact**:
+- [ ] Multi-game equipment database (500-1000+ items)
+- [ ] Cross-genre character creation (fantasy + sci-fi + modern)
+- [ ] Character build templates for popular builds
+- [ ] Foundation for extended applications (3D, cosplay, modding)
+
+**Total Duration**: 4-6 weeks (reduced from 8-12 weeks since infrastructure/races/BG3 import done earlier)
+**Total Features**: 3 major subsystems (integration, multi-game expansion, polish)
+**Dependencies**: Phase 2.15 (ComfyUI), Phase 3.13 (Races), Phase 3.14 (BG3 Import)
+
+---
+
+## Timeline Overview (18-27 Months)
 
 **Completed**: Phase 1 (8 weeks) ✅
 
-**Month 1-2**: Phase 2 (UX & Core Features)
-**Month 3-5**: Phase 3 (Creative Intelligence)
+**Month 1-2**: Phase 2 (UX & Core Features + ComfyUI Infrastructure)
+**Month 3-6**: Phase 3 (Creative Intelligence + Fantasy Races + Game Equipment Import)
 **Month 5-6**: Phase 4 (Reproducibility)
 **Month 6-8**: Phase 5 (Infrastructure Hardening)
 **Month 8-10**: Phase 6 (Developer Autopilot)
@@ -2567,18 +3090,21 @@ policies:
 **Month 20-21**: Phase 12 (Cost Optimizer)
 **Month 21-23**: Phase 13 (Capture & Knowledge)
 **Month 23-24**: Phase 14 (Advanced Features)
+**Month 24-27**: Phase 15 (Character Creation Platform) 🌟 **MAJOR CREATIVE MILESTONE**
 
 ---
 
 ## Critical Milestones
 
-**Month 2** (Phase 2 Complete): All high-value UX features delivered
-**Month 5** (Phase 3 Complete): TasteProfile learning, creative exploration working
+**Month 2** (Phase 2 Complete): All high-value UX features + ComfyUI infrastructure delivered
+**Month 6** (Phase 3 Complete): TasteProfile learning, creative exploration, fantasy races, 100+ BG3 items working
 **Month 8** (Phase 5 Complete): Infrastructure rock-solid, ready for autonomy
 **Month 12** (Phase 7 Complete): Design system mature, developer tools working
 **Month 15** (Phase 8 Complete): 🌟 **LifeOS becomes daily operating system**
 **Month 17** (Phase 9 Complete): Agents autonomous within policy guardrails
-**Month 24**: **LifeOS is comprehensive personal AI assistant**
+**Month 24** (Phase 14 Complete): Advanced features and polish complete
+**Month 27** (Phase 15 Complete): 🌟 **Character Creation Platform - D&D character portraits with identity preservation**
+**Month 27**: **LifeOS is comprehensive personal AI assistant with creative character generation**
 
 ---
 
@@ -2596,6 +3122,7 @@ policies:
 **Phase 11**: Jellyfin mirrored, Cross-domain taste working
 **Phase 12**: 3 optimizations/week, Savings accurate
 **Phase 13**: Capture from any device, Privacy controls effective
+**Phase 15** 🌟: Identity preservation >80%, 1,000+ equipment items, $0/image generation, Character creation "killer app"
 
 ---
 
@@ -2628,8 +3155,10 @@ policies:
 **Phase 9**: Low ($100-200 for document processing)
 **Phase 10**: Low ($100-200 for embedding generation)
 **Phase 11-12**: Low ($100-300 for optimization analysis)
+**Phase 15**: High one-time ($1,600 RTX 4090) + Medium ongoing ($30/month electricity + $100-200 equipment vision analysis)
 
-**Total Estimated Development Cost**: $1,900 - $4,000 over 24 months
+**Total Estimated Development Cost**: $3,500 - $5,600 over 27 months (includes $1,600 RTX 4090 hardware)
+**Monthly Savings After Phase 15**: $370-770/month (vs cloud-only generation)
 
 ---
 
@@ -2651,6 +3180,10 @@ policies:
 - Visual Autopilot
 - Dev Autopilot
 - MCP Integration
+- **Character Creation Platform** (Phase 15):
+  - Local ComfyUI infrastructure (enables all future local generation)
+  - Fantasy race transformation (IP-Adapter-FaceID)
+  - Game equipment import (BG3 + 4 more games)
 
 **MEDIUM** (Do Later):
 - Variant Orchards
@@ -2660,6 +3193,10 @@ policies:
 - Security Hardening
 - Board Game Assistant
 - Design System 2.0
+- **Character Creation Expansion**:
+  - Multi-game equipment expansion (10+ games)
+  - Cross-genre transformations (sci-fi races)
+  - Style harmonization ("coat of paint")
 
 **LOW** (Nice to Have):
 - Extremify Tool
@@ -2667,6 +3204,11 @@ policies:
 - Pattern Critique
 - Knowledge Connectors
 - Outfit Composer Polish
+- **Character Creation Polish**:
+  - Multi-shot reference photos
+  - Character build templates
+  - 3D model generation
+  - Cosplay guide generation
 
 ---
 
@@ -2689,8 +3231,26 @@ policies:
 1. Complete Phase 2 (all UX features)
 2. Start Phase 2.5 (refactoring)
 
+**Future** (Months 24-27):
+1. Phase 15: Character Creation Platform
+   - See `CHARACTER_CREATION_PLATFORM.md` for complete design document
+   - Combines fantasy race transformation + game equipment import
+   - RTX 4090 + ComfyUI for local generation ($0/image)
+   - Identity-preserving transformations (IP-Adapter-FaceID)
+
 ---
 
-**Last Updated**: 2025-10-23 (Database Persistence: ✅ COMPLETE - Phase 2.1-2.4 all complete)
+## Related Documents
+
+- **docs/features/planned/character-creation.md** - Complete design for Phase 15 (D&D character portraits)
+- **docs/features/planned/fantasy-race-transformer.md** - Original fantasy race transformation proposal
+- **docs/features/planned/game-equipment-import.md** - Original game equipment import proposal
+- **docs/archive/entity-preview-migration-plan.md** - Historical short-term work (Phase 0-2)
+- **docs/guides/design-patterns.md** - Development patterns and best practices
+- **docs/guides/api-reference.md** - Backend architecture details
+
+---
+
+**Last Updated**: 2025-10-24 (Phase 15 integrated - Character Creation Platform)
 **Next Review**: After Phase 2 completion
 **Maintained By**: Life-OS development team

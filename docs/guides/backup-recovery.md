@@ -577,7 +577,7 @@ Planned improvements (Phase 2.4):
 ## See Also
 
 - `ROADMAP.md` - Phase 1.1 Database Migration Safety Features
-- `API_ARCHITECTURE.md` - Database architecture
+- `docs/guides/api-reference.md` - Database architecture
 - `docker-compose.yml` - PostgreSQL configuration
 - PostgreSQL Documentation: https://www.postgresql.org/docs/current/backup.html
 

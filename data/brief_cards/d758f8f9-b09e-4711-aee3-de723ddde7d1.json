@@ -1,0 +1,66 @@
+{
+  "card_id": "d758f8f9-b09e-4711-aee3-de723ddde7d1",
+  "job_id": "9e230c14-41bf-4dd7-8b61-1b3e69f0bf35",
+  "title": "Merge Preview: Clothing Items",
+  "description": "Review merged clothing_items. 4 fields were combined.",
+  "category": "work",
+  "actions": [
+    {
+      "action_id": "approve",
+      "label": "Approve Merge",
+      "style": "primary",
+      "endpoint": "/api/merge/resume/9e230c14-41bf-4dd7-8b61-1b3e69f0bf35"
+    },
+    {
+      "action_id": "edit",
+      "label": "Edit & Approve",
+      "style": "secondary",
+      "endpoint": "/api/merge/resume/9e230c14-41bf-4dd7-8b61-1b3e69f0bf35"
+    },
+    {
+      "action_id": "cancel",
+      "label": "Cancel",
+      "style": "danger",
+      "endpoint": null
+    }
+  ],
+  "data": {
+    "merged_data": {
+      "category": "outerwear",
+      "item": "Shearling-Collar Moto Jacket with Integrated Audio System",
+      "fabric": "Full-grain cowhide leather with semi-aniline finish, combined with gold-accented polymer for the audio system and adjustable cuffs.",
+      "color": "Cognac brown body with ivory shearling and antique-gold hardware, accented with red accents on the cuffs and collar.",
+      "details": "The jacket features a dramatic asymmetric shawl collar made from genuine lamb shearling pile, combined with a semi-matte finish. The front closure is a heavy-gauge metal zipper (antique brass) that runs right of center, while the body is built from curved panels with lapped shearling seams and double topstitching for reinforcement. Set-in sleeves with slight elbow shaping feature gold-plated audio speakers integrated into the cuffs, allowing for wireless earbuds to be connected seamlessly. The hem edge is bound by exposed shearling, and two slanted hand pockets at waist are closed by metal zippers with leather pull tabs. An external belt loop integrated at waist accepts a wide belt, while back features subtle shaping seams to contour the waist. Interior unlined (natural shearling), with edges skived and butted for minimal bulk. Decorative lapel pins attached: one leaf-motif and one small wing/crest, both antiqued brass, placed asymmetrically on the shearling lapels."
+    },
+    "changes_summary": {
+      "fields_from_source": 1,
+      "fields_from_target": 0,
+      "fields_merged": 4
+    },
+    "entity_type": "clothing_items",
+    "source_id": "4f5d7f3a-83b9-4bd6-9fa6-d5d808f19b6c",
+    "target_id": "821b2115-3d1c-45a2-a0a8-38bef50c6c82",
+    "source_entity": {
+      "category": "outerwear",
+      "item": "classic asymmetrical moto jacket",
+      "fabric": "semi-aniline lambskin leather, medium weight with subtle sheen; full lining in viscose twill",
+      "color": "ink black with bright silver hardware",
+      "details": "Cropped, fitted biker jacket with wide notched lapels secured by snap studs; off-center #8 metal zipper front left open; epaulet-free shoulder line for a cleaner look; two slanted waist pockets with metal zippers and leather welts; small ticket pocket with flap and snap on the right front; long set-in sleeves with zippered gusset cuffs; hem finished with internal facing and bar-tack reinforcements at stress points; all hardware polished nickel; double-needle topstitching along seams. Styled unzipped to reveal the red corset beneath and layered under a voluminous fur cape."
+    },
+    "target_entity": {
+      "category": "outerwear",
+      "item": "shearling-collar leather aviator jacket with asymmetric shawl collar",
+      "fabric": "full-grain cowhide leather with semi-aniline finish; genuine lamb shearling pile at collar and exposed front facing; heavy weight with structured hand and semi-matte luster",
+      "color": "cognac brown body with ivory shearling and antique-gold hardware",
+      "details": "Hip-length, structured silhouette with dramatic asymmetric shawl collar. Off-center front closure using a heavy-gauge metal zipper (antique brass) that runs right of center; zipper tape tone-on-tone brown. Body built from curved panels with lapped shearling seams and double topstitching for reinforcement. Set-in sleeves with slight elbow shaping; cuffs are turned-back to expose ivory pile. Hem edge bound by exposed shearling. Two slanted hand pockets at waist closed by metal zippers with leather pull tabs. External belt loops integrated at waist to accept a wide belt; back features subtle shaping seams to contour the waist. Interior unlined (natural shearling), with edges skived and butted for minimal bulk. Decorative lapel pins attached: one leaf-motif and one small wing/crest, both antiqued brass, placed asymmetrically on the shearling lapels."
+    }
+  },
+  "provenance": "AI analyzed clothing_items entities and generated merged version with 4 combined fields",
+  "created_at": "2025-10-25 02:10:46.988182",
+  "responded_at": "2025-10-25 02:18:00.719658",
+  "dismissed": true,
+  "snoozed_until": null,
+  "response": {
+    "action": "approve"
+  }
+}

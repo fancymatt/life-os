@@ -429,11 +429,14 @@ class JobQueueManager:
 
     def _schedule_notification(self, job: Job):
         """Schedule notification to subscribers (safe from sync/async contexts)"""
+        logger.debug(f"Notifying subscribers about job {job.job_id[:8]} ({job.status}) - {len(self._subscribers)} subscribers")
+
         # Publish to Redis pub/sub for cross-process notifications (workers → API)
         from api.services.storage_backend import RedisBackend
         if isinstance(self.storage, RedisBackend):
             try:
                 self.storage.publish_job_update(job.model_dump())
+                logger.debug(f"Published job {job.job_id[:8]} to Redis pub/sub")
             except Exception as e:
                 logger.error(f"Failed to publish job update via Redis: {e}")
 
@@ -443,18 +446,22 @@ class JobQueueManager:
             loop = asyncio.get_running_loop()
             # We're in an async context, create task
             loop.create_task(self._notify_subscribers(job))
+            logger.debug(f"Created async task to notify {len(self._subscribers)} subscribers")
         except RuntimeError:
             # No running loop - we're in sync context (e.g., background task)
             # Put notification in all subscriber queues synchronously
+            notified = 0
             for queue in self._subscribers:
                 try:
                     queue.put_nowait(job)
+                    notified += 1
                 except asyncio.QueueFull:
                     # Queue is full, skip this update
                     pass
                 except:
                     # Ignore other errors (e.g., closed queue)
                     pass
+            logger.debug(f"Notified {notified}/{len(self._subscribers)} subscribers (sync context)")
 
     async def _notify_subscribers(self, job: Job):
         """Notify all SSE subscribers of job update"""

@@ -1,0 +1,66 @@
+{
+  "card_id": "1ddc76df-4509-43f5-a0f2-300215f3a22f",
+  "job_id": "30d4f335-87b1-4d29-ad04-441726c06d3c",
+  "title": "Merge Preview: Clothing Items",
+  "description": "Review merged clothing_items. 4 fields were combined.",
+  "category": "work",
+  "actions": [
+    {
+      "action_id": "approve",
+      "label": "Approve Merge",
+      "style": "primary",
+      "endpoint": "/api/merge/resume/30d4f335-87b1-4d29-ad04-441726c06d3c"
+    },
+    {
+      "action_id": "edit",
+      "label": "Edit & Approve",
+      "style": "secondary",
+      "endpoint": "/api/merge/resume/30d4f335-87b1-4d29-ad04-441726c06d3c"
+    },
+    {
+      "action_id": "cancel",
+      "label": "Cancel",
+      "style": "danger",
+      "endpoint": null
+    }
+  ],
+  "data": {
+    "merged_data": {
+      "category": "earrings",
+      "item": "Earrings, Gold Hoop (available in silver)",
+      "fabric": "polished metal, solid gold or silver",
+      "color": "warm yellow gold high polish or genuine silver, shiny and smooth finish",
+      "details": "Minimalist hoops or studs with a sleek, modern design; approximately 12-18 mm outer diameter for hoops, or standard post and butterfly clutch backs for studs. Worn as a subtle accent with no pendant movement. Clean, unadorned finish complements any outfit; worn symmetrically at each ear; smooth reflective finish."
+    },
+    "changes_summary": {
+      "fields_from_source": 1,
+      "fields_from_target": 0,
+      "fields_merged": 4
+    },
+    "entity_type": "clothing_items",
+    "source_id": "ac8e4413-0b48-4b35-8140-62153aa5cf82",
+    "target_id": "6969eac5-8c63-4964-a984-176c02ad1b42",
+    "source_entity": {
+      "category": "earrings",
+      "item": "Earrings, Gold Hoop",
+      "fabric": "solid 14k yellow gold, polished surface",
+      "color": "warm yellow gold high polish",
+      "details": "Minimalist sleeper-style hoops worn at the lobes; approximately 12\u201318 mm outer diameter with 1.5\u20132 mm wire gauge; rounded cross-section; continuous hinged closure with invisible joint; hinged click-top closure; no texture, stones, or pendants; mirror-finish polish. Clean, unadorned finish complements the tailored ensemble; worn symmetrically at each ear; smooth reflective finish."
+    },
+    "target_entity": {
+      "category": "earrings",
+      "item": "Earrings, Silver Stud",
+      "fabric": "polished metal",
+      "color": "genuine silver",
+      "details": "Minimalist circular studs with smooth dome face; standard post and butterfly clutch backs. Worn as a subtle accent with no pendant movement."
+    }
+  },
+  "provenance": "AI analyzed clothing_items entities and generated merged version with 4 combined fields",
+  "created_at": "2025-10-25 01:53:51.455333",
+  "responded_at": "2025-10-25 02:03:42.891583",
+  "dismissed": true,
+  "snoozed_until": null,
+  "response": {
+    "action": "approve"
+  }
+}

@@ -15,7 +15,7 @@ from api.config import settings
 from api.logging_config import setup_logging, get_logger
 from api.models.responses import APIInfo, HealthResponse
 from api.services import AnalyzerService, GeneratorService, PresetService
-from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, stories, characters, configs, tool_configs, local_models, board_games, documents, qa, clothing_items, outfits, visualization_configs, images, cache, tools, tags, merge, entity_previews, brief
+from api.routes import discovery, analyzers, generators, presets, jobs, auth, favorites, compositions, workflows, story_tools, stories, characters, configs, tool_configs, local_models, board_games, documents, qa, clothing_items, outfits, visualization_configs, images, cache, tools, tags, merge, entity_previews, brief, comfyui
 from api.middleware.request_id import RequestIDMiddleware
 
 # Initialize logging
@@ -153,6 +153,7 @@ app.include_router(merge.router, prefix="/merge", tags=["merge"])
 app.include_router(brief.router, prefix="/brief", tags=["brief"])
 app.include_router(cache.router, tags=["cache"])
 app.include_router(entity_previews.router, prefix="/entity-previews", tags=["entity-previews"])
+app.include_router(comfyui.router, prefix="/comfyui", tags=["comfyui"])
 
 
 @app.get("/", response_model=APIInfo)

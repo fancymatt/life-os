@@ -1,0 +1,77 @@
+{
+  "card_id": "69dc3b28-b418-41f4-a377-e3c715394077",
+  "job_id": "06ea7ff0-bf0f-42d3-b6c2-6e92ec8e8af7",
+  "title": "Merge Preview: Clothing Items",
+  "description": "Review merged clothing_items. 6 fields were combined.",
+  "category": "work",
+  "actions": [
+    {
+      "action_id": "approve",
+      "label": "Approve Merge",
+      "style": "primary",
+      "endpoint": "/api/merge/resume/06ea7ff0-bf0f-42d3-b6c2-6e92ec8e8af7"
+    },
+    {
+      "action_id": "edit",
+      "label": "Edit & Approve",
+      "style": "secondary",
+      "endpoint": "/api/merge/resume/06ea7ff0-bf0f-42d3-b6c2-6e92ec8e8af7"
+    },
+    {
+      "action_id": "cancel",
+      "label": "Cancel",
+      "style": "danger",
+      "endpoint": null
+    }
+  ],
+  "data": {
+    "merged_data": {
+      "category": "earrings",
+      "item": "Earrings, Gold Hoop and Earpods",
+      "fabric": "polished metal, solid gold / molded ABS/PC plastic with glossy finish and silicone ear tips",
+      "color": "warm yellow gold high polish / clean optic white",
+      "details": "Minimalist hoops or studs with a sleek, modern design; approximately 12-18 mm outer diameter for hoops, or standard post and butterfly clutch backs for studs. Worn as a subtle accent with no pendant movement. Clean, unadorned finish complements any outfit; worn symmetrically at each ear; smooth reflective finish. Minimal stem-style in-ear earbuds seated in both ears; smooth, flush profile functioning as ear-worn tech accessory; no visible wires or additional hardware.",
+      "tags": [
+        "gold",
+        "hoop earrings",
+        "minimalist jewelry",
+        "accessory",
+        "tech accessory"
+      ],
+      "metadata": {
+        "created_at": "2022-01-01T00:00:00Z",
+        "updated_at": "2023-03-15T14:30:00Z"
+      }
+    },
+    "changes_summary": {
+      "fields_from_source": 1,
+      "fields_from_target": 0,
+      "fields_merged": 6
+    },
+    "entity_type": "clothing_items",
+    "source_id": "ac8e4413-0b48-4b35-8140-62153aa5cf82",
+    "target_id": "88e2124d-8b5a-4f79-8fd1-640422c12d20",
+    "source_entity": {
+      "category": "earrings",
+      "item": "Earrings, Gold Hoop",
+      "fabric": "polished metal, solid gold",
+      "color": "warm yellow gold high polish",
+      "details": "Minimalist hoops or studs with a sleek, modern design; approximately 12-18 mm outer diameter for hoops, or standard post and butterfly clutch backs for studs. Worn as a subtle accent with no pendant movement. Clean, unadorned finish complements any outfit; worn symmetrically at each ear; smooth reflective finish."
+    },
+    "target_entity": {
+      "category": "earrings",
+      "item": "Earpods",
+      "fabric": "molded ABS/PC plastic with glossy finish and silicone ear tips",
+      "color": "clean optic white",
+      "details": "Minimal stem-style in-ear earbuds seated in both ears; smooth, flush profile functioning as ear-worn tech accessory; no visible wires or additional hardware."
+    }
+  },
+  "provenance": "AI analyzed clothing_items entities and generated merged version with 6 combined fields",
+  "created_at": "2025-10-25 02:05:22.433464",
+  "responded_at": "2025-10-25 02:05:51.329095",
+  "dismissed": true,
+  "snoozed_until": null,
+  "response": {
+    "action": "approve"
+  }
+}

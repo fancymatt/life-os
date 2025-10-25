@@ -36,6 +36,13 @@ services:
     container_name: ai-studio-ollama
     ports:
       - "11434:11434"
+    environment:
+      # Performance tuning for M3 Ultra (256GB RAM)
+      - OLLAMA_NUM_PARALLEL=4           # Handle 4 concurrent requests
+      - OLLAMA_MAX_LOADED_MODELS=3      # Keep 3 models in RAM simultaneously
+      - OLLAMA_FLASH_ATTENTION=1        # Use optimized attention mechanism
+      - OLLAMA_NUM_GPU=1                # Use Metal GPU acceleration
+      - OLLAMA_KEEP_ALIVE=10m           # Keep models loaded for 10 minutes
     volumes:
       - ollama_models:/root/.ollama
     restart: unless-stopped

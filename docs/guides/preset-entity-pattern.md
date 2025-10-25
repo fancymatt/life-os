@@ -465,9 +465,9 @@ When migrating characters, visual styles, etc. to PostgreSQL:
    - Verify NO file-based records created
 
 4. **Update documentation**:
-   - Add note to PRESET_ENTITY_PATTERN.md
-   - Update API_ARCHITECTURE.md
-   - Document in CLAUDE.md
+   - Add note to docs/guides/preset-entity-pattern.md
+   - Update docs/guides/api-reference.md
+   - Document in claude.md
 
 ---
 
@@ -680,7 +680,7 @@ Potential improvements to this pattern:
 
 ## See Also
 
-- `API_ARCHITECTURE.md` - Overall backend architecture
-- `OPTIMIZATION_ROADMAP.md` - Development roadmap
+- `docs/guides/api-reference.md` - Overall backend architecture
+- `ROADMAP.md` - Development roadmap
 - `ai_tools/shared/visualizer.py` - PresetVisualizer implementation
 - `frontend/src/components/entities/configs/clothingItemsConfig.jsx` - Similar pattern for clothing items

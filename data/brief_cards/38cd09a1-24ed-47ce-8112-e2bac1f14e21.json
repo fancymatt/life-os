@@ -1,0 +1,66 @@
+{
+  "card_id": "38cd09a1-24ed-47ce-8112-e2bac1f14e21",
+  "job_id": "9ab5ad6f-048e-489b-9e91-a65b9d234d97",
+  "title": "Merge Preview: Clothing Items",
+  "description": "Review merged clothing_items. 2 fields were combined.",
+  "category": "work",
+  "actions": [
+    {
+      "action_id": "approve",
+      "label": "Approve Merge",
+      "style": "primary",
+      "endpoint": "/api/merge/resume/9ab5ad6f-048e-489b-9e91-a65b9d234d97"
+    },
+    {
+      "action_id": "edit",
+      "label": "Edit & Approve",
+      "style": "secondary",
+      "endpoint": "/api/merge/resume/9ab5ad6f-048e-489b-9e91-a65b9d234d97"
+    },
+    {
+      "action_id": "cancel",
+      "label": "Cancel",
+      "style": "danger",
+      "endpoint": null
+    }
+  ],
+  "data": {
+    "merged_data": {
+      "category": "eyewear",
+      "item": "Glasses, Red Frame (Variant) or Glasses, Blue Frame",
+      "fabric": "polished cellulose acetate frame with embedded metal core; clear optical-grade CR-39 or polycarbonate lenses with standard anti-reflective and UV-protective coatings",
+      "color": "gloss red frame with clear lenses or gloss blue frame with clear lenses",
+      "details": "Full-rim rectangular silhouette with subtly upswept outer corners; standard saddle bridge formed in acetate; integrated acetate nose pads; slim tapered temples with exposed silver-tone three-barrel hinges; lenses are transparent and colorless for normal vision, non-mirrored with low surface reflectance due to AR coating."
+    },
+    "changes_summary": {
+      "fields_from_source": 3,
+      "fields_from_target": 0,
+      "fields_merged": 2
+    },
+    "entity_type": "clothing_items",
+    "source_id": "66621f5f-0a76-4d62-8557-5d9634c80cdc",
+    "target_id": "37398ca9-31d2-4849-ab44-88b82cbafb55",
+    "source_entity": {
+      "category": "eyewear",
+      "item": "Glasses, Red Frame (Variant)",
+      "fabric": "polished cellulose acetate frame with embedded metal core; clear optical-grade CR-39 or polycarbonate lenses with standard anti-reflective and UV-protective coatings",
+      "color": "gloss red frame with clear lenses",
+      "details": "Full-rim rectangular silhouette with subtly upswept outer corners; standard saddle bridge formed in acetate; integrated acetate nose pads; slim tapered temples with exposed silver-tone three-barrel hinges; lenses are transparent and colorless for normal vision, non-mirrored with low surface reflectance due to AR coating."
+    },
+    "target_entity": {
+      "category": "eyewear",
+      "item": "Glasses, Blue Frame",
+      "fabric": "polished cellulose acetate frame with embedded metal core; clear optical-grade CR-39 or polycarbonate lenses with standard anti-reflective and UV-protective coatings",
+      "color": "gloss blue frame with clear lenses",
+      "details": "Full-rim rectangular silhouette with subtly upswept outer corners; standard saddle bridge formed in acetate; integrated acetate nose pads; slim tapered temples with exposed silver-tone three-barrel hinges; lenses are transparent and colorless for normal vision, non-mirrored with low surface reflectance due to AR coating."
+    }
+  },
+  "provenance": "AI analyzed clothing_items entities and generated merged version with 2 combined fields",
+  "created_at": "2025-10-25 01:41:52.659788",
+  "responded_at": "2025-10-25 01:48:56.239572",
+  "dismissed": true,
+  "snoozed_until": null,
+  "response": {
+    "action": "approve"
+  }
+}

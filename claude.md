@@ -9,8 +9,8 @@ Multi-domain AI platform for image generation, analysis, and workflow orchestrat
 **Find detailed documentation in:**
 - **README.md** - Setup, features, architecture overview
 - **ROADMAP.md** - Development phases and priorities
-- **DESIGN_PATTERNS.md** - Best practices and code patterns
-- **API_ARCHITECTURE.md** - Backend design details
+- **docs/guides/design-patterns.md** - Best practices and code patterns
+- **docs/guides/api-reference.md** - Backend architecture details
 - **ai_tools/README_TOOL_DEVELOPMENT.md** - AI tool checklist
 
 ---
@@ -424,7 +424,7 @@ docker-compose run --rm api pytest tests/unit/ -v
 
 1. Check logs: `docker logs ai-studio-api --tail 100`
 2. Check ROADMAP.md for known issues
-3. Check DESIGN_PATTERNS.md for established patterns
+3. Check docs/guides/design-patterns.md for established patterns
 4. Check FastAPI docs: http://localhost:8000/docs
 5. Ask user for clarification
 

@@ -1,0 +1,100 @@
+{
+  "card_id": "d1fdeebc-86e9-43bf-b51e-882ad0e4ae85",
+  "job_id": "73f6e90b-60ed-4bff-b8c6-6ecf230e4ee0",
+  "title": "Merge Preview: Clothing Items",
+  "description": "Review merged clothing_items. 8 fields were combined.",
+  "category": "work",
+  "actions": [
+    {
+      "action_id": "approve",
+      "label": "Approve Merge",
+      "style": "primary",
+      "endpoint": "/api/merge/resume/73f6e90b-60ed-4bff-b8c6-6ecf230e4ee0"
+    },
+    {
+      "action_id": "edit",
+      "label": "Edit & Approve",
+      "style": "secondary",
+      "endpoint": "/api/merge/resume/73f6e90b-60ed-4bff-b8c6-6ecf230e4ee0"
+    },
+    {
+      "action_id": "cancel",
+      "label": "Cancel",
+      "style": "danger",
+      "endpoint": null
+    }
+  ],
+  "data": {
+    "merged_data": {
+      "category": "earrings",
+      "item": "Earrings, Combination of Silver Studs and Gold Hoops",
+      "fabric": {
+        "polished metal": {
+          "material": "metal",
+          "type": "polished"
+        },
+        "solid 14k yellow gold": {
+          "material": "gold",
+          "type": "polished"
+        }
+      },
+      "color": {
+        "genuine silver": {
+          "color_type": "metallic",
+          "shade": "silver"
+        },
+        "warm yellow gold high polish": {
+          "color_type": "metallic",
+          "shade": "yellow-gold"
+        }
+      },
+      "details": "Minimalist circular studs with smooth dome face; standard post and butterfly clutch backs. Worn as a subtle accent with no pendant movement. Minimal sleeper-style hoops worn at the lobes; approximately 12\u201318 mm outer diameter with 1.5\u20132 mm wire gauge; rounded cross-section; continuous hinged closure with invisible joint; hinged click-top closure; no texture, stones, or pendants; mirror-finish polish.",
+      "tags": [
+        "Minimalist",
+        "Silver",
+        "Gold",
+        "Hoop Earrings"
+      ],
+      "metadata": {
+        "category": "earrings",
+        "item_type": "jewelry",
+        "price_range": "$20-$50",
+        "brand": null,
+        "style": "timeless"
+      },
+      "created_at": "2022-01-01T00:00:00Z",
+      "updated_at": "2023-03-15T14:30:00Z"
+    },
+    "changes_summary": {
+      "fields_from_source": 1,
+      "fields_from_target": 0,
+      "fields_merged": 8
+    },
+    "entity_type": "clothing_items",
+    "source_id": "6969eac5-8c63-4964-a984-176c02ad1b42",
+    "target_id": "ac8e4413-0b48-4b35-8140-62153aa5cf82",
+    "source_entity": {
+      "category": "earrings",
+      "item": "Earrings, Silver Stud",
+      "fabric": "polished metal",
+      "color": "genuine silver",
+      "details": "Minimalist circular studs with smooth dome face; standard post and butterfly clutch backs. Worn as a subtle accent with no pendant movement."
+    },
+    "target_entity": {
+      "category": "earrings",
+      "item": "Earrings, Gold Hoop",
+      "fabric": "solid 14k yellow gold, polished surface",
+      "color": "warm yellow gold high polish",
+      "details": "Minimalist sleeper-style hoops worn at the lobes; approximately 12\u201318 mm outer diameter with 1.5\u20132 mm wire gauge; rounded cross-section; continuous hinged closure with invisible joint; hinged click-top closure; no texture, stones, or pendants; mirror-finish polish. Clean, unadorned finish complements the tailored ensemble; worn symmetrically at each ear; smooth reflective finish."
+    }
+  },
+  "provenance": "AI analyzed clothing_items entities and generated merged version with 8 combined fields",
+  "created_at": "2025-10-25 02:02:50.811236",
+  "responded_at": "2025-10-25 02:05:21.372950",
+  "dismissed": true,
+  "snoozed_until": null,
+  "response": {
+    "action": "cancel",
+    "edited_data": null
+  }
+}

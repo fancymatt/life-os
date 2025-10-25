@@ -489,7 +489,7 @@ docker-compose logs -f api frontend
 
 ### Support
 
-- **Documentation**: This file (DEPLOYMENT.md)
+- **Documentation**: This file (docs/guides/deployment.md)
 - **Runbook**: ROADMAP.md (project status)
 - **Issues**: GitHub Issues
 - **Emergencies**: Rollback procedures above

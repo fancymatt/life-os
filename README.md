@@ -1,28 +1,532 @@
-# AI-Studio
+# Life-OS
 
-Modular AI toolkit for image analysis, generation, and video creation. Extract structured data from images, save as reusable presets, and generate new images with any combination of styles, outfits, hair, makeup, and more.
+Multi-domain AI platform for image generation, analysis, and workflow orchestration. Built with FastAPI (Python), React (Vite), PostgreSQL, and Redis.
 
-## Features
+## Overview
 
-- **9 Image Analyzers** - Extract outfit, style, hair, makeup, expression, accessories
-- **6 Image Generators** - Generate images with modular spec composition
-- **2 Video Tools** - Enhance prompts and generate videos with Sora
-- **Intelligent Caching** - 7-day TTL with automatic invalidation
-- **Preset System** - User-editable JSON specifications
-- **Batch Workflows** - N × M × K generation with progress tracking
-- **Cost Efficient** - ~$0.001 analysis, $0.04 generation
+Life-OS is a **web-based AI platform** that specializes in **image generation and analysis** with expanding capabilities into **story generation**, **board game tools**, and **document processing**.
+
+### Key Features
+
+- **24 AI Tools** - Analyzers, generators, and processors for images and documents
+- **Entity Management** - PostgreSQL-backed CRUD for 20+ entity types (characters, clothing, outfits, stories, etc.)
+- **Composer Application** - Drag-and-drop visual outfit composition canvas
+- **Story Workflow** - Multi-agent pipeline (planner → writer → illustrator)
+- **Board Game Tools** - BGG integration, rulebook fetching, RAG-based Q&A
+- **Job Queue** - Background processing with real-time progress tracking
+- **Preset Library** - Reusable style configurations (22 categories)
+- **Multi-User** - JWT authentication, per-user data isolation
+- **Mobile-Responsive** - Works on phones, tablets, and desktops
 
 ## Quick Start
 
 ```bash
-# Setup
+# 1. Setup environment
 cp .env.example .env
-# Add your GEMINI_API_KEY and optionally OPENAI_API_KEY
+# Edit .env and add GEMINI_API_KEY and OPENAI_API_KEY
 
-# Analyze an image (all aspects)
+# 2. Start all services
+docker-compose up -d
+
+# 3. Create admin user
+docker-compose exec api python scripts/create_admin_user.py
+
+# 4. Access web interface
+# Frontend: http://localhost:3000
+# API docs: http://localhost:8000/docs
+```
+
+### Key Workflows
+
+1. **Character Creation**: Upload image → Analyze appearance → Create character entity
+2. **Outfit Composition**: Select character → Add clothing/styles → Generate image
+3. **Story Generation**: Select character + theme → Generate illustrated story
+4. **Style Extraction**: Upload image → Analyze style → Save as reusable preset
+
+## Installation
+
+### Prerequisites
+
+- Docker & Docker Compose
+- API keys: Gemini (required), OpenAI (optional)
+
+### Setup
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/life-os.git
+cd life-os
+
+# Setup environment variables
+cp .env.example .env
+# Edit .env and add:
+#   GEMINI_API_KEY=your_key
+#   OPENAI_API_KEY=your_key (optional)
+#   REQUIRE_AUTH=true (for production)
+
+# Start all containers
+docker-compose up -d
+
+# Check logs
+docker logs ai-studio-api --tail 50
+docker logs ai-studio-frontend --tail 50
+
+# Create first user
+docker-compose exec api python scripts/create_admin_user.py
+```
+
+### Services
+
+- **Frontend** - React + Vite (port 3000)
+- **API** - FastAPI (port 8000)
+- **PostgreSQL** - Database (port 5432)
+- **Redis** - Job queue (port 6379)
+- **RQ Workers** - Background task processors (4 workers)
+
+### Common Commands
+
+```bash
+# View logs
+docker logs ai-studio-api --tail 100
+docker logs life-os-rq-worker-1 --tail 50
+
+# Rebuild after code changes
+docker-compose up -d --build api
+docker-compose up -d --build frontend
+docker-compose up -d --build rq-worker
+
+# Database access
+docker exec ai-studio-postgres psql -U lifeos -d lifeos
+
+# Redis access
+docker exec -it ai-studio-redis redis-cli
+
+# Run tests
+docker-compose exec api pytest tests/unit/ -v
+```
+
+## Architecture
+
+### Stack
+
+**Backend**:
+- FastAPI (async Python 3.9+)
+- PostgreSQL 15 with asyncpg
+- SQLAlchemy 2.0+ (async ORM)
+- Redis (job queue)
+- LiteLLM (multi-provider LLM router)
+
+**Frontend**:
+- React 18.2 + Vite 5.0
+- React Router v6
+- Axios (with JWT interceptors)
+- Component-scoped CSS
+
+**AI Providers**:
+- Gemini 2.0/2.5 Flash (primary)
+- OpenAI DALL-E 3 / GPT-4 / Sora
+- Claude (via LiteLLM)
+
+### Service Layer Pattern
+
+```
+Routes (api/routes/) → Handle HTTP concerns
+  ↓
+Services (api/services/) → Business logic
+  ↓
+Repositories (api/repositories/) → Data access
+  ↓
+Database (PostgreSQL)
+```
+
+### Directory Structure
+
+```
+life-os/
+├── api/                          # Backend (Python/FastAPI)
+│   ├── routes/                   # API endpoints
+│   ├── services/                 # Business logic
+│   ├── repositories/             # Data access layer
+│   ├── models/                   # Pydantic + SQLAlchemy models
+│   ├── agents/                   # Story generation agents
+│   └── database.py               # Database connection
+├── ai_tools/                     # AI tool implementations
+│   ├── shared/                   # Shared utilities
+│   ├── outfit_analyzer/          # Individual tools
+│   ├── modular_image_generator/
+│   └── [22 other tools]/
+├── frontend/                     # React frontend
+│   ├── src/
+│   │   ├── pages/                # Page components
+│   │   ├── components/           # Reusable components
+│   │   ├── contexts/             # React contexts
+│   │   └── api/                  # API client
+│   └── vite.config.js
+├── presets/                      # Preset JSON files
+├── data/                         # Runtime data
+├── output/                       # Generated images
+├── docs/                         # Documentation
+│   ├── guides/                   # How-to guides
+│   ├── setup/                    # Setup documentation
+│   ├── features/                 # Feature specs
+│   └── archive/                  # Historical docs
+└── configs/                      # Configuration files
+```
+
+## Core Entities
+
+Life-OS manages structured data through 20+ entity types stored in PostgreSQL.
+
+### Content Entities
+
+- **Characters** - People for story generation and image generation (visual description, personality, reference image)
+- **Stories** - Generated narrative content with multiple scenes and illustrations
+- **Story Scenes** - Individual scenes within stories with text and illustration
+- **Clothing Items** - Articles of clothing (15 categories: headwear, tops, bottoms, footwear, etc.)
+- **Outfits** - Complete outfit combinations referencing multiple clothing items
+- **Board Games** - Board game catalog with BGG metadata
+- **Images** - All AI-generated images with polymorphic relationships to entities
+- **Documents** - PDF documents (rulebooks, manuals) with RAG processing
+
+### Configuration Entities
+
+- **Presets** (22 categories) - Reusable style configurations:
+  - Visual styles, art styles, hair styles, hair colors
+  - Makeup, expressions, accessories
+  - Story themes, audiences, prose styles
+- **Visualization Configs** - Templates for generating preview images
+- **Story Configs** - Planner, Writer, Illustrator configuration entities
+
+### User Data Entities
+
+- **Users** - User accounts with JWT authentication
+- **Favorites** - User's favorite presets
+- **Compositions** - Saved combinations of presets
+
+## AI Tools
+
+### Image Analyzers (9 tools)
+
+Extract structured information from images:
+
+- **Outfit Analyzer** - 15 clothing categories with fabric, color, details
+- **Character Appearance Analyzer** - Age, skin tone, face, hair, body
+- **Visual Style Analyzer** - 17 photographic aspects (composition, lighting, mood, etc.)
+- **Art Style Analyzer** - Medium, technique, art movement, mood
+- **Hair Style Analyzer** - Cut, length, layers, texture, volume
+- **Hair Color Analyzer** - Base color, undertones, highlights, lowlights
+- **Makeup Analyzer** - Complexion, eyes, lips, intensity
+- **Expression Analyzer** - Emotion, intensity, facial features, gaze
+- **Accessories Analyzer** - Jewelry, bags, belts, hats, watches
+- **Comprehensive Analyzer** - Run all 8 analyzers at once
+
+### Image Generators (6 tools)
+
+Create new images using AI models:
+
+- **Modular Image Generator** - Combine any specs (outfit, style, hair, makeup, expression, accessories)
+- **Outfit Generator** - Generate outfits from text descriptions
+- **Style Transfer Generator** - Transfer visual style while preserving subject
+- **Art Style Generator** - Generate in specific artistic styles
+- **Sora Video Generator** - Generate videos with Sora API
+- **Video Prompt Enhancer** - Enhance video prompts with GPT-4o
+
+### Visualization Tools (3 tools)
+
+Generate preview images for entities:
+
+- **Clothing Item Visualizer** - Isolated product-style images
+- **Outfit Visualizer** - Outfits shown on mannequin or model
+- **Item Visualizer** - General-purpose item previews
+
+### Document Processing Tools (3 tools)
+
+- **Board Game Rules Gatherer** - Search BGG, fetch metadata, download rulebooks
+- **Document RAG Preparer** - Extract text, chunk, embed, store in vector DB
+- **Document QA** - Answer questions about documents with citations
+
+## Web Applications
+
+### Composer (`/apps/composer`)
+
+Visual outfit composition canvas with drag-and-drop interface.
+
+**Features**:
+- Drag-and-drop preset library (22 categories)
+- Character selection (subject for generation)
+- Multi-preset layering (15 clothing categories, can layer multiple per category)
+- Real-time preview generation
+- Favorites system for quick access
+- Search and filter presets
+- Save/load compositions
+- Mobile-responsive with tab navigation
+- LRU cache (50 generations) for instant previews
+- Auto-generate mode (live preview) or manual mode (build first)
+
+**Use Case**: Build complete character looks by combining clothing, hair, makeup, and style presets.
+
+### Story Workflow (`/workflows/story`)
+
+End-to-end illustrated story generation with multi-agent orchestration.
+
+**Process**:
+1. **Planning** - Story planner creates outline with scene breakdown
+2. **Writing** - Story writer generates narrative content for each scene
+3. **Illustration** - Story illustrator creates images for each scene
+
+**Features**:
+- Real-time progress tracking
+- Creates story entity with all scenes
+- Saves illustrations and links to scenes
+- Configurable via entity-based configs
+- Character-aware (uses character descriptions)
+
+**Use Case**: Generate complete illustrated stories in minutes.
+
+## Entity Management Pages
+
+Each entity type has a dedicated web page:
+
+**Common Features** (all pages):
+- List view with search and filter
+- Detail view with edit capabilities
+- Create/import options
+- Delete with confirmation
+- Bulk actions for batch operations
+- Related data display (e.g., images using a character)
+
+**Entity Pages**:
+- Stories, Images, Characters, Clothing Items, Outfits
+- Expressions, Makeup, Hair Styles, Hair Colors
+- Visual Styles, Art Styles, Accessories
+- Story Themes, Audiences, Prose Styles, Configs
+- Board Games, Documents, QAs
+- Visualization Configs
+
+## Tool Pages
+
+Direct access to individual AI tools via web interface:
+
+**Analyzer Tools**:
+- Character Appearance, Outfit, Accessories
+- Art Style, Expression, Hair Color, Hair Style
+- Makeup, Visual Style, Comprehensive
+
+**Generator Tools**:
+- Modular Generator
+
+**Story Tools**:
+- Story Planner, Writer, Illustrator
+
+**Board Game Tools**:
+- BGG Rulebook Fetcher, Document Processor, Document Question Asker
+
+## Configuration
+
+### Model Configuration
+
+Edit `configs/models.yaml` to change default models:
+
+```yaml
+defaults:
+  # Analysis Tools
+  outfit_analyzer: "gemini/gemini-2.0-flash-exp"
+  visual_style_analyzer: "gemini/gemini-2.0-flash-exp"
+
+  # Image Generation
+  modular_image_generator: "gemini/gemini-2.5-flash-image"
+
+  # Story Generation
+  story_writer: "gemini/gemini-2.0-flash-exp"
+  story_illustrator: "gemini/gemini-2.5-flash-image"
+```
+
+### Environment Variables
+
+```bash
+# Required
+GEMINI_API_KEY=your_gemini_api_key
+
+# Optional
+OPENAI_API_KEY=your_openai_api_key
+
+# Authentication
+REQUIRE_AUTH=true                    # Enable JWT auth
+JWT_SECRET_KEY=your_secret_key       # Use secure random key in production
+
+# Database
+DATABASE_URL=postgresql+asyncpg://lifeos:password@postgres:5432/lifeos
+
+# Job Queue
+REDIS_URL=redis://redis:6379/0
+```
+
+## Performance
+
+### Typical Response Times
+
+- **Image Analysis**: 5-10 seconds (Gemini 2.0 Flash)
+- **Image Generation**: 30-60 seconds (Gemini 2.5 Flash Image)
+- **Story Generation** (3 scenes): 2-5 minutes
+- **Document Processing**: 1-3 minutes
+
+### Caching
+
+- **Analysis Cache**: File-based, 30-day TTL
+- **Generation Cache**: LRU in-memory, 50 items
+- **Preset Cache**: In-memory, cleared on change
+
+### Cost Tracking
+
+- **Gemini 2.5 Flash Image**: ~$0.002 per image
+- **Gemini 2.0 Flash**: ~$0.001 per analysis
+- **DALL-E 3**: ~$0.04 per image
+
+**Typical Costs**:
+- Single image generation: $0.002
+- Comprehensive analysis (9 analyzers): $0.009
+- 5-scene illustrated story: ~$0.05
+
+## Development
+
+### Running Tests
+
+```bash
+# All unit tests
+docker-compose exec api pytest tests/unit/ -v
+
+# Specific test file
+docker-compose exec api pytest tests/unit/test_cache.py -v
+
+# With coverage
+docker-compose exec api pytest tests/unit/ --cov=api --cov-report=html
+```
+
+### Making Changes
+
+**Backend changes** (Python/API):
+```bash
+# 1. Edit files in api/ or ai_tools/
+# 2. Rebuild API + workers
+docker-compose up -d --build api
+docker-compose up -d --build rq-worker
+docker-compose up -d --scale rq-worker=4
+# 3. Check logs
+docker logs ai-studio-api --tail 50
+```
+
+**Frontend changes** (React):
+```bash
+# 1. Edit files in frontend/src/
+# 2. Rebuild frontend
+docker-compose up -d --build frontend
+# 3. Hard refresh browser (Cmd+Shift+R)
+```
+
+### Adding New AI Tools
+
+See `ai_tools/README_TOOL_DEVELOPMENT.md` for complete checklist.
+
+**Required steps**:
+1. Create tool files: `ai_tools/{tool_name}/{tool.py,template.md,README.md}`
+2. Add to `configs/models.yaml` defaults
+3. Add route to `frontend/src/App.jsx`
+4. Add sidebar link to `Sidebar.jsx`
+5. Add test UI to `ToolConfigPage.jsx` (if needed)
+6. Rebuild API and frontend
+
+### CI/CD Workflow
+
+**Branches**:
+- `staging` - Development branch, auto-deploys on push
+- `main` - Production branch, requires PR approval
+
+**Workflow**:
+```bash
+# 1. Develop on staging
+git checkout staging
+# ... make changes ...
+
+# 2. Run tests
+docker-compose exec api pytest tests/unit/ -v
+
+# 3. Commit and push
+git add .
+git commit -m "feat: Add feature"
+git push origin staging
+
+# 4. Create PR to main when ready
+gh pr create --base main --head staging
+
+# 5. After PR approval, main deploys to production
+```
+
+See `docs/guides/deployment.md` for detailed deployment instructions.
+
+## Documentation
+
+- **README.md** (this file) - Project overview and quick start
+- **ROADMAP.md** - Development phases and priorities
+- **claude.md** - AI assistant development guide
+- **docs/guides/** - How-to guides (API reference, design patterns, deployment, etc.)
+- **docs/setup/** - Setup documentation (Alembic migrations, etc.)
+- **docs/features/** - Feature specifications (ComfyUI integration, planned features)
+- **docs/archive/** - Historical documentation
+
+## Mobile Experience
+
+Life-OS is fully mobile-responsive:
+
+- **Composer**: Tab navigation (Library / Canvas / Applied)
+- **Entity Pages**: Vertical scrolling, touch-friendly controls
+- **Tool Pages**: Optimized forms and results display
+- **Navigation**: Collapsible sidebar
+
+## Data Flow Examples
+
+### Example 1: Creating a Character from an Image
+
+1. User uploads image to Character Appearance Analyzer (`/tools/analyzers/character-appearance`)
+2. Analyzer extracts: age, skin tone, face, hair, body descriptions
+3. User reviews analysis results
+4. User clicks "Create Character"
+5. Character entity created in database with reference image
+6. Character appears in character selector throughout the app
+
+### Example 2: Generating an Image
+
+1. User selects character in Composer (`/apps/composer`)
+2. User drags "noir" visual style preset to canvas
+3. User drags "leather jacket" clothing item to canvas
+4. User drags "smokey eye" makeup preset to canvas
+5. Auto-generate creates job in queue
+6. Job manager polls for completion via SSE
+7. Generated image appears in canvas
+8. Image entity created with relationships to character, visual style, clothing item, makeup
+
+### Example 3: Creating an Illustrated Story
+
+1. User navigates to Story Workflow page (`/workflows/story`)
+2. User selects character, theme, audience, prose style
+3. User sets number of scenes (e.g., 5)
+4. User clicks "Generate Story"
+5. Planner agent creates story outline (5 scenes)
+6. Writer agent writes each scene sequentially
+7. Illustrator agent generates image for each scene
+8. Story entity created with all scenes and illustrations
+9. User can view/edit story in Stories entity page (`/entities/stories`)
+
+## Advanced Features
+
+### CLI Tools
+
+Life-OS AI tools can also be used via command line:
+
+```bash
+# Analyze an image
 python ai_tools/comprehensive_analyzer/tool.py photo.jpg --save-all --prefix my-look
 
-# Generate new image combining presets
+# Generate image with presets
 python ai_tools/modular_image_generator/tool.py subject.jpg \
   --outfit casual-outfit \
   --visual-style film-noir \
@@ -35,366 +539,9 @@ python workflows/batch_outfit_generator.py \
   --styles vintage,modern
 ```
 
-## Installation
+See tool-specific READMEs in `ai_tools/` for detailed CLI documentation.
 
-```bash
-# Clone repository
-git clone <repo-url>
-cd life-os
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Setup environment
-cp .env.example .env
-# Add GEMINI_API_KEY (required)
-# Add OPENAI_API_KEY (optional, for video tools)
-```
-
-## Architecture
-
-### Two-Tier Storage
-
-**Cache (Ephemeral)**
-- 7-day TTL with automatic expiration
-- SHA256 file hashing for instant retrieval
-- Prevents duplicate API calls
-- Located in `cache/`
-
-**Presets (Permanent)**
-- User-editable JSON specifications
-- Version tracked with metadata
-- Mix-and-match for generation
-- Located in `presets/`
-
-### Workflow
-
-```
-1. Analyze Image → Structured JSON (cached)
-2. Promote to Preset → Edit if needed
-3. Generate with Presets → New image
-```
-
-### Provider Ecosystem
-
-- **Analysis**: Gemini 2.0 Flash (~$0.001 per call)
-- **Image Generation**: Gemini 2.5 Flash ($0.04 per image)
-- **Video Enhancement**: GPT-4o/GPT-5
-- **Video Generation**: Sora 2 / Sora 2 Pro
-
-## Image Analyzers
-
-### Individual Analyzers
-
-All analyzers support:
-- `--save-as <name>` - Save as preset
-- `--no-cache` - Skip cache lookup
-- `--list` - List existing presets
-- `--model <model>` - Override default model
-
-#### outfit_analyzer
-
-Extract clothing items with fabric, color, and construction details.
-
-```bash
-python ai_tools/outfit_analyzer/tool.py image.jpg --save-as casual-look
-```
-
-Output: style_genre, formality, aesthetic, clothing_items[]
-
-#### visual_style_analyzer
-
-Extract 17 photographic aspects: composition, lighting, mood, color grading, etc.
-
-```bash
-python ai_tools/visual_style_analyzer/tool.py image.jpg --save-as film-noir
-```
-
-Output: composition, framing, lighting, color_palette, mood, photographic_style, etc.
-
-#### art_style_analyzer
-
-Analyze artistic style: medium, technique, art movement, mood.
-
-```bash
-python ai_tools/art_style_analyzer/tool.py image.jpg --save-as impressionist
-```
-
-Output: medium, technique, artistic_movement, color_palette, texture, mood
-
-#### hair_style_analyzer
-
-Analyze hair structure (not color): cut, length, layers, texture, volume.
-
-```bash
-python ai_tools/hair_style_analyzer/tool.py image.jpg --save-as beach-waves
-```
-
-Output: cut, length, layers, texture, volume, parting, overall_style
-
-#### hair_color_analyzer
-
-Analyze hair color (not structure): base color, undertones, highlights.
-
-```bash
-python ai_tools/hair_color_analyzer/tool.py image.jpg --save-as ash-blonde
-```
-
-Output: base_color, undertones, highlights, lowlights, technique, dimension
-
-#### makeup_analyzer
-
-Analyze makeup application: complexion, eyes, lips, intensity.
-
-```bash
-python ai_tools/makeup_analyzer/tool.py image.jpg --save-as natural-glam
-```
-
-Output: complexion, eyes, lips, overall_style, intensity, color_palette
-
-#### expression_analyzer
-
-Analyze facial expression: emotion, intensity, features, gaze.
-
-```bash
-python ai_tools/expression_analyzer/tool.py image.jpg --save-as confident-smile
-```
-
-Output: primary_emotion, intensity, mouth, eyes, eyebrows, gaze_direction
-
-#### accessories_analyzer
-
-Analyze accessories: jewelry, bags, belts, hats.
-
-```bash
-python ai_tools/accessories_analyzer/tool.py image.jpg --save-as minimal-jewelry
-```
-
-Output: jewelry[], bags, belts, hats, watches, overall_style
-
-### comprehensive_analyzer
-
-Run all 8 analyzers at once.
-
-```bash
-# Analyze everything
-python ai_tools/comprehensive_analyzer/tool.py image.jpg
-
-# Save all analyses as presets
-python ai_tools/comprehensive_analyzer/tool.py image.jpg --save-all --prefix my-look
-```
-
-Creates 8 presets:
-- my-look-outfit
-- my-look-style
-- my-look-art
-- my-look-hairstyle
-- my-look-haircolor
-- my-look-makeup
-- my-look-expression
-- my-look-accessories
-
-## Image Generators
-
-### modular_image_generator
-
-Main generator supporting any combination of specs.
-
-```bash
-# Outfit only
-python ai_tools/modular_image_generator/tool.py subject.jpg \
-  --outfit casual-outfit
-
-# Outfit + Visual Style
-python ai_tools/modular_image_generator/tool.py subject.jpg \
-  --outfit formal-suit \
-  --visual-style film-noir
-
-# Full transformation
-python ai_tools/modular_image_generator/tool.py subject.jpg \
-  --outfit summer-dress \
-  --visual-style vintage-style \
-  --hair-style long-wavy \
-  --hair-color blonde-highlights \
-  --makeup natural-glam \
-  --expression confident-smile \
-  --accessories minimal-jewelry
-
-# Custom output
-python ai_tools/modular_image_generator/tool.py subject.jpg \
-  --outfit casual \
-  --output output/custom/
-```
-
-Options:
-- `--outfit <preset>` - Outfit preset name
-- `--visual-style <preset>` - Visual style preset name
-- `--art-style <preset>` - Art style preset name
-- `--hair-style <preset>` - Hair style preset name
-- `--hair-color <preset>` - Hair color preset name
-- `--makeup <preset>` - Makeup preset name
-- `--expression <preset>` - Expression preset name
-- `--accessories <preset>` - Accessories preset name
-- `--output <dir>` - Output directory
-- `--temperature <float>` - Generation temperature (default: 0.8)
-
-### outfit_generator
-
-Original outfit-focused generator.
-
-```bash
-python ai_tools/outfit_generator/tool.py subject.jpg \
-  --outfit casual-outfit \
-  --style film-noir
-```
-
-### style_transfer_generator
-
-Transfer visual style only (preserves subject).
-
-```bash
-python ai_tools/style_transfer_generator/tool.py subject.jpg \
-  --style vintage-warm \
-  --strength 0.8
-```
-
-### art_style_generator
-
-Generate with artistic style rendering.
-
-```bash
-python ai_tools/art_style_generator/tool.py subject.jpg \
-  --art-style impressionist
-```
-
-### combined_transformation
-
-Multi-spec transformation (alias for modular_image_generator).
-
-```bash
-python ai_tools/combined_transformation/tool.py subject.jpg \
-  --outfit formal-suit \
-  --visual-style modern-clean \
-  --expression professional
-```
-
-## Video Tools
-
-### video_prompt_enhancer
-
-Enhance video prompts with GPT-4o/GPT-5.
-
-```bash
-python ai_tools/video_prompt_enhancer/tool.py "person walking on beach"
-```
-
-Output: Enhanced prompt with camera movements, lighting, atmosphere, timing.
-
-### sora_video_generator
-
-Generate videos with Sora API.
-
-```bash
-# 9:16 portrait video (4 seconds)
-python ai_tools/sora_video_generator/tool.py "person walking on beach" \
-  --size 720x1280 \
-  --duration 4
-
-# 16:9 landscape video (8 seconds)
-python ai_tools/sora_video_generator/tool.py "city at sunset" \
-  --size 1792x1024 \
-  --duration 8 \
-  --model sora-2
-
-# Skip prompt enhancement
-python ai_tools/sora_video_generator/tool.py "detailed prompt here" \
-  --skip-enhancement
-```
-
-Sizes:
-- `720x1280` - 9:16 portrait (mobile)
-- `1792x1024` - 16:9 landscape (desktop)
-- `1024x1792` - 9:16 tall portrait
-
-Models:
-- `sora-2` - $0.125/second
-- `sora-2-pro` - $0.50/second (default)
-
-## Workflows
-
-### batch_outfit_generator
-
-Generate all combinations of N subjects × M outfits × K styles.
-
-```bash
-# Basic batch
-python workflows/batch_outfit_generator.py \
-  --subjects subject.jpg \
-  --outfits casual,formal \
-  --styles vintage,modern
-
-# Multiple subjects with glob
-python workflows/batch_outfit_generator.py \
-  --subjects photos/*.jpg \
-  --outfits casual,formal,street \
-  --styles film-noir,vintage
-
-# Without styles (default background)
-python workflows/batch_outfit_generator.py \
-  --subjects subject.jpg \
-  --outfits outfit1,outfit2,outfit3
-
-# Custom output
-python workflows/batch_outfit_generator.py \
-  --subjects person*.jpg \
-  --outfits casual \
-  --styles modern \
-  --output output/custom/
-```
-
-Options:
-- `--subjects` - Image paths (supports glob patterns)
-- `--outfits` - Comma-separated outfit preset names
-- `--styles` - Comma-separated style preset names (optional)
-- `--output` - Output directory (default: output/batch)
-- `--temperature` - Generation temperature (default: 0.8)
-- `--no-skip` - Regenerate even if output exists
-- `--cost` - Cost per image for estimation (default: 0.04)
-
-Output structure:
-```
-output/batch/
-├── subject1/
-│   ├── casual/
-│   │   ├── vintage.png
-│   │   └── modern.png
-│   └── formal/
-│       ├── vintage.png
-│       └── modern.png
-└── _batch_report.json
-```
-
-Features:
-- Progress tracking with current/total
-- Cost estimation before starting
-- Preset validation
-- Skip existing files
-- Error handling with detailed logging
-- JSON summary report
-
-### end_to_end_workflow
-
-Complete analysis and generation pipeline.
-
-```bash
-# Analyze only
-python examples/end_to_end_workflow.py image.jpg
-
-# Analyze and generate
-python examples/end_to_end_workflow.py image.jpg --generate
-```
-
-## Presets
+### Presets
 
 Presets are user-editable JSON files in `presets/` organized by category:
 
@@ -410,25 +557,7 @@ presets/
 └── accessories/
 ```
 
-### Creating Presets
-
-1. Analyze an image:
-```bash
-python ai_tools/outfit_analyzer/tool.py image.jpg --save-as my-outfit
-```
-
-2. Edit the preset:
-```bash
-nano presets/outfits/my-outfit.json
-```
-
-3. Use in generation:
-```bash
-python ai_tools/modular_image_generator/tool.py subject.jpg --outfit my-outfit
-```
-
-### Preset Format
-
+**Format** (example outfit preset):
 ```json
 {
   "clothing_items": [
@@ -445,626 +574,48 @@ python ai_tools/modular_image_generator/tool.py subject.jpg --outfit my-outfit
 }
 ```
 
-### Listing Presets
-
-```bash
-# List all outfits
-python ai_tools/outfit_analyzer/tool.py --list
-
-# List all visual styles
-python ai_tools/visual_style_analyzer/tool.py --list
-
-# List all presets in a category
-ls presets/outfits/
-```
-
-## Cost Analysis
-
-### Per-Image Workflow
-
-| Operation | Provider | Cost |
-|-----------|----------|------|
-| Outfit analysis | Gemini 2.0 | ~$0.001 |
-| Visual style analysis | Gemini 2.0 | ~$0.001 |
-| Image generation | Gemini 2.5 | $0.04 |
-| **Total** | | **~$0.042** |
-
-### Comprehensive Analysis
-
-| Operation | Cost |
-|-----------|------|
-| 8 analyzers | 8 × ~$0.001 = ~$0.008 |
-| Image generation | $0.04 |
-| **Total** | **~$0.048** |
-
-### Batch Generation
-
-3 subjects × 2 outfits × 2 styles = 12 images
-
-| Operation | Cost |
-|-----------|------|
-| Analysis (cached) | ~$0.016 |
-| Generation | 12 × $0.04 = $0.48 |
-| **Total** | **~$0.496** |
-
-### With Caching
-
-| Iteration | Cost | Savings |
-|-----------|------|---------|
-| First | ~$0.042 | - |
-| Subsequent (cached) | $0.04 | ~$0.002 |
-| 100 iterations | $4.00 | ~$0.20 |
-
-### Video Generation
-
-| Model | Cost/Second | 4s Video | 12s Video |
-|-------|-------------|----------|-----------|
-| Sora 2 | $0.125 | $0.50 | $1.50 |
-| Sora 2 Pro | $0.50 | $2.00 | $6.00 |
-
-## Examples
-
-### Example 1: Style Transfer
-
-Extract style from one image, apply to another subject.
-
-```bash
-# 1. Analyze style from reference image
-python ai_tools/visual_style_analyzer/tool.py reference.jpg --save-as film-noir
-
-# 2. Apply to new subject
-python ai_tools/modular_image_generator/tool.py subject.jpg --visual-style film-noir
-```
-
-### Example 2: Mix and Match
-
-Combine outfit from one image with style from another.
-
-```bash
-# 1. Extract outfit from image A
-python ai_tools/outfit_analyzer/tool.py imageA.jpg --save-as outfit-A
-
-# 2. Extract style from image B
-python ai_tools/visual_style_analyzer/tool.py imageB.jpg --save-as style-B
-
-# 3. Combine on subject C
-python ai_tools/modular_image_generator/tool.py subjectC.jpg \
-  --outfit outfit-A \
-  --visual-style style-B
-```
-
-### Example 3: Complete Transformation
-
-Change everything about a subject.
-
-```bash
-# 1. Analyze target look
-python ai_tools/comprehensive_analyzer/tool.py target.jpg --save-all --prefix target
-
-# 2. Apply to new subject
-python ai_tools/modular_image_generator/tool.py subject.jpg \
-  --outfit target-outfit \
-  --visual-style target-style \
-  --hair-style target-hairstyle \
-  --hair-color target-haircolor \
-  --makeup target-makeup \
-  --expression target-expression
-```
-
-### Example 4: Batch Variations
-
-Generate multiple variations for A/B testing.
-
-```bash
-# Create presets for different styles
-python ai_tools/visual_style_analyzer/tool.py vintage.jpg --save-as vintage
-python ai_tools/visual_style_analyzer/tool.py modern.jpg --save-as modern
-python ai_tools/visual_style_analyzer/tool.py dark.jpg --save-as dark
-
-# Generate all combinations
-python workflows/batch_outfit_generator.py \
-  --subjects product.jpg \
-  --outfits casual-outfit \
-  --styles vintage,modern,dark
-```
-
-### Example 5: Video Generation
-
-Create video with enhanced prompt.
-
-```bash
-# 1. Enhance prompt
-python ai_tools/video_prompt_enhancer/tool.py "person walking on beach"
-# Output: "Wide shot of a person walking along a sun-drenched beach at golden hour..."
-
-# 2. Generate video
-python ai_tools/sora_video_generator/tool.py \
-  "Wide shot of a person walking along a sun-drenched beach at golden hour..." \
-  --size 720x1280 \
-  --duration 4
-```
-
-## Configuration
-
-### Model Configuration
-
-Edit `configs/models.yaml` to change default models:
-
-```yaml
-defaults:
-  # Image Analysis Tools
-  outfit_analyzer: "gemini/gemini-2.0-flash-exp"
-  visual_style_analyzer: "gemini/gemini-2.0-flash-exp"
-
-  # Image Generation Tools
-  outfit_generator: "gemini-2.5-flash-preview"
-  modular_image_generator: "gemini-2.5-flash-preview"
-
-  # Video Tools
-  video_prompt_enhancer: "gpt-4o"
-  sora_video_generator: "sora-2-pro"
-```
-
-### Cache Settings
-
-Cache is managed automatically with 7-day TTL. To clear cache:
-
-```bash
-rm -rf cache/
-```
-
-To disable cache for a single run:
-
-```bash
-python ai_tools/outfit_analyzer/tool.py image.jpg --no-cache
-```
-
-### Environment Variables
-
-```bash
-# Required
-GEMINI_API_KEY=your_gemini_api_key
-
-# Optional (for video tools)
-OPENAI_API_KEY=your_openai_api_key
-```
-
-## Tool Reference
-
-### All Tools
-
-| Tool | Purpose | Input | Output |
-|------|---------|-------|--------|
-| outfit_analyzer | Extract outfit details | Image | OutfitSpec |
-| visual_style_analyzer | Extract photographic style | Image | VisualStyleSpec |
-| art_style_analyzer | Extract artistic style | Image | ArtStyleSpec |
-| hair_style_analyzer | Extract hair structure | Image | HairStyleSpec |
-| hair_color_analyzer | Extract hair color | Image | HairColorSpec |
-| makeup_analyzer | Extract makeup details | Image | MakeupSpec |
-| expression_analyzer | Extract facial expression | Image | ExpressionSpec |
-| accessories_analyzer | Extract accessories | Image | AccessoriesSpec |
-| comprehensive_analyzer | Run all analyzers | Image | ComprehensiveSpec |
-| modular_image_generator | Generate with any specs | Subject + Specs | Image |
-| outfit_generator | Generate with outfit | Subject + Outfit | Image |
-| style_transfer_generator | Transfer style only | Subject + Style | Image |
-| art_style_generator | Generate with art style | Subject + Art | Image |
-| combined_transformation | Multi-spec generation | Subject + Specs | Image |
-| video_prompt_enhancer | Enhance video prompt | Prompt | Enhanced Prompt |
-| sora_video_generator | Generate video | Prompt | Video |
-
-### Spec Types
-
-All specs are defined in `ai_capabilities/specs.py`:
-
-- **OutfitSpec** - clothing_items[], style_genre, formality, aesthetic
-- **VisualStyleSpec** - 17 fields (composition, lighting, mood, etc.)
-- **ArtStyleSpec** - medium, technique, artistic_movement, mood
-- **HairStyleSpec** - cut, length, layers, texture, volume
-- **HairColorSpec** - base_color, undertones, highlights, lowlights
-- **MakeupSpec** - complexion, eyes, lips, intensity
-- **ExpressionSpec** - primary_emotion, intensity, features
-- **AccessoriesSpec** - jewelry[], bags, belts, hats
-- **ComprehensiveSpec** - Combines all 8 specs above
-
 ## Troubleshooting
 
-### Cache Issues
-
-If seeing stale results:
-```bash
-# Clear specific category
-rm -rf cache/outfits/
-
-# Clear all cache
-rm -rf cache/
-
-# Force re-analysis
-python ai_tools/outfit_analyzer/tool.py image.jpg --no-cache
-```
-
-### Missing API Key
-
-```bash
-# Check environment
-echo $GEMINI_API_KEY
-
-# Reload environment
-source .env
-```
-
-### Import Errors
-
-```bash
-# Ensure in project root
-cd /path/to/life-os
-
-# Check Python path
-python -c "import sys; print(sys.path)"
-```
-
-### Generation Failures
-
-Check that:
-1. Subject image exists and is valid
-2. All preset names are correct (use `--list`)
-3. API keys are set
-4. Network connection is available
-
-## Performance
-
-### Caching Impact
-
-| Operation | First Run | Cached |
-|-----------|-----------|--------|
-| Analysis | ~3-5s | ~0.1s |
-| Cost | ~$0.001 | $0.00 |
-
-### Batch Performance
-
-| Images | Time (estimate) | Cost |
-|--------|-----------------|------|
-| 10 | ~5 minutes | $0.40 |
-| 50 | ~25 minutes | $2.00 |
-| 100 | ~50 minutes | $4.00 |
-
-### Optimization Tips
-
-1. **Use caching** - Don't skip cache unless necessary
-2. **Batch operations** - Use batch workflow for multiple images
-3. **Preset reuse** - Create preset library for common styles
-4. **Temperature tuning** - Lower temperature (0.6-0.7) for consistency
-
-## Development
-
-### CI/CD Workflow
-
-This project uses a **staging → production** deployment strategy with automated testing.
-
-#### Branch Strategy
-
-```
-staging (development)  →  main (production)
-    ↓                         ↓
-Auto-deploy to          Manual approval
-staging environment     for production
-```
-
-**Branches**:
-- `staging` - Development branch, auto-deploys on push
-- `main` - Production branch, requires PR approval
-
-**Workflow Rules**:
-1. ✅ **Always develop on `staging`** - Never commit directly to `main`
-2. ✅ **All tests must pass** - 100% pass rate required
-3. ✅ **PRs required for production** - `staging` → `main` via pull request
-4. ✅ **Manual approval required** - Production deploys need explicit approval
-
-#### Daily Development Workflow
-
-```bash
-# 1. Start on staging branch
-git checkout staging
-
-# 2. Make your changes
-# ... edit files ...
-
-# 3. Run tests locally
-docker-compose exec api pytest tests/unit/ -v
-
-# 4. Commit and push to staging
-git add .
-git commit -m "feat: Add new feature
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-git push origin staging
-
-# 5. Staging auto-deploys (GitHub Actions runs tests)
-# Check: https://github.com/your-repo/actions
-```
-
-**After push to `staging`**:
-- ✅ GitHub Actions runs full test suite
-- ✅ Backend CI checks: pytest, coverage, linting
-- ✅ Frontend CI checks: vitest, eslint, build
-- ✅ If all pass: Auto-deploy to staging environment (when configured)
-
-#### Deploying to Production
-
-```bash
-# 1. Ensure staging is stable and tested
-git checkout staging
-git pull origin staging
-
-# 2. Create pull request: staging → main
-gh pr create --base main --head staging \
-  --title "Deploy: Your Feature Name" \
-  --body "## Summary
-
-  Description of changes...
-
-  ## Test Results
-  - ✅ All unit tests passing (85/85)
-  - ✅ Manual testing complete
-
-  ## Deployment Checklist
-  - [x] Tests passing
-  - [x] No breaking changes
-  - [x] Staging verified"
-
-# Or create PR via web UI:
-# https://github.com/your-repo/compare/main...staging
-
-# 3. Wait for CI/CD checks to pass
-# 4. Get approval (if required by branch protection)
-# 5. Merge PR to main
-# 6. Production deployment workflow runs (manual approval required)
-```
-
-**After merge to `main`**:
-- ✅ Full test suite runs again (including slow tests)
-- ⏸️ Manual approval required for production deployment
-- 🚀 Deployment instructions shown in workflow
-- ✅ Smoke tests run after deployment
-
-#### Post-Deployment
-
-```bash
-# 1. Pull production changes
-git checkout main
-git pull origin main
-
-# 2. Rebuild containers with production code
-docker-compose up -d --build
-
-# 3. Verify tests still pass
-docker-compose exec api pytest tests/unit/ -v
-
-# 4. Sync staging with main
-git checkout staging
-git merge main --ff-only
-git push origin staging
-```
-
-#### GitHub Actions Workflows
-
-**Backend CI** (`.github/workflows/backend-ci.yml`):
-- Runs on: Push to `main`, PRs to `main`
-- Tests: `pytest tests/unit/` (fast tests only)
-- Coverage: Generates coverage report
-- Linting: `ruff`, `black`, `isort`
-- Triggers on: `api/**`, `ai_tools/**`, `tests/**` changes
-
-**Frontend CI** (`.github/workflows/frontend-ci.yml`):
-- Runs on: Push to `main`, PRs to `main`
-- Tests: `npm test -- --run`
-- Linting: `npm run lint`
-- Build: `npm run build`
-- Triggers on: `frontend/**` changes
-
-**Deploy Staging** (`.github/workflows/deploy-staging.yml`):
-- Runs on: Push to `staging` branch
-- Tests: Full test suite
-- Deployment: Auto-deploy to staging (SSH config needed)
-- Notifications: Optional Slack notifications
-
-**Deploy Production** (`.github/workflows/deploy-production.yml`):
-- Runs on: Push to `main` branch
-- Tests: Full test suite (including slow tests)
-- Deployment: Manual approval required
-- Safety: Creates backup before deployment
-- Smoke tests: Runs critical path tests after deploy
-
-#### Testing Requirements
-
-**Before committing**:
-```bash
-# Run all unit tests
-docker-compose exec api pytest tests/unit/ -v
-
-# Must see: "85 passed" (100% pass rate)
-```
-
-**Test organization**:
-```
-tests/
-├── unit/              # Fast, isolated tests (run in CI)
-│   ├── test_cache.py
-│   ├── test_preset.py
-│   ├── test_router.py
-│   └── test_specs.py
-├── integration/       # API integration tests
-├── smoke/            # Critical path tests
-└── manual/           # Manual tests (not run in CI)
-```
-
-**Test markers**:
-```bash
-# Run only unit tests
-pytest tests/unit/ -v -m unit
-
-# Run only integration tests
-pytest tests/integration/ -v -m integration
-
-# Run smoke tests (critical paths)
-pytest tests/smoke/ -v -m smoke
-
-# Skip slow tests
-pytest tests/ -v -m "not slow"
-```
-
-#### Environment Setup
-
-**Local Development**:
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Required variables
-GEMINI_API_KEY=your_key
-OPENAI_API_KEY=your_key  # Optional
-REQUIRE_AUTH=false       # Disable auth for local dev
-```
-
-**Staging Environment** (`.env.staging`):
-```bash
-ENVIRONMENT=staging
-REQUIRE_AUTH=true
-JWT_SECRET_KEY=staging_secret
-DATABASE_URL=postgresql://...staging_db
-BASE_URL=https://staging.yourdomain.com
-```
-
-**Production Environment** (`.env.production`):
-```bash
-ENVIRONMENT=production
-REQUIRE_AUTH=true
-JWT_SECRET_KEY=production_secret  # Use secure random key
-DATABASE_URL=postgresql://...production_db
-BASE_URL=https://yourdomain.com
-```
-
-#### Quick Reference
-
-**Common Commands**:
-```bash
-# Check which branch you're on
-git branch --show-current
-
-# Run tests
-docker-compose exec api pytest tests/unit/ -v
-
-# Rebuild containers after code changes
-docker-compose up -d --build
-
-# View CI/CD workflow status
-gh run list
-gh run view <run-id>
-
-# Create PR via CLI
-gh pr create --base main --head staging --web
-
-# Check deployment logs
-docker logs ai-studio-api --tail 100
-```
-
-**Git Commit Format**:
-```
-<type>: <short description>
-
-<optional detailed description>
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-**Types**: `feat`, `fix`, `refactor`, `docs`, `test`, `perf`, `chore`
-
-**Branch Protection Rules** (configure on GitHub):
-- ✅ Require pull request reviews (main branch)
-- ✅ Require status checks to pass
-- ✅ Require conversation resolution
-- ✅ Do not allow force pushes
-
-#### Troubleshooting CI/CD
-
-**Tests failing in CI but passing locally**:
-```bash
-# Ensure you're on the right branch
-git checkout staging
-git pull origin staging
-
-# Run tests in fresh container
-docker-compose down
-docker-compose up -d --build
-docker-compose exec api pytest tests/unit/ -v
-```
-
-**Deployment blocked**:
-- Check GitHub Actions tab for error details
-- Ensure all required checks pass
-- Verify branch protection rules allow merge
-- Check if manual approval is needed
-
-**Sync issues between staging and main**:
-```bash
-# If staging is behind main
-git checkout staging
-git merge main --ff-only
-git push origin staging
-
-# If main is ahead and you need to reconcile
-git checkout staging
-git pull origin main
-# Resolve conflicts if any
-git push origin staging
-```
-
-### Adding New Analyzers
-
-1. Create directory:
-```bash
-mkdir -p ai_tools/my_analyzer
-```
-
-2. Create tool.py following existing pattern
-3. Create template.md with prompt
-4. Create __init__.py with exports
-5. Add spec to `ai_capabilities/specs.py`
-6. Update `configs/models.yaml`
-7. **Add tests** in `tests/unit/test_my_analyzer.py`
-8. **Update documentation** in this README
-
-### Adding New Generators
-
-Generators can extend `ModularImageGenerator`:
-
-```python
-from ai_tools.modular_image_generator.tool import ModularImageGenerator
-
-class MyGenerator(ModularImageGenerator):
-    def my_method(self, subject, specs):
-        return self.generate(subject_image=subject, **specs)
-```
+### Common Issues
+
+**"File not found" errors**:
+- Check paths are correct (container paths start with `/app/`)
+- Verify file permissions
+- See `api/utils/file_paths.py` for path normalization utilities
+
+**Jobs complete but no output**:
+- Rebuild RQ workers: `docker-compose up -d --build rq-worker`
+- Check worker logs: `docker logs life-os-rq-worker-1 --tail 50`
+
+**Frontend not updating after changes**:
+- Rebuild frontend: `docker-compose up -d --build frontend`
+- Hard refresh browser: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows/Linux)
+- Check build logs: `docker logs ai-studio-frontend --tail 50`
+
+**Database connection errors**:
+- Check PostgreSQL is running: `docker ps | grep postgres`
+- Verify connection string in `.env`
+- Check database logs: `docker logs ai-studio-postgres --tail 50`
+
+### Getting Help
+
+- **GitHub Issues**: [repo-url]/issues
+- **Documentation**: See `docs/` directory
+- **API Docs**: http://localhost:8000/docs (interactive Swagger UI)
+
+## Credits
+
+Built with:
+- **AI Models**: Gemini 2.0/2.5 Flash, OpenAI DALL-E 3 / GPT-4 / Sora, Claude
+- **Backend**: FastAPI, PostgreSQL, SQLAlchemy, Redis, RQ
+- **Frontend**: React, Vite, Axios
+- **AI Infrastructure**: LiteLLM, Pydantic, Docling, ChromaDB
+- **Deployment**: Docker, Nginx
 
 ## License
 
 [Your License]
 
-## Support
+---
 
-For issues or questions:
-- GitHub Issues: [repo-url]/issues
-- Documentation: This README
-
-## Credits
-
-Built with:
-- Gemini 2.0 Flash (analysis)
-- Gemini 2.5 Flash (image generation)
-- GPT-4o/GPT-5 (prompt enhancement)
-- Sora (video generation)
-- LiteLLM (provider abstraction)
-- Pydantic (structured outputs)
+**See [ROADMAP.md](ROADMAP.md) for planned features and development priorities.**
