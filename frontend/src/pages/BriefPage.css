@@ -1,0 +1,292 @@
+.brief-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.brief-header {
+  margin-bottom: 2rem;
+}
+
+.brief-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #333;
+}
+
+.brief-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+.brief-loading,
+.brief-error {
+  text-align: center;
+  padding: 4rem 2rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.brief-error {
+  color: #d32f2f;
+}
+
+.brief-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.brief-empty h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.brief-empty p {
+  margin: 0;
+  color: #666;
+}
+
+/* Card grid */
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Card preview */
+.brief-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.brief-card:hover {
+  border-color: #2196f3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.brief-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 0.75rem;
+}
+
+.brief-card-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+  flex: 1;
+}
+
+.brief-card-category {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 0.5rem;
+}
+
+.brief-card-description {
+  margin: 0 0 1rem 0;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.brief-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.brief-card-time {
+  color: #999;
+}
+
+.brief-card-actions-count {
+  color: #2196f3;
+  font-weight: 500;
+}
+
+/* Card detail modal */
+.brief-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.brief-modal {
+  background: white;
+  border-radius: 8px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.brief-card-detail {
+  padding: 2rem;
+}
+
+.brief-card-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1.5rem;
+}
+
+.brief-card-detail-header h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #333;
+  flex: 1;
+}
+
+.brief-close-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.brief-close-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.brief-card-detail-description {
+  margin: 0 0 2rem 0;
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.brief-card-data {
+  margin: 0 0 2rem 0;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.brief-card-data h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.brief-card-data pre {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #333;
+  overflow-x: auto;
+  max-height: 400px;
+}
+
+.brief-card-provenance {
+  margin: 0 0 2rem 0;
+  padding: 1rem;
+  background: #fffde7;
+  border-left: 3px solid #fbc02d;
+  border-radius: 4px;
+}
+
+.brief-card-provenance small {
+  color: #666;
+  line-height: 1.5;
+}
+
+.brief-card-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.brief-action-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.brief-action-primary {
+  background: #2196f3;
+  color: white;
+}
+
+.brief-action-primary:hover {
+  background: #1976d2;
+}
+
+.brief-action-secondary {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.brief-action-secondary:hover {
+  background: #e0e0e0;
+}
+
+.brief-action-danger {
+  background: #f44336;
+  color: white;
+}
+
+.brief-action-danger:hover {
+  background: #d32f2f;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .brief-page {
+    padding: 1rem;
+  }
+
+  .brief-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .brief-modal-overlay {
+    padding: 1rem;
+  }
+
+  .brief-card-detail {
+    padding: 1.5rem;
+  }
+}

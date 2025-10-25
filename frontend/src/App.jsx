@@ -6,6 +6,7 @@ import Login from './components/Login'
 import Layout from './components/layout/Layout'
 import Dashboard from './pages/Dashboard'
 import JobsPage from './pages/JobsPage'
+import BriefPage from './pages/BriefPage'
 
 // Entity Pages
 import StoriesEntity from './pages/entities/StoriesEntity'
@@ -194,6 +195,7 @@ function App() {
 
         {/* System */}
         <Route path="jobs" element={<JobsPage />} />
+        <Route path="brief" element={<BriefPage />} />
 
         {/* Legacy routes for backwards compatibility */}
         <Route path="composer" element={<Navigate to="/apps/composer" replace />} />
