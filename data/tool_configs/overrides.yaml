@@ -12,12 +12,12 @@ defaults:
   character_appearance_analyzer: ollama/llama3.2-vision:11b
   entity_merger: ollama/qwen2.5:72b
   clothing_modifier: gpt-5
-  outfit_generator: gemini-2.5-flash-image
-  style_transfer_generator: gemini-2.5-flash-image
-  modular_image_generator: gemini-2.5-flash-image
-  art_style_generator: gemini-2.5-flash-image
-  style_guide_generator: gemini-2.5-flash-image
-  combined_transformation: gemini-2.5-flash-image
+  outfit_generator: comfyui/qwen-edit
+  style_transfer_generator: comfyui/qwen-edit
+  modular_image_generator: comfyui/qwen-edit
+  art_style_generator: comfyui/qwen-edit
+  style_guide_generator: comfyui/qwen-edit
+  combined_transformation: comfyui/qwen-edit
   video_prompt_enhancer: gpt-4o
   sora_video_generator: sora-2-pro
   timeout: 180

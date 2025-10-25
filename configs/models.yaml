@@ -22,13 +22,15 @@ defaults:
   entity_merger: "gemini/gemini-2.0-flash-exp"  # Fast model for merging entities
   clothing_modifier: "gemini/gemini-2.0-flash-exp"  # Modify clothing descriptions with AI
 
-  # Image Generation Tools (using Gemini 2.5 Flash Image - dedicated image generation model)
-  outfit_generator: "gemini-2.5-flash-image"
-  style_transfer_generator: "gemini-2.5-flash-image"
-  modular_image_generator: "gemini-2.5-flash-image"
-  art_style_generator: "gemini-2.5-flash-image"
-  style_guide_generator: "gemini-2.5-flash-image"
-  combined_transformation: "gemini-2.5-flash-image"
+  # Image Generation Tools
+  # NOTE: If COMFYUI_ENABLED=true, these will auto-route to local ComfyUI ($0 cost)
+  # Otherwise they use cloud providers (Gemini ~$0.04/image)
+  outfit_generator: "comfyui/qwen-edit"  # Local Qwen for outfit transformations (FREE!)
+  style_transfer_generator: "comfyui/qwen-edit"  # Local Qwen for style transfers (FREE!)
+  modular_image_generator: "comfyui/qwen-edit"  # Local Qwen for modular generation (FREE!)
+  art_style_generator: "comfyui/qwen-edit"  # Local Qwen for art style application (FREE!)
+  style_guide_generator: "comfyui/qwen-edit"  # Local Qwen for style guide viz (FREE!)
+  combined_transformation: "comfyui/qwen-edit"  # Local Qwen for combined transforms (FREE!)
 
   # Video Tools
   video_prompt_enhancer: "gpt-4o"
@@ -108,9 +110,14 @@ cost_estimates:
 
 # Image generation costs (per image)
 image_costs:
+  # Cloud providers
   gemini-2.5-flash-image: 0.04  # Gemini dedicated image generation model
   dall-e-3: 0.04
   dall-e-2: 0.02
+  # Local ComfyUI (FREE!)
+  comfyui/qwen-edit: 0.00  # Local Qwen image editing
+  comfyui/ip-adapter: 0.00  # Local SDXL + IP-Adapter
+  comfyui/sdxl: 0.00  # Local SDXL text-to-image
 
 # Video generation costs (per second)
 video_costs:
@@ -149,3 +156,47 @@ local_models:
 tool_settings:
   character_appearance_analyzer:
     temperature: 0.3
+
+# ComfyUI Local Image Generation Configuration
+# Set COMFYUI_ENABLED=true in .env to enable local generation (saves $0.04/image!)
+comfyui:
+  # Enable/disable ComfyUI routing
+  enabled: true  # Controlled by COMFYUI_ENABLED env var
+
+  # Fallback to cloud if ComfyUI unavailable
+  fallback_to_cloud: true  # Set COMFYUI_FALLBACK_TO_CLOUD=false to disable
+
+  # ComfyUI server URL
+  url: "http://localhost:8188"  # Set COMFYUI_URL to override
+
+  # Request timeout (seconds)
+  timeout: 300
+
+  # Workflow-specific parameters
+  workflows:
+    qwen_edit:
+      steps: 4  # 4-step Lightning LoRA for fast generation
+      cfg: 1.0  # CFG scale (1.0 recommended for Lightning)
+      denoise: 1.0  # Denoise strength (1.0 = full denoise)
+
+    qwen_edit_gguf:
+      steps: 4
+      cfg: 1.0
+      denoise: 1.0
+      # GGUF models use less VRAM but slightly lower quality
+
+    sdxl_text2img:
+      width: 1024
+      height: 1024
+      steps: 20
+      cfg: 7.0
+      checkpoint: "sd_xl_base_1.0.safetensors"
+
+    sdxl_ipadapter:
+      width: 1024
+      height: 1024
+      steps: 20
+      cfg: 7.0
+      ipadapter_weight: 1.0  # IP-Adapter strength (0.0-1.0)
+      checkpoint: "sd_xl_base_1.0.safetensors"
+      ipadapter_model: "ip-adapter_sdxl_vit-h.safetensors"

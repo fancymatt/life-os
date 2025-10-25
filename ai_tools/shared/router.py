@@ -1072,6 +1072,132 @@ Your response must be ONLY the JSON object with real data values - no schema, no
         # Should never reach here, but just in case
         raise Exception(f"Gemini image generation failed after {max_retries} attempts: {last_error}")
 
+    async def agenerate_image_with_comfyui(
+        self,
+        prompt: str,
+        image_path: Optional[Union[str, Path]] = None,
+        model: str = "comfyui/qwen-edit",
+        temperature: float = 0.8,
+        **kwargs
+    ) -> bytes:
+        """
+        Generate an image using local ComfyUI
+
+        Smart workflow selection:
+        - With reference image: Qwen-Image-Edit (default) - transform/edit reference
+        - With reference image + ip-adapter model: SDXL + IP-Adapter - preserve character
+        - No reference image: SDXL text-to-image - generate from scratch
+
+        Args:
+            prompt: Text prompt for image generation
+            image_path: Source image (required for Qwen/IP-Adapter, optional for SDXL)
+            model: Model to use:
+                - "comfyui/qwen-edit" or "qwen-edit" - Edit with Qwen (requires image_path)
+                - "comfyui/ip-adapter" or "ip-adapter" - SDXL + IP-Adapter (requires image_path)
+                - "comfyui/sdxl" or "sdxl" - SDXL text-to-image (no image_path needed)
+            temperature: Generation temperature (Qwen only)
+            **kwargs: Additional workflow-specific parameters
+                - steps, cfg, denoise (Qwen)
+                - steps, cfg, ipadapter_weight (IP-Adapter)
+                - width, height, steps, cfg (SDXL)
+
+        Returns:
+            Image bytes (PNG format)
+        """
+        from api.services.comfyui_service import get_comfyui_service
+
+        # Strip "comfyui/" prefix if present
+        if model.startswith("comfyui/"):
+            model = model[8:]  # Remove "comfyui/" prefix
+
+        service = get_comfyui_service()
+
+        if not service.enabled:
+            raise RuntimeError("ComfyUI is not enabled (set COMFYUI_ENABLED=true)")
+
+        # Create output directory
+        output_dir = Path("/app/output")
+        output_dir.mkdir(exist_ok=True)
+
+        logger.info(f"🖥️  Routing to local ComfyUI: model={model}")
+
+        # Load workflow config from models.yaml
+        comfyui_config = self.config.config.get("comfyui", {})
+        workflows_config = comfyui_config.get("workflows", {})
+
+        # Route to appropriate workflow
+        if model in ["qwen-edit", "qwen", "qwen-gguf"]:
+            # Qwen Image Edit - default for reference image transformations
+            if not image_path:
+                raise ValueError("image_path is required for Qwen image editing")
+
+            logger.info(f"   Using Qwen-Image-Edit workflow (local, $0 cost)")
+
+            # Load workflow-specific defaults
+            if model == "qwen-gguf":
+                workflow_defaults = workflows_config.get("qwen_edit_gguf", {})
+                result = await service.edit_image_qwen_gguf(
+                    input_image_path=Path(image_path),
+                    prompt=prompt,
+                    output_dir=output_dir,
+                    steps=kwargs.get("steps", workflow_defaults.get("steps", 4)),
+                    cfg=kwargs.get("cfg", workflow_defaults.get("cfg", 1.0)),
+                    denoise=kwargs.get("denoise", workflow_defaults.get("denoise", 1.0)),
+                    seed=kwargs.get("seed", 0)
+                )
+            else:
+                # Default to FP8 workflow
+                workflow_defaults = workflows_config.get("qwen_edit", {})
+                result = await service.edit_image_qwen(
+                    input_image_path=Path(image_path),
+                    prompt=prompt,
+                    output_dir=output_dir,
+                    steps=kwargs.get("steps", workflow_defaults.get("steps", 20)),
+                    cfg=kwargs.get("cfg", workflow_defaults.get("cfg", 2.5)),
+                    denoise=kwargs.get("denoise", workflow_defaults.get("denoise", 1.0)),
+                    seed=kwargs.get("seed", 0)
+                )
+
+        elif model in ["ip-adapter", "ipadapter"]:
+            # SDXL + IP-Adapter - character preservation with new composition
+            if not image_path:
+                raise ValueError("image_path is required for IP-Adapter generation")
+
+            logger.info(f"   Using SDXL + IP-Adapter workflow (character-guided, $0 cost)")
+
+            result = await service.generate_with_ipadapter(
+                reference_image_path=Path(image_path),
+                prompt=prompt,
+                output_dir=output_dir,
+                width=kwargs.get("width", 1024),
+                height=kwargs.get("height", 1024),
+                steps=kwargs.get("steps", 20),
+                cfg=kwargs.get("cfg", 7.0),
+                ipadapter_weight=kwargs.get("ipadapter_weight", 1.0),
+                seed=kwargs.get("seed", 0)
+            )
+
+        elif model in ["sdxl", "sd-xl"]:
+            # SDXL text-to-image - generate from scratch
+            logger.info(f"   Using SDXL text-to-image workflow (pure generation, $0 cost)")
+
+            result = await service.generate_image_sdxl(
+                prompt=prompt,
+                output_dir=output_dir,
+                width=kwargs.get("width", 1024),
+                height=kwargs.get("height", 1024),
+                steps=kwargs.get("steps", 20),
+                cfg=kwargs.get("cfg", 7.0),
+                seed=kwargs.get("seed", 0)
+            )
+        else:
+            raise ValueError(f"Unknown ComfyUI model: {model}. Use qwen-edit, ip-adapter, or sdxl")
+
+        # Read and return image bytes
+        output_path = Path(result["output_path"])
+        with open(output_path, "rb") as f:
+            return f.read()
+
     def generate_image(
         self,
         prompt: str,
@@ -1142,29 +1268,96 @@ Your response must be ONLY the JSON object with real data values - no schema, no
         **kwargs
     ) -> bytes:
         """
-        Async version: Generate an image using various providers
+        Async version: Generate an image using various providers with smart routing
+
+        Smart Routing Logic:
+        1. If model starts with "comfyui/" → Try ComfyUI, fallback to Gemini on failure
+        2. If COMFYUI_ENABLED=true and image_path provided → Auto-route to Qwen
+        3. Otherwise use specified provider (gemini, dalle)
 
         Args:
             prompt: Text prompt for image generation
-            image_path: Source image (required for Gemini, optional for DALL-E)
-            model: Model to use
-            provider: Provider ("gemini" or "dalle")
+            image_path: Source image (required for Gemini/Qwen/IP-Adapter, optional for DALL-E/SDXL)
+            model: Model to use:
+                - "comfyui/qwen-edit" - Local Qwen image editing ($0)
+                - "comfyui/ip-adapter" - Local SDXL + IP-Adapter ($0)
+                - "comfyui/sdxl" - Local SDXL text-to-image ($0)
+                - "gemini-2.5-flash-image" - Cloud Gemini ($0.04)
+                - "dall-e-3" - Cloud DALL-E ($0.04-0.08)
+            provider: Provider ("comfyui", "gemini", or "dalle")
             size: Image size (DALL-E only)
             quality: Image quality (DALL-E only)
-            temperature: Generation temperature (Gemini only)
+            temperature: Generation temperature
             **kwargs: Additional arguments
 
         Returns:
             Image bytes (PNG/JPEG format)
         """
+        # Determine if we should use ComfyUI
+        use_comfyui = (
+            provider == "comfyui" or
+            model.startswith("comfyui/") or
+            (os.getenv("COMFYUI_ENABLED", "false").lower() == "true" and
+             image_path is not None and
+             not model.startswith("gemini") and
+             not model.startswith("dall-e"))
+        )
+
+        # Try ComfyUI first (with fallback)
+        if use_comfyui:
+            from api.services.comfyui_service import get_comfyui_service
+
+            try:
+                service = get_comfyui_service()
+                health = await service.health_check()
+
+                if health["available"]:
+                    # Auto-select model if not specified
+                    if not model.startswith("comfyui/"):
+                        if image_path:
+                            model = "comfyui/qwen-edit"  # Default for image editing
+                        else:
+                            model = "comfyui/sdxl"  # Default for text-to-image
+
+                    logger.info(f"🖥️  Routing to local ComfyUI ({health.get('gpu', 'Unknown GPU')})")
+                    return await self.agenerate_image_with_comfyui(prompt, image_path, model, temperature, **kwargs)
+                else:
+                    logger.warning(f"⚠️  ComfyUI unavailable ({health.get('error', 'Unknown error')})")
+
+                    # Check if fallback is enabled
+                    fallback_enabled = os.getenv("COMFYUI_FALLBACK_TO_CLOUD", "true").lower() == "true"
+                    if not fallback_enabled:
+                        raise RuntimeError(f"ComfyUI unavailable and fallback disabled: {health.get('error')}")
+
+                    logger.info("☁️  Falling back to Gemini cloud")
+                    model = "gemini-2.5-flash-image"
+                    provider = "gemini"
+
+            except Exception as e:
+                # Check if fallback is enabled
+                fallback_enabled = os.getenv("COMFYUI_FALLBACK_TO_CLOUD", "true").lower() == "true"
+
+                if not fallback_enabled:
+                    raise Exception(f"ComfyUI generation failed and fallback disabled: {e}")
+
+                logger.error(f"❌ ComfyUI generation failed: {e}")
+                logger.info("☁️  Falling back to Gemini cloud")
+                model = "gemini-2.5-flash-image"
+                provider = "gemini"
+
+        # Cloud providers
         if provider == "gemini" or model.startswith("gemini"):
             if not image_path:
                 raise ValueError("image_path is required for Gemini image generation")
+            logger.info("☁️  Routing to Gemini cloud (~$0.04/image)")
             return await self.agenerate_image_with_gemini(prompt, image_path, model, temperature, **kwargs)
+
         elif provider == "dalle" or model.startswith("dall-e"):
             # DALL-E fallback (using sync OpenAI SDK in thread pool)
             import asyncio
             from concurrent.futures import ThreadPoolExecutor
+
+            logger.info(f"☁️  Routing to DALL-E cloud (~${0.04 if 'dall-e-2' in model else 0.08}/image)")
 
             def _generate_dalle():
                 try:
