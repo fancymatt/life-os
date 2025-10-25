@@ -324,6 +324,10 @@ function Sidebar({ isOpen, onClose }) {
             </button>
             {!collapsed.system && (
               <div className="nav-section-content">
+                <NavLink to="/brief" className="nav-link nav-link-sibling" onClick={onClose}>
+                  <span className="nav-icon">📬</span>
+                  <span className="nav-label">Brief</span>
+                </NavLink>
                 <NavLink to="/jobs" className="nav-link nav-link-sibling" onClick={onClose}>
                   <span className="nav-icon">📋</span>
                   <span className="nav-label">Job History</span>
