@@ -250,9 +250,16 @@ async def analyze_merge(
         job_id for tracking progress
     """
     try:
+        # Debug logging to see what fields are available
+        logger.info(f"Merge analyze request - entity_type: {request.entity_type}")
+        logger.info(f"Source entity keys: {list(request.source_entity.keys())}")
+        logger.info(f"Target entity keys: {list(request.target_entity.keys())}")
+
         # Extract entity IDs if not provided
         source_id = request.source_id or request.source_entity.get('id') or request.source_entity.get('item_id')
         target_id = request.target_id or request.target_entity.get('id') or request.target_entity.get('item_id')
+
+        logger.info(f"Extracted IDs - source_id: {source_id}, target_id: {target_id}")
 
         if not source_id or not target_id:
             raise HTTPException(

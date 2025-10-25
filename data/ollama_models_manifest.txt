@@ -1,0 +1,13 @@
+# Ollama Models Manifest
+# Generated: Fri Oct 24 18:35:01 MDT 2025
+# Hostname: Ishikawa.home.local
+#
+# To restore models after disaster:
+#   docker exec ai-studio-ollama ollama pull <model-name>
+
+NAME                   ID              SIZE      MODIFIED   
+llava:13b              0d0eb4d7f485    8.0 GB    7 days ago    
+llama3.2-vision:11b    6f2f9757ae97    7.8 GB    7 days ago    
+gpt-oss:120b           a951a23b46a1    65 GB     7 days ago    
+qwen2.5:72b            424bad2cc13f    47 GB     7 days ago    
+llama3.2:3b            a80c4f17acd5    2.0 GB    7 days ago    

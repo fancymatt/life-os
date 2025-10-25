@@ -46,7 +46,7 @@ function EntityMergeModal({
     }
   }
 
-  const analyzeWithAI = async () => {
+  const analyzeWithAI = async (autoApprove = false) => {
     try {
       setLoading(true)
       setError(null)
@@ -58,13 +58,13 @@ function EntityMergeModal({
         target_entity: targetEntity.data || targetEntity,
         source_id: sourceEntity.id,  // Include IDs explicitly
         target_id: targetEntity.id,
-        auto_approve: true  // Auto-approve for now (skip Brief card workflow)
+        auto_approve: autoApprove  // Default: false (pause for review)
       })
 
       // Response now contains job_id - poll for completion
       const jobId = response.data.job_id
 
-      // Poll job status until completed
+      // Poll job status until completed or awaiting input
       const pollInterval = setInterval(async () => {
         try {
           const jobResponse = await api.get(`/jobs/${jobId}`)
@@ -83,6 +83,17 @@ function EntityMergeModal({
               setLoading(false)
               onMergeComplete()
               return
+            }
+
+            setLoading(false)
+          } else if (job.status === 'awaiting_input') {
+            // Job paused for user review - extract merged_data from awaiting_data
+            clearInterval(pollInterval)
+
+            if (job.awaiting_data?.merged_data) {
+              setMergedData(job.awaiting_data.merged_data)
+              setChangesSummary(job.awaiting_data.changes_summary)
+              setStep('confirm')
             }
 
             setLoading(false)
@@ -197,8 +208,16 @@ function EntityMergeModal({
           Cancel
         </button>
         <button
+          className="merge-btn merge-btn-secondary"
+          onClick={() => analyzeWithAI(true)}
+          disabled={loading}
+          title="Skip review and merge immediately"
+        >
+          {loading ? 'Merging...' : 'Merge Anyway'}
+        </button>
+        <button
           className="merge-btn merge-btn-primary"
-          onClick={analyzeWithAI}
+          onClick={() => analyzeWithAI(false)}
           disabled={loading}
         >
           {loading ? 'Analyzing...' : 'Analyze with AI →'}

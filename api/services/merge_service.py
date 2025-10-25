@@ -128,13 +128,16 @@ class MergeService:
             from api.repositories.clothing_item_repository import ClothingItemRepository
             from api.repositories.board_game_repository import BoardGameRepository
 
+            # Normalize entity type (handle plurals from frontend)
+            normalized_type = entity_type.rstrip('s')  # "clothing_items" → "clothing_item"
+
             # Get appropriate repository
             repo = None
-            if entity_type == "character":
+            if normalized_type in ["character"]:
                 repo = CharacterRepository(self.db)
-            elif entity_type == "clothing_item":
+            elif normalized_type in ["clothing_item"]:
                 repo = ClothingItemRepository(self.db)
-            elif entity_type == "board_game":
+            elif normalized_type in ["board_game"]:
                 repo = BoardGameRepository(self.db)
             # Add more entity types as needed
 
