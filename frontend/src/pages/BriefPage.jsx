@@ -27,7 +27,7 @@ function BriefPage() {
 
   const loadCards = async () => {
     try {
-      const response = await api.get('/brief')
+      const response = await api.get('/brief/')
       setCards(response.data)
       setLoading(false)
     } catch (err) {
@@ -40,9 +40,9 @@ function BriefPage() {
   const handleCardAction = async (cardId, action, editedData = null) => {
     try {
       if (action === 'dismiss') {
-        await api.post(`/brief/${cardId}/dismiss`)
+        await api.post(`/brief/${cardId}/dismiss/`)
       } else {
-        await api.post(`/brief/${cardId}/respond`, {
+        await api.post(`/brief/${cardId}/respond/`, {
           response: {
             action,
             edited_data: editedData
