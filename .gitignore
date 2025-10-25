@@ -46,6 +46,10 @@ data                    # User accounts and persistent data (contains credential
 presets/                # User-created presets
 presets/**
 presets/**/**
+entity_previews/        # Generated entity preview images
+entity_previews/**
+uploads/                # Uploaded files (temporary)
+uploads/**
 
 # Node / Frontend
 node_modules/
